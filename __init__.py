@@ -16,7 +16,7 @@ import argparse
 import subprocess
 
 from pathlib import Path
-from config_templates import ARC_CONFIG, ATAC_CONFIG, RNAseq_CONFIG
+from config_templates import ARC_CONFIG, ATAC_CONFIG, GEX
 
 __version__ = "1.0.0"
 __description__ = "Snakemake wrapper for Cell Ranger ARC workflows"
@@ -48,105 +48,6 @@ formatter = ColorFormatter("[%(levelname)s] %(message)s")
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-
-# Default configuration template
-# ARC_CONFIG = {
-#     "reference": "/path/to/reference-genome",
-#     "libraries": "/path/to/libraries_list",
-#     "HPC_mode": "",
-#     "mempercore": 8,
-#     "normalize": "none",
-# }
-
-# ATAC_CONFIG = {
-#     "samples": {
-#         "sample1": {
-#             "fastqs": "/path/to/fastqs/sample1",
-#             "libraries_csv": "/path/to/sample1_libraries.csv"
-#         }
-#     },
-#     "reference": "/path/to/cellranger-arc-reference",
-#     "output_dir": "results",
-#     "cellranger_arc": {
-#         "extra_args": "--force-cells=5000",
-#         "localcores": 8,
-#         "localmem": 64
-#     },
-#     "resources": {
-#         "default_threads": 8,
-#         "default_mem_gb": 64
-#     }
-# }
-
-# RNA_CONFIG = {
-#     "samples": {
-#         "sample1": {
-#             "fastqs": "/path/to/fastqs/sample1",
-#             "libraries_csv": "/path/to/sample1_libraries.csv"
-#         }
-#     },
-#     "reference": "/path/to/cellranger-arc-reference",
-#     "output_dir": "results",
-#     "cellranger_arc": {
-#         "extra_args": "--force-cells=5000",
-#         "localcores": 8,
-#         "localmem": 64
-#     },
-#     "resources": {
-#         "default_threads": 8,
-#         "default_mem_gb": 64
-#     }
-# }
-
-# Default Snakefile template
-DEFAULT_SNAKEFILE = '''
-import os
-from pathlib import Path
-
-# Load configuration
-configfile: "config.yaml"
-
-# Get all samples
-SAMPLES = list(config["samples"].keys())
-
-rule all:
-    input:
-        expand("{output_dir}/{sample}/outs/web_summary.html", 
-               output_dir=config["output_dir"], 
-               sample=SAMPLES)
-
-rule cellranger_arc_count:
-    input:
-        fastqs = lambda wildcards: config["samples"][wildcards.sample]["fastqs"],
-        libraries = lambda wildcards: config["samples"][wildcards.sample]["libraries_csv"],
-        reference = config["reference"]
-    output:
-        directory("{output_dir}/{sample}"),
-        web_summary = "{output_dir}/{sample}/outs/web_summary.html",
-        filtered_feature_bc_matrix = directory("{output_dir}/{sample}/outs/filtered_feature_bc_matrix"),
-        raw_feature_bc_matrix = directory("{output_dir}/{sample}/outs/raw_feature_bc_matrix")
-    params:
-        sample_id = "{sample}",
-        extra = config["cellranger_arc"].get("extra_args", ""),
-        output_prefix = lambda wildcards, output: os.path.dirname(output[0])
-    threads: 
-        config["cellranger_arc"].get("localcores", 8)
-    resources:
-        mem_gb = config["cellranger_arc"].get("localmem", 64)
-    shell:
-        """
-        cd {params.output_prefix}
-        cellranger-arc count \\
-            --id={params.sample_id} \\
-            --reference={input.reference} \\
-            --libraries={input.libraries} \\
-            --fastqs={input.fastqs} \\
-            --localcores={threads} \\
-            --localmem={resources.mem_gb} \\
-            {params.extra}
-        """
-'''
-
 def sanity_check(args):
     """Check for invalid argument combinations."""
     if args.get_default_config not in (False, True):
@@ -159,15 +60,15 @@ def sanity_check(args):
 def write_default_config(workflow, filename=None):
     """Print or save the default configuration YAML based on the workflow and filename."""
     
-    if workflow == "arc":
+    if workflow == "ARC":
         config_data = ARC_CONFIG
         default_filename = 'ARC_default_config.yaml'
-    elif workflow == "atac":
+    elif workflow == "ATAC":
         config_data = ATAC_CONFIG
         default_filename = 'ATAC_default_config.yaml'
-    elif workflow == "rna":    
-        config_data = RNAseq_CONFIG
-        default_filename = 'RNA_default_config.yaml'
+    elif workflow == "GEX":    
+        config_data = GEX
+        default_filename = 'GEX_default_config.yaml'
     else:
         logger.error(f"Unknown workflow type: {workflow}")
         sys.exit(1)
@@ -182,29 +83,6 @@ def write_default_config(workflow, filename=None):
         with open(filename, 'w') as f:
             yaml.dump(config_data, f, indent=2)
 
-
-def create_default_files(output_dir="."):
-    """Create default Snakefile and config.yaml"""
-    output_path = Path(output_dir)
-    output_path.mkdir(exist_ok=True)
-    
-    # Write Snakefile
-    snakefile_path = output_path / "Snakefile"
-    with open(snakefile_path, 'w') as f:
-        f.write(DEFAULT_SNAKEFILE.strip())
-    
-    # Write config.yaml
-    config_path = output_path / "config.yaml"
-    with open(config_path, 'w') as f:
-        f.write("# Configuration for Cell Ranger ARC Snakemake workflow\n")
-        f.write("# Modify the paths and parameters below\n\n")
-        yaml.dump(DEFAULT_CONFIG, f, default_flow_style=False, indent=2)
-    
-    print(f"Created default files in {output_path}:")
-    print(f"  - {snakefile_path}")
-    print(f"  - {config_path}")
-    print("\nEdit config.yaml with your specific paths and parameters, then run:")
-    print(f"  snakemake-run-cellranger.py --run")
 
 def run_snakemake(config_file="config.yaml", snakefile="Snakefile", dry_run=False, cores=None, additional_args=""):
     """Run the Snakemake workflow"""
