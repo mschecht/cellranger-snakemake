@@ -3,7 +3,7 @@
 # Default configuration template for ARC pipeline
 ARC_CONFIG = {
     "reference": "/path/to/reference-genome",
-    "libraries": "/path/to/libraries_list",
+    "libraries": "/path/to/libraries_list.tsv",
     "HPC_mode": "",
     "mempercore": 8,
     "normalize": "none",
@@ -29,7 +29,7 @@ ATAC_CONFIG = {
     }
 }
 
-RNAseq_CONFIG = {
+GEX_CONFIG = {
     "samples": {
         "sample1": {
             "fastqs": "/path/to/fastqs/sample1",

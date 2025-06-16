@@ -203,7 +203,7 @@ rule cellranger_arc_aggr_csv:
             for sample in batch_to_samples[wildcards.batch]
         ]
     output:
-        aggr_csv = os.path.join("{batch}_aggr.csv")
+        aggr_csv = os.path.join("{batch}", "{batch}_aggr.csv")
     run:
         batch = int(wildcards.batch)
         aggr_rows = []
