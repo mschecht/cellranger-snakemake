@@ -1,3 +1,7 @@
+# Description
+
+The tool `snakemake-run-cellranger` is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) wrapper for [10x Cell Ranger workflows](https://www.10xgenomics.com/software) supporting [GEX](https://www.10xgenomics.com/support/software/cell-ranger/latest), [ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), and [ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) single-cell data processing.
+
 # Installation instructions
 
 ## 1. Set up conda
@@ -23,50 +27,87 @@ cd cellranger-snakemake
 
 ## 3. Create and activate the Conda environment:
 ```bash
-conda install mamba -n base -c conda-forge
-mamba env create -f environment.yaml
+conda env create -f environment_mini.yaml
 conda activate cellranger-snakemake
 ```
 
 ## 4. Install `cellranger-snakemake` into the environment
 
-**NOTE** 💡 If you're developing the package, use `pip install -e .` instead for an editable install.
+> 💡 If you're developing the package, use `pip install -e .` instead for an editable install.
 
 ```bash
 pip install .
 ```
 
-## 5. Verify installation
+Verify `snakemake-run-cellranger` installation:
 ```bash
 snakemake-run-cellranger --help  # or your CLI entry point
 ```
 
-# Project Layout
+...and a few other tools while we are at it:
+```bash
+# Check Snakemake
+snakemake --version
+bcftools --version
+samtools --version
+```
+
+## 5. Cell Ranger Installation
+
+This package provides a Snakemake wrapper for [10x Genomics Cell Ranger](https://www.10xgenomics.com/software), but it does not include the Cell Ranger software itself.
+
+Check if you have [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest), [Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [Cell Ranger ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) installed: 
 
 ```bash
-$ tree .
-.
-├── cellranger_snakemake
-│   ├── cli.py
-│   ├── config_templates.py
-│   ├── __init__.py
-│   ├── utils
-│   │   ├── __init__.py
-│   │   ├── logger.py
-│   └── workflows
-│       ├── ARC
-│       │   ├── cellrangerARC.smk
-│       │   └── __init__.py
-│       ├── ATAC
-│       │   └── __init__.py
-│       ├── GEX
-│       │   └── __init__.py
-│       ├── __init__.py
-│       └── workflow.py
-├── config.yaml
-├── pyproject.toml
-├── README.md
-├── setup.py
+$ cellranger --version
+cellranger cellranger-7.0.1
+
+$ cellranger-atac --version
+cellranger-atac cellranger-atac-2.1.0
+
+$ cellranger-arc --version
+cellranger-arc cellranger-arc-2.0.2
+```
+
+If not, please install it :)
+
+Once installed, link [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest), [Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [Cell Ranger ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) to the conda env:
+```bash
+# Link Cell Ranger
+SOURCE="/path/to/cellranger"
+ENV_NAME="cellranger-snakemake"
+TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger"
+
+ln -s "$SOURCE" "$TARGET"
+
+# Link Cell Ranger ATAC
+SOURCE="/path/to/cellranger-atac"
+ENV_NAME="cellranger-snakemake"
+TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger-atac"
+
+ln -s "$SOURCE" "$TARGET"
+
+# Link Cell Ranger ARC
+SOURCE="/path/to/cellranger-arc"
+ENV_NAME="cellranger-snakemake"
+TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger-arc"
+
+ln -s "$SOURCE" "$TARGET"
+```
+
+## 6. Verification of installation
+- FIXME: add a verification step to ensure everything is set up correctly
+
+# Quick Start
+
+1. **Create a config file:**
+```bash
+snakemake-run-cellranger --workflow ARC --get-default-config
+```
+
+2. **Run a workflow:**
+```bash
+snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml
 ```
 
 # Developer notes
@@ -75,5 +116,5 @@ $ tree .
 
 If you add or update any Conda dependency, re-export the environment and commit the change:
 ```bash
-conda env export --no-builds > environment.yaml
+conda env export > environment.yaml
 ```
