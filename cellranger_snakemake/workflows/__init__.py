@@ -3,10 +3,10 @@
 
 
 import sys
-from cellranger_snakemake.utils.logger import logger
+from cellranger_snakemake.utils.custom_logger import custom_logger
 
 __all__ = [
-    "logger",
+    "custom_logger",
     "write_default_config",
     "run_snakemake",
     "sanity_check",

@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from cellranger_snakemake.utils.logger import logger
+from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.workflows.workflow import Workflow
 from cellranger_snakemake.config_templates import ARC_CONFIG, ATAC_CONFIG, GEX_CONFIG
 
@@ -95,7 +95,7 @@ Examples:
                 additional_args=args.additional_params
             )
     except Exception as e:
-        logger.error(f"Failed: {e}")
+        custom_logger.error(f"Failed: {e}")
         sys.exit(1)
 
 

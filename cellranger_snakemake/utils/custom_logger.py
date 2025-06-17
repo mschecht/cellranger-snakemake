@@ -1,4 +1,4 @@
-# logger.py
+# custom_logger.py
 import logging
 
 class ColorFormatter(logging.Formatter):
@@ -16,13 +16,13 @@ class ColorFormatter(logging.Formatter):
         message = super().format(record)
         return f"{color}{message}{self.RESET}"
 
-# Initialize logger
-logger = logging.getLogger("snakemake_runner")
-logger.setLevel(logging.DEBUG)  # Adjust level as needed
+# Initialize custom_logger
+custom_logger = logging.getLogger("cellranger_snakemake")
+custom_logger.setLevel(logging.DEBUG)  # Adjust level as needed
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 
 formatter = ColorFormatter("[%(levelname)s] %(message)s")
 ch.setFormatter(formatter)
-logger.addHandler(ch)
+custom_logger.addHandler(ch)
