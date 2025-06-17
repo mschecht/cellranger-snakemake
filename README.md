@@ -1,25 +1,37 @@
 # Installation instructions
 
-## 
+## Prerequisites
 
-1. Clone the repository:
+- Python 3.8+
+- Conda (Miniconda or Anaconda)
+
+## 1. Clone the repository:
 ```bash
 git clone https://github.com/mschecht/cellranger-snakemake.git
 cd cellranger-snakemake
 ```
-2. Create and activate the Conda environment:
+
+## 2. Create and activate the Conda environment:
 ```bash
-conda env create -f environment.yaml
+conda install mamba -n base -c conda-forge
+mamba env create -f environment.yaml
 conda activate cellranger-snakemake
 ```
 
-3. Verify installation
-```bash
-cellranger-snakemake --help  # or your CLI entry point
+## 3. Install `cellranger-snakemake` into the environment
 
+**NOTE** 💡 If you're developing the package, use `pip install -e .` instead for an editable install.
+
+```bash
+pip install .
 ```
 
-# cellranger-snakemake
+## 4. Verify installation
+```bash
+cellranger-snakemake --help  # or your CLI entry point
+```
+
+# Project Layout
 
 ```bash
 $ tree .
@@ -45,4 +57,13 @@ $ tree .
 ├── pyproject.toml
 ├── README.md
 ├── setup.py
+```
+
+# Developer notes
+
+## Updating the Conda environment
+
+If you add or update any Conda dependency, re-export the environment and commit the change:
+```bash
+conda env export --no-builds > environment.yaml
 ```
