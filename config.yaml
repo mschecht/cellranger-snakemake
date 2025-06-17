@@ -1,5 +1,0 @@
-HPC_mode: ''
-libraries: /path/to/libraries_list
-mempercore: 8
-normalize: none
-reference: /path/to/reference-genome
