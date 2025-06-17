@@ -4,7 +4,7 @@
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/cellranger-snakemake.git
+git clone [https://github.com/yourusername/cellranger-snakemake.git](https://github.com/mschecht/cellranger-snakemake.git)
 cd cellranger-snakemake
 ```
 2. Create and activate the Conda environment:
