@@ -1,6 +1,9 @@
 # Installation instructions
+
+```bash
 conda env create -f environment.yaml
 conda activate cellranger-snakemake
+```
 
 # cellranger-snakemake
 
