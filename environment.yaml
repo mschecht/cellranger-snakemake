@@ -1,4 +1,4 @@
-name: barreiro_fresh
+name: cellranger-snakemake
 channels:
   - bioconda
   - conda-forge
