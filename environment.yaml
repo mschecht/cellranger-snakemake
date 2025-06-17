@@ -337,4 +337,4 @@ dependencies:
       - tqdm==4.67.1
       - umap-learn==0.5.7
       - widgetsnbextension==4.0.14
-prefix: /home/mschechter/miniconda3/envs/barreiro_fresh
+prefix: /home/mschechter/miniconda3/envs/cellranger-snakemake
