@@ -1,8 +1,22 @@
 # Installation instructions
 
+## 
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/cellranger-snakemake.git
+cd cellranger-snakemake
+```
+2. Create and activate the Conda environment:
 ```bash
 conda env create -f environment.yaml
 conda activate cellranger-snakemake
+```
+
+3. Verify installation
+```bash
+cellranger-snakemake --help  # or your CLI entry point
+
 ```
 
 # cellranger-snakemake
