@@ -6,7 +6,13 @@ setup(
     author="Matthew S. Schechter",
     author_email="mschechter@uchicago.edu",
     description="Snakemake wrapper for Cell Ranger workflows",
-    packages=find_packages(),  # Automatically find all packages under the directory
+    packages=find_packages(),
+    include_package_data=True,  # <--- Add this line
+    package_data={
+        "cellranger_snakemake.workflows.ARC": ["*.smk"],
+        "cellranger_snakemake.workflows.ATAC": ["*.smk"],
+        "cellranger_snakemake.workflows.GEX": ["*.smk"],
+    },
     install_requires=[
         # Add other dependencies here
     ],
