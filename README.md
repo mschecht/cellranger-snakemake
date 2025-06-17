@@ -38,7 +38,7 @@ pip install .
 
 ## 5. Verify installation
 ```bash
-cellranger-snakemake --help  # or your CLI entry point
+snakemake-run-cellranger --help  # or your CLI entry point
 ```
 
 # Project Layout
