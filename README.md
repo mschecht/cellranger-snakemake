@@ -100,12 +100,17 @@ ln -s "$SOURCE" "$TARGET"
 
 # Quick Start
 
-1. **Create a config file:**
+1. **Activate the environment**
+```bash
+conda activate cellranger-snakemake
+```
+
+2. **Create a config file:**
 ```bash
 snakemake-run-cellranger --workflow ARC --get-default-config
 ```
 
-2. **Run a workflow:**
+3. **Run a workflow:**
 ```bash
 snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml
 ```
