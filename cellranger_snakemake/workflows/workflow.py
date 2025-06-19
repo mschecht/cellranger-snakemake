@@ -5,7 +5,7 @@ import subprocess
 
 from pathlib import Path
 from cellranger_snakemake.utils.custom_logger import custom_logger
-from cellranger_snakemake.config_templates import ARC_CONFIG, ATAC_CONFIG, GEX_CONFIG
+from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, GEX_CONFIG
 
 class Workflow:
     def __init__(self, name, get_default_config, config_file):
@@ -63,6 +63,30 @@ class Workflow:
             custom_logger.info(f"Writing '{self.name}' default config YAML to '{self.default_config_filename}'")
             with open(self.default_config_filename, 'w') as f:
                 yaml.dump(self.default_config, f, indent=2, sort_keys=False)
+    
+
+    def generate_config_readme(self):
+        """Generate a README file with detailed configuration instructions."""
+        if self.default_config_filename:
+            if self.name == "ARC":
+                readme_content = ARC_README_content.format(workflow_type=self.name, config_filename=self.default_config_filename)
+            elif self.name == "ATAC":
+                readme_content = ATAC_CONFIG.get('README_content', "No README content defined for ATAC workflow.")
+            elif self.name == "GEX":
+                readme_content = GEX_CONFIG.get('README_content', "No README content defined for GEX workflow.")
+            else:
+                custom_logger.warning(f"Unknown workflow name '{self.name}'. Cannot generate README.")
+                return None
+
+            readme_filename = f"{self.name}_CONFIG_README.md"
+            custom_logger.info(f"Generating configuration README for '{self.name}' workflow: {readme_filename}")
+            with open(readme_filename, 'w') as f:
+                f.write(readme_content)
+
+            return readme_filename
+        else:
+            custom_logger.warning("Skipping README generation.")
+            return None
     
 
     def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, dag=False, additional_args=""):

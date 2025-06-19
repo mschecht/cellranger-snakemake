@@ -86,6 +86,7 @@ Examples:
     try:
         if args.get_default_config:
             wf.write_default_config()
+            wf.generate_config_readme()
         else:
             wf.run(
                 config_file=args.config_file,
