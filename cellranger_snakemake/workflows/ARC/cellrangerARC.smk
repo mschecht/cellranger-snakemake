@@ -1,10 +1,10 @@
 import os
 import sys
 import json
-# import logging
 import pandas as pd
 
 from collections import defaultdict
+from cellranger_snakemake.utils import utils
 from cellranger_snakemake.utils.custom_logger import custom_logger
 
 # Snakemake workflow for Cell Ranger Arc: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest
@@ -26,11 +26,8 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 #  - sample_ID: The ID of the sample
 #  - CSV: The path to the CSV file containing the library information
 
-dirs_dict = {
-    "LOGS_DIR": "00_LOGS",
-    "CELLRANGERARC_COUNT_DIR": "01_CELLRANGERARC_COUNT",
-    "CELLRANGERARC_AGGR_DIR": "02_CELLRANGERARC_AGGR"
-}
+# Get directories
+dirs_dict = utils.get_directories(config)
 
 # Create directories if they don't exist
 for dir_path in dirs_dict.values():
@@ -146,7 +143,7 @@ for idx, row in df.iterrows():
 
 custom_logger.info(f"Found {len(summary_dict)} samples across {len(batch_to_samples)} batches:")
 for batch, samples in batch_to_samples.items():
-    custom_logger.info(f"  Batch {batch}: {len(samples)} samples")
+    custom_logger.info(f"Batch {batch}: {len(samples)} samples")
 
 rule all:
     input:
@@ -159,35 +156,36 @@ rule cellranger_arc_count:
     """
     [cellranger-arc count](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#count)
 
-    This program is used to count ATAC and gene expression reads from a single library against a reference genome.
+    This program counts ATAC and gene expression reads from a single library against a reference genome.
     """
-    log: os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.log")
-    input:  
-        # Add dependency on library CSV file to ensure it exists
-        library_csv = lambda wildcards: summary_dict[wildcards.sample_id]["Library_path"]
-    output: 
+    input:
+        reference = reference_genome,
+        library_csv = lambda wc: summary_dict[wc.sample_id]["Library_path"]
+    output:
         done_flag = touch(os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.done")),
         atac_fragments = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "atac_fragments.tsv.gz"),
         per_barcode_metrics = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "per_barcode_metrics.csv"),
         gex_molecule_info = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "gex_molecule_info.h5")
     params:
-        output_dir = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}")
+        count_dir = dirs_dict["CELLRANGERARC_COUNT_DIR"],
+    log:
+        os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.log")
     threads: 8
     resources:
         mem_gb = 64
     run:
         Library_path = summary_dict[wildcards.sample_id]["Library_path"]
-        
-        # Add path to ID
-        ID = os.path.join(irs_dict['CELLRANGERARC_COUNT_DIR'], wildcards.sample_id) 
-        
+        os.makedirs(params.count_dir, exist_ok=True)
+
         shell(f"""
-                cellranger-arc count --id={ID} \
-                                     --reference={reference_genome} \
-                                     --libraries={Library_path} \
-                                     {jobmode} \
-                                     {mempercore} \
-                                     >> {{log}} 2>&1
+            cellranger-arc count --id={wildcards.sample_id} \
+                                 --reference={reference_genome} \
+                                 --libraries={Library_path} \
+                                 {jobmode} \
+                                 {mempercore} \
+                                 >> {log} 2>&1
+            mkdir -p {params.count_dir}
+            mv {wildcards.sample_id} {params.count_dir}
             """)
 
 rule cellranger_arc_aggr_csv:
@@ -274,7 +272,7 @@ rule cellranger_arc_aggr:
         
         if len(batch_samples) > 1:
             # Change to aggregation directory
-            ID = os.path.join(irs_dict['CELLRANGERARC_COUNT_DIR'], wildcards.batch) 
+            ID = os.path.join(dirs_dict['CELLRANGERARC_COUNT_DIR'], wildcards.batch) 
             shell(f"""
                 cellranger-arc aggr --id={ID} \
                                     --reference={reference_genome} \

@@ -7,7 +7,7 @@ ARC_CONFIG = {
     "HPC_mode": "",
     "mempercore": 8,
     "normalize": "none",
-    "directories_prefix": "none",
+    "directories_suffix": "none",
     "directories": {
         "LOGS_DIR": "00_LOGS",
         "CELLRANGERARC_COUNT_DIR": "01_CELLRANGERARC_COUNT",
