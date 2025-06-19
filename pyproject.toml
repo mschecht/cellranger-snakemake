@@ -2,3 +2,29 @@
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "cellranger-snakemake"
+version = "1.0.0"
+authors = [
+    {name = "Matthew S. Schechter", email = "mschechter@uchicago.edu"},
+]
+description = "Snakemake wrapper for Cell Ranger workflows"
+requires-python = ">=3.7"
+dependencies = [
+    # Add other dependencies here
+]
+
+[project.scripts]
+snakemake-run-cellranger = "cellranger_snakemake.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+# This is equivalent to find_packages() with no arguments
+
+[tool.setuptools.package-data]
+"cellranger_snakemake" = ["workflows/**/*.smk", "workflows/**/*.py"]
+"cellranger_snakemake.workflows.ARC" = ["*.smk"]
+"cellranger_snakemake.workflows.ATAC" = ["*.smk"]
+"cellranger_snakemake.workflows.GEX" = ["*.smk"]
