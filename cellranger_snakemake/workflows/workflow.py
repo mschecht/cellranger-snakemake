@@ -62,7 +62,7 @@ class Workflow:
         if self.default_config_filename:
             custom_logger.info(f"Writing '{self.name}' default config YAML to '{self.default_config_filename}'")
             with open(self.default_config_filename, 'w') as f:
-                yaml.dump(self.default_config, f, indent=2)
+                yaml.dump(self.default_config, f, indent=2, sort_keys=False)
     
 
     def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, dag=False, additional_args=""):
