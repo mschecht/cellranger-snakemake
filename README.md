@@ -27,7 +27,9 @@ cd cellranger-snakemake
 
 ## 3. Create and activate the Conda environment:
 ```bash
-conda env create -f environment_mini.yaml
+# remove any old cellranger-snakemake env you might have previously installed
+conda env remove --name cellranger-snakemake
+conda env create -f environment.yaml
 conda activate cellranger-snakemake
 ```
 
