@@ -1,7 +1,0 @@
-name: cellranger-snakemake
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.10
-  - pyyaml
