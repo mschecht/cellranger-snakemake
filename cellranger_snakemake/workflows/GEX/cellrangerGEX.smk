@@ -51,27 +51,121 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
                             f"This was the error: {e}")
         sys.exit(1)
 
-    custom_logger.info(f"{libraries_file} file format is valid.")
+    # Validate headers
+    expected_columns = {"ID", "batch", "sample", "Fastqs"}
+    actual_columns = set(df.columns)
+    if expected_columns != actual_columns:
+        custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
+        sys.exit(1)
 
-    return df
+    valid = True
+    for idx, row in df.iterrows():
+        fastq_path = row["Fastqs"]
+        error_location = f"Row {idx + 2} in '{filepath}'"
+        if not isinstance(fastq_path, str):
+            custom_logger.error(f"{error_location}: Path is not a string: {fastq_path}")
+            valid = False
+
+        # Try to identify if Fastqs column has more than one path
+        DELIMITERS = [",", ";", ":", " "]
+        # First, check for disallowed delimiters
+        for delim in DELIMITERS[1:]:  # skip comma (allowed)
+            if delim in fastq_path:
+                custom_logger.error(f"{error_location}: Path contains invalid delimiter '{delim}'. Only comma-separated paths are allowed.")
+                sys.exit(1)
+
+        # Split the paths by comma
+        suspected_paths = [path.strip() for path in fastq_path.split(",") if path.strip()]
+        # Validate each individual path
+        for path in suspected_paths:
+            if not os.path.isabs(path):
+                custom_logger.error(f"{error_location}: Path is not absolute: {path}")
+                valid = False
+            elif not os.path.exists(path):
+                custom_logger.error(f"{error_location}: Path does not exist: {path}")
+                valid = False
+
+    if valid:
+        custom_logger.info("libraries_list.tsv file format is valid.")
+        return df
+    else:
+        custom_logger.error("Some errors were found in the file. Please check the log.")
+        sys.exit(1)
 
 df = sanity_check_libraries_list_GEX_tsv(libraries_file)
 
-# Collect a summary and validate library CSV files
+# Collect a summary
 summary_dict = {}
 batch_to_samples = defaultdict(list)
-
 for idx, row in df.iterrows():
-    batch = row["batch"]
-    ID = row["ID"] 
+    ID = row["ID"]
+    batch = str(row["batch"])  # convert to string for consistency
     sample = row["sample"]
-    Fastqs = row["Fastqs"]
+    fastqs = row["Fastqs"]
+    out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], ID, batch)
 
-    summary_dict[batch] = {
-        "ID": ID,
-        "sample": sample,
-        "Fastqs": Fastqs
-    }
+    # Initialize nested dicts if needed
+    if ID not in summary_dict:
+        summary_dict[ID] = {}
 
-print(summary_dict)
+    if batch not in summary_dict[ID]:
+        summary_dict[ID][batch] = {
+            "sample": sample,
+            "fastqs": set(),
+            "output_dir": out_dir
+        }
 
+    # Add fastqs (assuming multiple fastqs per batch)
+    summary_dict[ID][batch]["fastqs"].add(fastqs)
+
+    # batch_to_samples remains a dict of sets
+    batch_to_samples[ID].append(batch)
+
+# Print summary to stderr to avoid interfering with DAG output
+custom_logger.info(f"Found {sum(len(batches) for batches in batch_to_samples.values())} batch(es) across {len(summary_dict)} sample(s):")
+for batch, samples in batch_to_samples.items():
+    custom_logger.info(f"Sample {batch}: {len(samples)} batch(es)")
+batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in batch_to_samples.items()}
+
+# Create output directories
+for sample, batches_dict in summary_dict.items(): 
+    for batch, batch_info in batches_dict.items():
+        os.makedirs(batch_info["output_dir"], exist_ok=True)
+
+# Set of files to be expected once all rules are finished
+done_files = [
+    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_{batch}_cellranger_gex_count.done")
+    for ID in summary_dict
+    for batch in summary_dict[ID]
+]
+
+rule all:
+    input:
+        done_files
+
+rule cellranger_gex_count:
+    input:
+        reference = reference_genome
+    output:
+        done = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.done")
+    params:
+        sample = lambda wildcards: summary_dict[wildcards.ID][wildcards.batch]["sample"],
+        fastqs = lambda wildcards: list(summary_dict[wildcards.ID][wildcards.batch]["fastqs"])[0],
+        outdir = lambda wildcards: summary_dict[wildcards.ID][wildcards.batch]["output_dir"]
+    log:
+        os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.log")
+    threads: 8
+    resources:
+        mem_gb = 64
+    run:
+        shell(f"""
+        cellranger count \
+            --id={wildcards.ID} \
+            --sample={params.sample} \
+            --fastqs={params.fastqs} \
+            --transcriptome={input.reference} \
+            {jobmode} \
+            >> {log} 2>&1
+        mv {wildcards.ID} {params.outdir}
+        touch {output.done}
+        """)
