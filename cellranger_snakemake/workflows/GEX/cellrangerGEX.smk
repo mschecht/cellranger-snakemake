@@ -102,7 +102,7 @@ for idx, row in df.iterrows():
     batch = str(row["batch"])  # convert to string for consistency
     sample = row["sample"]
     fastqs = row["Fastqs"]
-    out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], ID, batch)
+    out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], ID)
 
     # Initialize nested dicts if needed
     if ID not in summary_dict:
@@ -160,12 +160,12 @@ rule cellranger_gex_count:
     run:
         shell(f"""
         cellranger count \
-            --id={wildcards.ID} \
+            --id={wildcards.ID}_{wildcards.batch} \
             --sample={params.sample} \
             --fastqs={params.fastqs} \
             --transcriptome={input.reference} \
             {jobmode} \
             >> {log} 2>&1
-        mv {wildcards.ID} {params.outdir}
+        mv {wildcards.ID}_{wildcards.batch} {params.outdir}
         touch {output.done}
         """)
