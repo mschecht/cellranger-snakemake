@@ -129,9 +129,8 @@ batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in
 
 # Set of files to be expected once all rules are finished
 done_files = [
-    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_{batch}_cellranger_gex_count.done")
+    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_aggr.done")
     for ID in summary_dict
-    for batch in summary_dict[ID]
 ]
 
 rule all:
@@ -139,10 +138,16 @@ rule all:
         done_files
 
 rule cellranger_gex_count:
+    """
+    [cellranger count](https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-ct)
+
+    This program counts gene expression (targeted or whole-transcriptome) and/or feature barcode reads from a single sample and GEM well.
+    """
     input:
         reference = reference_genome
     output:
-        done = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.done")
+        done = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.done"),
+        molecule_info = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], "{ID}/{ID}_{batch}/outs/molecule_info.h5")
     params:
         sample = lambda wildcards: summary_dict[wildcards.ID][wildcards.batch]["sample"],
         fastqs = lambda wildcards: list(summary_dict[wildcards.ID][wildcards.batch]["fastqs"])[0],
@@ -166,3 +171,47 @@ rule cellranger_gex_count:
         mv {wildcards.ID}_{wildcards.batch} {params.outdir}
         touch {output.done}
         """)
+
+rule cellranger_gex_aggr_csv:
+    """
+    Generate a CSV file for use with `cellranger aggr`, combining outputs from multiple batches per sample ID.
+    """
+    input:
+        # Only fetch inputs for the current ID
+        done_flags = lambda wildcards: [
+            os.path.join(dirs_dict["LOGS_DIR"], f"{wildcards.ID}_{batch}_cellranger_gex_count.done")
+            for batch in summary_dict[wildcards.ID]
+        ],
+
+        molecule_info = lambda wildcards: [
+            os.path.join(
+                dirs_dict["CELLRANGERGEX_COUNT_DIR"],
+                f"{wildcards.ID}/{wildcards.ID}_{batch}/outs/molecule_info.h5"
+            )
+            for batch in summary_dict[wildcards.ID]
+        ]
+    log:
+        os.path.join(dirs_dict["LOGS_DIR"], "{ID}_cellranger_aggr_csv.log")
+    output:
+        aggr_csv = os.path.join(dirs_dict["CELLRANGERGEX_AGGR_DIR"], "{ID}/{ID}_aggr.csv"),
+        done_flag = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_aggr.done")
+    run:
+        sample = wildcards.ID
+        aggr_rows = []
+
+        for batch in batch_to_samples[sample]:
+            row = {
+                "sample_id": batch,
+                "molecule_h5": os.path.abspath(os.path.join(summary_dict[sample][batch]["output_dir"], f"{sample}_{batch}/outs/molecule_info.h5"))
+            }
+            aggr_rows.append(row)
+
+        # Create output directory
+        os.makedirs(os.path.dirname(output.aggr_csv), exist_ok=True)
+        
+        # Write CSV
+        aggr_csv_df = pd.DataFrame(aggr_rows)
+        aggr_csv_df.to_csv(output.aggr_csv, index=False)
+
+        shell(f"touch {output.done_flag}")
+        shell(f'echo "Created aggregation CSV for ID {wildcards.ID} with {len(batch_to_samples[wildcards.ID])} batches" | tee -a {log}')
