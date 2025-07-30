@@ -125,12 +125,7 @@ for idx, row in df.iterrows():
 custom_logger.info(f"Found {sum(len(batches) for batches in batch_to_samples.values())} batch(es) across {len(summary_dict)} sample(s):")
 for batch, samples in batch_to_samples.items():
     custom_logger.info(f"Sample {batch}: {len(samples)} batch(es)")
-batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in batch_to_samples.items()}
-
-# Create output directories
-for sample, batches_dict in summary_dict.items(): 
-    for batch, batch_info in batches_dict.items():
-        os.makedirs(batch_info["output_dir"], exist_ok=True)
+batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in batch_to_samples.items()} # make sure batches are strings
 
 # Set of files to be expected once all rules are finished
 done_files = [
@@ -166,6 +161,8 @@ rule cellranger_gex_count:
             --transcriptome={input.reference} \
             {jobmode} \
             >> {log} 2>&1
+
+        mkdir -p {params.outdir}
         mv {wildcards.ID}_{wildcards.batch} {params.outdir}
         touch {output.done}
         """)
