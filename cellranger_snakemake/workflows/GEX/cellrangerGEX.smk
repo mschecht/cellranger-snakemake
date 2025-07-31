@@ -129,7 +129,7 @@ batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in
 
 # Set of files to be expected once all rules are finished
 done_files = [
-    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_aggr.done")
+    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_cellranger_aggr.done")
     for ID in summary_dict
 ]
 
@@ -193,7 +193,7 @@ rule cellranger_gex_aggr_csv:
     log:
         os.path.join(dirs_dict["LOGS_DIR"], "{ID}_cellranger_aggr_csv.log")
     output:
-        aggr_csv = os.path.join(dirs_dict["CELLRANGERGEX_AGGR_DIR"], "{ID}/{ID}_aggr.csv"),
+        aggr_csv = os.path.join(dirs_dict["CELLRANGERGEX_AGGR_DIR"], "{ID}_aggr.csv"),
         done_flag = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_aggr.done")
     run:
         sample = wildcards.ID
@@ -215,3 +215,44 @@ rule cellranger_gex_aggr_csv:
 
         shell(f"touch {output.done_flag}")
         shell(f'echo "Created aggregation CSV for ID {wildcards.ID} with {len(batch_to_samples[wildcards.ID])} batches" | tee -a {log}')
+
+rule cellranger_aggr:
+    """
+    Run [cellranger aggr](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-3p-aggr) 
+    to aggregate multiple single-cell libraries.
+
+    This rule only runs if there is more than one batch in a sample. If only one sample is present, the aggregation step is skipped.
+    """
+    log: os.path.join(dirs_dict["LOGS_DIR"], "{ID}_cellranger_aggr.log")
+    input:
+        aggr_csv = rules.cellranger_gex_aggr_csv.output.aggr_csv
+    params:
+        aggr_output_dir = dirs_dict["CELLRANGERGEX_AGGR_DIR"]
+    output:
+        done_flag = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_cellranger_aggr.done")
+    threads: 8
+    resources:
+        mem_gb = 64
+    run:
+        batch_samples = batch_to_samples[(wildcards.ID)]
+        
+        if len(batch_samples) > 1:
+            shell(f"""
+                cellranger aggr --id={{wildcards.ID}} \
+                                --csv={{input.aggr_csv}} \
+                                {jobmode} \
+                                {normalize} \
+                                >> {{log}} 2>&1
+
+                mv {wildcards.ID} {params.aggr_output_dir}
+                touch {output.done_flag}     
+                echo "Aggregated {len(batch_samples)} batches for sample {wildcards.ID}." | tee -a {log}
+            """)
+
+        else:
+            # Create empty output directory to satisfy the rule
+            with open(os.path.join(params.aggr_output_dir, "single_batch_sample.txt"), "w") as f:
+                f.write(f"This sample contained only one batch: {batch_samples[wildcards.ID][0]}\n")
+                f.write("Aggregation was skipped.\n")
+            shell(f"touch {output.done_flag}")
+            shell(f'echo "Sample {wildcards.ID} has only one batch ({batch_samples[wildcards.ID][0]}). Skipping cellranger aggr step." | tee -a {log}')
