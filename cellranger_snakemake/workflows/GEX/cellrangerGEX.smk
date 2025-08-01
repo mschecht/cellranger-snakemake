@@ -13,7 +13,7 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 #  - batch: Batch number which groups samples together
 #  - ID: The ID of the sample
 #  - Sample: Prefix of the subset of the fastq files
-#  - Fastqs: Path to all fastq files
+#  - fastqs: Path to all fastq files
 
 # Get directories
 dirs_dict = utils.get_directories(config)
@@ -52,7 +52,7 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
         sys.exit(1)
 
     # Validate headers
-    expected_columns = {"ID", "batch", "sample", "Fastqs"}
+    expected_columns = {"ID", "batch", "sample", "fastqs"}
     actual_columns = set(df.columns)
     if expected_columns != actual_columns:
         custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
@@ -60,13 +60,13 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
 
     valid = True
     for idx, row in df.iterrows():
-        fastq_path = row["Fastqs"]
+        fastq_path = row["fastqs"]
         error_location = f"Row {idx + 2} in '{filepath}'"
         if not isinstance(fastq_path, str):
             custom_logger.error(f"{error_location}: Path is not a string: {fastq_path}")
             valid = False
 
-        # Try to identify if Fastqs column has more than one path
+        # Try to identify if fastqs column has more than one path
         DELIMITERS = [",", ";", ":", " "]
         # First, check for disallowed delimiters
         for delim in DELIMITERS[1:]:  # skip comma (allowed)
@@ -101,7 +101,7 @@ for idx, row in df.iterrows():
     ID = row["ID"]
     batch = str(row["batch"])  # convert to string for consistency
     sample = row["sample"]
-    fastqs = row["Fastqs"]
+    fastqs = row["fastqs"]
     out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], ID)
 
     # Initialize nested dicts if needed
