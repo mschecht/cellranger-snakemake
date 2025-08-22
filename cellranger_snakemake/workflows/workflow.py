@@ -1,6 +1,7 @@
 import os
 import sys
 import yaml
+import shlex
 import subprocess
 
 from pathlib import Path
@@ -131,7 +132,7 @@ class Workflow:
                 cmd.append("-n")
             cmd += ["-j", str(cores or 1)]
             if additional_args:
-                cmd += additional_args.split()
+                cmd += shlex.split(additional_args)
 
             custom_logger.info(f"Running command: {' '.join(cmd)}")
 

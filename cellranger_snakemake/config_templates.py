@@ -111,6 +111,13 @@ mempercore: 16
 directories_prefix: batch1_analysis
 ```
 
+Example of how to run the workflow on an HPC
+```bash
+ snakemake-run-cellranger --workflow ARC \
+                          --config-file ARC_default_config_filled_out_2.yaml \
+                          --additional-params '--cluster "sbatch -J {rule} --account={ACCOUNT} --partition={PARTITION} --ntasks=1 --cpus-per-task=12 --mem=50G --output={log}"'
+```
+
 ## Troubleshooting
 
 - **File not found errors**: Check that all paths are absolute and accessible
