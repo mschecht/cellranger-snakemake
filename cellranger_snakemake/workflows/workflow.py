@@ -6,7 +6,7 @@ import subprocess
 
 from pathlib import Path
 from cellranger_snakemake.utils.custom_logger import custom_logger
-from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, GEX_CONFIG
+from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, GEX_CONFIG, GEX_README_content
 
 class Workflow:
     def __init__(self, name, get_default_config, config_file):
@@ -74,7 +74,7 @@ class Workflow:
             elif self.name == "ATAC":
                 readme_content = ATAC_CONFIG.get('README_content', "No README content defined for ATAC workflow.")
             elif self.name == "GEX":
-                readme_content = GEX_CONFIG.get('README_content', "No README content defined for GEX workflow.")
+                readme_content = GEX_README_content.format(workflow_type=self.name, config_filename=self.default_config_filename)
             else:
                 custom_logger.warning(f"Unknown workflow name '{self.name}'. Cannot generate README.")
                 return None
