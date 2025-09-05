@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+
 import pandas as pd
 
 from collections import defaultdict
@@ -163,9 +164,6 @@ rule cellranger_arc_count:
         library_csv = lambda wc: summary_dict[wc.sample_id]["Library_path"]
     output:
         done_flag = touch(os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.done")),
-        # atac_fragments = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "atac_fragments.tsv.gz"),
-        # per_barcode_metrics = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "per_barcode_metrics.csv"),
-        # gex_molecule_info = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], "{sample_id}", "outs", "gex_molecule_info.h5")
     params:
         count_dir = dirs_dict["CELLRANGERARC_COUNT_DIR"],
     log:
@@ -212,23 +210,7 @@ rule cellranger_arc_aggr_csv:
         done_flags = lambda wildcards: [
             os.path.join(dirs_dict["LOGS_DIR"], f"{sample}_cellranger_arc_count.done")
             for sample in batch_to_samples[int(wildcards.batch)]
-        ],
-        # # Also require the actual output files
-        # atac_fragments = lambda wildcards: [
-        #     # os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "atac_fragments.tsv.gz")
-        #     os.path.join(sample, "outs", "atac_fragments.tsv.gz")
-        #     for sample in batch_to_samples[int(wildcards.batch)]
-        # ],
-        # per_barcode_metrics = lambda wildcards: [
-        #     # os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "per_barcode_metrics.csv")
-        #     os.path.join(sample, "outs", "per_barcode_metrics.csv")
-        #     for sample in batch_to_samples[int(wildcards.batch)]
-        # ],
-        # gex_molecule_info = lambda wildcards: [
-        #     # os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "gex_molecule_info.h5")
-        #     os.path.join(sample, "outs", "gex_molecule_info.h5")
-        #     for sample in batch_to_samples[int(wildcards.batch)]
-        # ]
+        ]
     output:
         aggr_csv = os.path.join(dirs_dict["CELLRANGERARC_AGGR_DIR"], "{batch}", "{batch}_aggr.csv")
     run:
@@ -238,11 +220,8 @@ rule cellranger_arc_aggr_csv:
         for sample in batch_to_samples[batch]:
             row = {
                 "library_id": sample,
-                # "atac_fragments": os.path.abspath(os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "atac_fragments.tsv.gz")),
                 "atac_fragments": os.path.abspath(os.path.join(sample, "outs", "atac_fragments.tsv.gz")),
-                # "per_barcode_metrics": os.path.abspath(os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "per_barcode_metrics.csv")),
                 "per_barcode_metrics": os.path.abspath(os.path.join(sample, "outs", "per_barcode_metrics.csv")),
-                # "gex_molecule_info": os.path.abspath(os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample, "outs", "gex_molecule_info.h5"))
                 "gex_molecule_info": os.path.abspath(os.path.join(sample, "outs", "gex_molecule_info.h5"))
             }
             aggr_rows.append(row)
@@ -268,7 +247,6 @@ rule cellranger_arc_aggr:
         aggr_csv = rules.cellranger_arc_aggr_csv.output.aggr_csv
     output:
         done_flag = touch(os.path.join(dirs_dict["LOGS_DIR"], "{batch}_cellranger_arc_aggr.done")),
-        # Define expected outputs from aggregation
         aggr_output = directory(os.path.join(dirs_dict["CELLRANGERARC_AGGR_DIR"], "{batch}", "outs"))
     threads: 8
     resources:
