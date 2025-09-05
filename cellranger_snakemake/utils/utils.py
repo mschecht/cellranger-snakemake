@@ -14,3 +14,9 @@ def get_directories(config):
             dirs[key] = value
     
     return dirs
+
+def has_underscore(s: str) -> bool:
+    """
+    Return True if the string contains at least one underscore, else False.
+    """
+    return "_" in s

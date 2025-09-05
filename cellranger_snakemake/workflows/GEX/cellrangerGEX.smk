@@ -11,8 +11,8 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 # Snakemake workflow for Cell Ranger: https://www.10xgenomics.com/support/software/
 #
 # The libraries_list_GEX.tsv should have the following columns:
-#  - batch: Batch number which groups samples together
-#  - ID: The ID of the sample
+#  - batch: Batch number which groups captures together
+#  - capture_ID: The capture_ID of the sample
 #  - Sample: Prefix of the subset of the fastq files
 #  - fastqs: Path to all fastq files
 
@@ -53,7 +53,7 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
         sys.exit(1)
 
     # Validate headers
-    expected_columns = {"ID", "batch", "sample", "fastqs"}
+    expected_columns = {"batch", "capture", "sample", "fastqs"}
     actual_columns = set(df.columns)
     if expected_columns != actual_columns:
         custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
@@ -61,6 +61,14 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
 
     valid = True
     for idx, row in df.iterrows():
+        if utils.has_underscore(str(row["batch"])):
+            custom_logger.error(f"Row {idx + 1} in '{filepath}': Batch name '{row['batch']}' cannot contain underscores.")
+            valid = False
+
+        if utils.has_underscore(str(row["capture"])):
+            custom_logger.error(f"Row {idx + 1} in '{filepath}': Capture name '{row['capture']}' cannot contain underscores.")
+            valid = False
+            
         fastq_path = row["fastqs"]
         error_location = f"Row {idx + 2} in '{filepath}'"
         if not isinstance(fastq_path, str):
@@ -87,51 +95,51 @@ def sanity_check_libraries_list_GEX_tsv(filepath, log_file=None):
                 valid = False
 
     if valid:
-        custom_logger.info("libraries_list.tsv file format is valid.")
+        custom_logger.info(f"{libraries_file} file format is valid.")
         return df
     else:
-        custom_logger.error("Some errors were found in the file. Please check the log.")
+        custom_logger.error(f"Some errors were found in {libraries_file}.")
         sys.exit(1)
 
 df = sanity_check_libraries_list_GEX_tsv(libraries_file)
 
 # Collect a summary
 summary_dict = {}
-batch_to_samples = defaultdict(list)
+capture_to_batch = defaultdict(list)
 for idx, row in df.iterrows():
-    ID = row["ID"]
     batch = str(row["batch"])  # convert to string for consistency
+    capture = row["capture"]
     sample = row["sample"]
     fastqs = row["fastqs"]
-    out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], ID)
+    out_dir = os.path.join(dirs_dict["CELLRANGERGEX_COUNT_DIR"], batch)
 
     # Initialize nested dicts if needed
-    if ID not in summary_dict:
-        summary_dict[ID] = {}
+    if batch not in summary_dict:
+        summary_dict[batch] = {}
 
-    if batch not in summary_dict[ID]:
-        summary_dict[ID][batch] = {
+    if capture not in summary_dict[batch]:
+        summary_dict[batch][capture] = {
             "sample": sample,
             "fastqs": set(),
             "output_dir": out_dir
         }
 
     # Add fastqs (assuming multiple fastqs per batch)
-    summary_dict[ID][batch]["fastqs"].add(fastqs)
+    summary_dict[batch][capture]["fastqs"].add(fastqs)
 
     # batch_to_samples remains a dict of sets
-    batch_to_samples[ID].append(batch)
+    capture_to_batch[batch].append(capture)
 
 # Print summary to stderr to avoid interfering with DAG output
-custom_logger.info(f"Found {sum(len(batches) for batches in batch_to_samples.values())} batch(es) across {len(summary_dict)} sample(s):")
-for batch, samples in batch_to_samples.items():
-    custom_logger.info(f"Sample {batch}: {len(samples)} batch(es)")
-batch_to_samples_str = {sample: {str(b) for b in batches} for sample, batches in batch_to_samples.items()} # make sure batches are strings
+custom_logger.info(f"Found {sum(len(captures) for captures in capture_to_batch.values())} capture(s) across {len(summary_dict)} batch(es):")
+for batch, captures in capture_to_batch.items():
+    custom_logger.info(f"Batch {batch}: {len(captures)} capture(s)")
+capture_to_batch_str = {capture: {str(b) for b in batch} for capture, batch in capture_to_batch.items()} # make sure batches are strings
 
 # Set of files to be expected once all rules are finished
 done_files = [
-    os.path.join(dirs_dict["LOGS_DIR"], f"{ID}_organize.done")
-    for ID in summary_dict
+    os.path.join(dirs_dict["LOGS_DIR"], f"{batch}_organize.done")
+    for batch in summary_dict
 ]
 
 rule all:
@@ -147,19 +155,19 @@ rule cellranger_gex_count:
     input:
         reference = reference_genome
     output:
-        done = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.done")
+        done = os.path.join(dirs_dict["LOGS_DIR"], "{batch}_{capture}_cellranger_gex_count.done")
     params:
-        sample = lambda wildcards: summary_dict[wildcards.ID][wildcards.batch]["sample"],
-        fastqs = lambda wildcards: ",".join(list(summary_dict[wildcards.ID][wildcards.batch]["fastqs"]))
+        sample = lambda wildcards: summary_dict[wildcards.batch][wildcards.capture]["sample"],
+        fastqs = lambda wildcards: ",".join(list(summary_dict[wildcards.batch][wildcards.capture]["fastqs"]))
     log:
-        os.path.join(dirs_dict["LOGS_DIR"], "{ID}_{batch}_cellranger_gex_count.log")
+        os.path.join(dirs_dict["LOGS_DIR"], "{batch}_{capture}_cellranger_gex_count.log")
     threads: 8
     resources:
         mem_gb = 64
     run:
         shell(f"""
         cellranger count \
-            --id={wildcards.ID}_{wildcards.batch} \
+            --id={wildcards.batch}_{wildcards.capture} \
             --sample={params.sample} \
             --fastqs={params.fastqs} \
             --transcriptome={input.reference} \
