@@ -5,7 +5,7 @@ ARC_CONFIG = {
     "reference": "/path/to/reference-genome",
     "libraries": "/path/to/libraries_list.tsv",
     "HPC_mode": "",
-    "mempercore": 8,
+    "mempercore": "",
     "normalize": "none",
     "directories_suffix": "none",
     "directories": {
@@ -154,7 +154,7 @@ GEX_CONFIG = {
     "reference": "/path/to/cellranger-reference",
     "libraries_GEX": "/path/to/libraries_list_GEX.tsv",
     "HPC_mode": "",
-    "mempercore": 8,
+    "mempercore": "",
     "normalize": "none",
     "directories_suffix": "none",
     "directories": {
@@ -193,8 +193,8 @@ batch	capture	sample	fastqs
 B	1	ABC-B-1	/data/GEX/fastqs/
 ```
 
-- batch: Batch number for grouping captures
-- capture: Capture identifier 
+- batch: Batch number for grouping captures (no underscores allowed)
+- capture: Capture identifier (no underscores allowed)
 - sample: Prefix of the filenames of fastqs to select
 - fastqs: Path(s) to input FASTQ data. If providing multiple paths, separate them with commas.
 
