@@ -26,6 +26,7 @@ for dir_path in dirs_dict.values():
 reference_genome = config["reference"]
 libraries_file = config["libraries_GEX"]
 jobmode = f"--jobmode={config['HPC_mode']}" if config.get("HPC_mode") else ""
+chemistry = f"--chemistry={config['chemistry']}" if config.get("chemistry") else ""
 mempercore = f"--mempercore={config['mempercore']}" if config.get("mempercore") else ""
 normalize = f"--normalize={config['normalize']}" if config.get("normalize") else ""
 
@@ -171,6 +172,7 @@ rule cellranger_gex_count:
             --sample={params.sample} \
             --fastqs={params.fastqs} \
             --transcriptome={input.reference} \
+            --chemistry={chemistry} \
             {jobmode} \
             >> {log} 2>&1
 

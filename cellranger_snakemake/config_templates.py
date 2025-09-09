@@ -154,6 +154,7 @@ GEX_CONFIG = {
     "reference": "/path/to/cellranger-reference",
     "libraries_GEX": "/path/to/libraries_list_GEX.tsv",
     "HPC_mode": "",
+    "chemistry": "auto",
     "mempercore": "",
     "normalize": "none",
     "directories_suffix": "none",
