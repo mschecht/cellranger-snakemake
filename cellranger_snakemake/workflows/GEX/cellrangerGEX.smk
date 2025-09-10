@@ -128,7 +128,7 @@ for idx, row in df.iterrows():
     # Add fastqs (assuming multiple fastqs per batch)
     summary_dict[batch][capture]["fastqs"].add(fastqs)
 
-    # batch_to_samples remains a dict of sets
+    # capture_to_batch remains a dict of sets
     capture_to_batch[batch].append(capture)
 
 # Print summary to stderr to avoid interfering with DAG output
@@ -196,7 +196,7 @@ rule cellranger_gex_aggr_csv:
         sample = wildcards.ID
         aggr_rows = []
 
-        for batch in batch_to_samples[sample]:
+        for batch in capture_to_batch[sample]:
             row = {
                 "sample_id": batch,
                 "molecule_h5": os.path.abspath(f"{sample}_{batch}/outs/molecule_info.h5")}
@@ -207,7 +207,7 @@ rule cellranger_gex_aggr_csv:
         aggr_csv_df.to_csv(output.aggr_csv, index=False)
 
         shell(f"touch {output.done_flag}")
-        shell(f'echo "Created aggregation CSV for ID {wildcards.ID} with {len(batch_to_samples[wildcards.ID])} batches" | tee -a {log}')
+        shell(f'echo "Created aggregation CSV for ID {wildcards.ID} with {len(capture_to_batch[wildcards.ID])} batches" | tee -a {log}')
 
 rule cellranger_aggr:
     """
@@ -226,7 +226,7 @@ rule cellranger_aggr:
     resources:
         mem_gb = 64
     run:
-        batch_samples = batch_to_samples[(wildcards.ID)]
+        batch_samples = capture_to_batch[(wildcards.ID)]
         
         if len(batch_samples) > 1:
             shell(f"""
@@ -237,16 +237,17 @@ rule cellranger_aggr:
                                 >> {{log}} 2>&1
 
                 touch {output.done_flag}     
-                echo "Aggregated {len(batch_samples)} batches for sample {wildcards.ID}." | tee -a {log}
+                echo "Aggregated {len(batch_samples)} captures for batch {wildcards.ID}." | tee -a {log}
             """)
 
         else:
-            # Create empty output directory to satisfy the rule
-            with open("single_batch_sample.txt"), "w" as f:
-                f.write(f"This sample contained only one batch: {batch_samples[wildcards.ID][0]}\n")
+            with open(os.path.join(dirs_dict["LOGS_DIR"], f"{wildcards.ID}_single_capture_batch.txt"), "w") as f:
+                f.write(f"This batch contained only one capture: {batch_samples[0]}\n")
                 f.write("Aggregation was skipped.\n")
+
             shell(f"touch {output.done_flag}")
-            shell(f'echo "Sample {wildcards.ID} has only one batch ({batch_samples[wildcards.ID][0]}). Skipping cellranger aggr step." | tee -a {log}')
+            shell(f'echo "Batch {wildcards.ID} has only one capture ({batch_samples[0]}). Skipping cellranger aggr step." | tee -a {log}')
+
 
 rule cellranger_gex_organize:
     """
