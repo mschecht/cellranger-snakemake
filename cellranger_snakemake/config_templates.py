@@ -38,7 +38,7 @@ This file contains metadata and paths for your cellranger-arc libraries
 libraries: /path/to/your/libraries_list.tsv
 ```
 Create a TSV file with format:
-```
+```bash
 $ cat libraries_list.tsv
 batch	capture	CSV
 3	3A	path/to/cellranger-arc-input-file.csv
@@ -46,11 +46,11 @@ batch	capture	CSV
 
 - batch: Batch number for grouping captures
 - capture: Capture identifier for 10x lane
-- CSV: Path to the input CSV file for cellranger-arc. This CSV will be read by the cellranger-arc --libraries argument.
+- CSV: Path to the input CSV file for cellranger-arc. This CSV will be read by the [cellranger-arc --libraries argument](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file).
 
 ## HPC Configuration
 
-### Scheduler Settings
+### HPC Scheduler Settings
 ```yaml
 HPC_mode: 'slurm'  # Options: 'slurm', 'pbs', 'sge', or '' for local
 mempercore: 8      # GB of RAM per CPU core
@@ -66,9 +66,9 @@ mempercore: 8      # GB of RAM per CPU core
 
 ### Option 1: Use default directory names
 
-### Option 2: Use a Common Prefix
+### Option 2: Use a Common Suffix
 ```yaml
-directories_prefix: "results"
+directories_suffix: "results"
 directories:
   LOGS_DIR: 00_LOGS
   CELLRANGERARC_COUNT_DIR: 01_CELLRANGERARC_COUNT
@@ -78,7 +78,7 @@ Results in: `00_LOGS_results`, `01_CELLRANGERARC_COUNT_results/`, etc.
 
 ### Option 2: Custom Directory Names
 ```yaml
-directories_prefix: "none"
+directories_suffix: "none"
 directories:
   LOGS_DIR: pipeline_logs
   CELLRANGERARC_COUNT_DIR: cellranger_counts
@@ -99,7 +99,7 @@ reference: /data/references/arc-ref-GRCh38
 libraries: ./my_samples.tsv
 HPC_mode: ''
 mempercore: ''
-directories_prefix: results
+directories_suffix: results
 ```
 
 ### HPC Cluster Setup
@@ -108,7 +108,7 @@ reference: /shared/references/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
 libraries: /project/mylab/experiments/batch1/libraries.tsv
 HPC_mode: 'slurm'
 mempercore: 16
-directories_prefix: batch1_analysis
+directories_suffix: batch1_analysis
 ```
 
 Example of how to run the workflow on an HPC
@@ -177,7 +177,7 @@ B	1	ABC-B-1	/data/GEX/fastqs/
 
 - batch: Batch number for grouping captures (no underscores allowed)
 - capture: Capture identifier (no underscores allowed)
-- sample: Prefix of the filenames of fastqs to select
+- sample: Suffix of the filenames of fastqs to select
 - fastqs: Path(s) to input FASTQ data. If providing multiple paths, separate them with commas.
 
 ## HPC Configuration
@@ -198,9 +198,9 @@ mempercore: 8      # GB of RAM per CPU core
 
 ### Option 1: Use default directory names
 
-### Option 2: Use a Common Prefix
+### Option 2: Use a Common Suffix
 ```yaml
-directories_prefix: "results"
+directories_suffix: "results"
 directories:
   LOGS_DIR: 00_LOGS
   CELLRANGERATAC_COUNT_DIR: 01_CELLRANGERATAC_COUNT
@@ -210,7 +210,7 @@ Results in: `00_LOGS_results`, `01_CELLRANGERATAC_COUNT_results/`, etc.
 
 ### Option 2: Custom Directory Names
 ```yaml
-directories_prefix: "none"
+directories_suffix: "none"
 directories:
   LOGS_DIR: pipeline_logs
   CELLRANGERATAC_COUNT_DIR: cellranger_counts
@@ -231,7 +231,7 @@ reference: /data/references/atac-ref-GRCh38
 libraries: ./my_samples.tsv
 HPC_mode: ''
 mempercore: ''
-directories_prefix: results
+directories_suffix: results
 ```
 
 ### HPC Cluster Setup
@@ -240,7 +240,7 @@ reference: /shared/references/refdata-cellranger-atac-GRCh38-2020-A-2.0.0
 libraries: /project/mylab/experiments/batch1/libraries.tsv
 HPC_mode: 'slurm'
 mempercore: 16
-directories_prefix: batch1_analysis
+directories_suffix: batch1_analysis
 ```
 
 ## Troubleshooting
@@ -302,7 +302,7 @@ B	1	ABC-B-1	/data/GEX/fastqs/
 
 - batch: Batch number for grouping captures (no underscores allowed)
 - capture: Capture identifier (no underscores allowed)
-- sample: Prefix of the filenames of fastqs to select
+- sample: Suffix of the filenames of fastqs to select
 - fastqs: Path(s) to input FASTQ data. If providing multiple paths, separate them with commas.
 
 ## HPC Configuration
@@ -323,9 +323,9 @@ mempercore: 8      # GB of RAM per CPU core
 
 ### Option 1: Use default directory names
 
-### Option 2: Use a Common Prefix
+### Option 2: Use a Common Suffix
 ```yaml
-directories_prefix: "results"
+directories_suffix: "results"
 directories:
   LOGS_DIR: 00_LOGS
   CELLRANGERGEX_COUNT_DIR: 01_CELLRANGERGEX_COUNT
@@ -335,7 +335,7 @@ Results in: `00_LOGS_results`, `01_CELLRANGERGEX_COUNT_results/`, etc.
 
 ### Option 2: Custom Directory Names
 ```yaml
-directories_prefix: "none"
+directories_suffix: "none"
 directories:
   LOGS_DIR: pipeline_logs
   CELLRANGERGEX_COUNT_DIR: cellranger_counts
@@ -356,7 +356,7 @@ reference: /data/references/ref-GRCh38
 libraries: ./my_samples.tsv
 HPC_mode: ''
 mempercore: ''
-directories_prefix: results
+directories_suffix: results
 ```
 
 ### HPC Cluster Setup
@@ -365,7 +365,7 @@ reference: /shared/references/refdata-cellranger-GRCh38-2020-A-2.0.0
 libraries: /project/mylab/experiments/batch1/libraries.tsv
 HPC_mode: 'slurm'
 mempercore: 16
-directories_prefix: batch1_analysis
+directories_suffix: batch1_analysis
 ```
 
 ## Troubleshooting
