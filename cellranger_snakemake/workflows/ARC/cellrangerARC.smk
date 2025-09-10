@@ -23,8 +23,8 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 #  "normalize": "depth"  # optional: normalization method
 # }
 # The libraries_list.tsv should have the following columns:
-#  - batch: Batch number which groups samples together
-#  - sample_ID: The ID of the sample
+#  - batch: Batch number which groups captures together
+#  - capture: The ID of the capture
 #  - CSV: The path to the CSV file containing the library information
 
 # Get directories
@@ -63,7 +63,7 @@ def sanity_check_libraries_list_tsv(filepath, log_file=None):
         sys.exit(1)
 
     # Validate headers
-    expected_columns = {"batch", "sample_ID", "CSV"}
+    expected_columns = {"batch", "capture", "CSV"}
     actual_columns = set(df.columns)
     if expected_columns != actual_columns:
         custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
@@ -97,12 +97,11 @@ df = sanity_check_libraries_list_tsv(libraries_file)
 
 # Collect a summary and validate library CSV files
 summary_dict = {}
-batch_to_samples = defaultdict(list)
+batch_to_captures = defaultdict(list)
 
 for idx, row in df.iterrows():
     batch = row["batch"]
-    # FIXME: change to "capture_ID" to be consistent with 10x Genomics terminology
-    sample_id = row["sample_ID"] 
+    capture = row["capture"] 
     csv_path = row["CSV"]
     
     # Read and validate the library CSV
@@ -125,12 +124,12 @@ for idx, row in df.iterrows():
         gex_path = gex_rows["fastqs"].iloc[0]
         
     except Exception as e:
-        custom_logger.error(f"Error reading library CSV for sample {sample_id}: {e}")
+        custom_logger.error(f"Error reading library CSV for capture {capture}: {e}")
         sys.exit(1)
     
-    out_dir = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], sample_id, "outs")
+    out_dir = os.path.join(dirs_dict["CELLRANGERARC_COUNT_DIR"], capture, "outs")
 
-    summary_dict[sample_id] = {
+    summary_dict[capture] = {
         "batch": batch,
         "Library_path": csv_path,
         "ATAC_path": atac_path,
@@ -138,19 +137,19 @@ for idx, row in df.iterrows():
         "Output_dir": out_dir
     }
 
-    batch_to_samples[batch].append(sample_id)
+    batch_to_captures[batch].append(capture)
 
 # Print summary to stderr to avoid interfering with DAG output
 
-custom_logger.info(f"Found {len(summary_dict)} samples across {len(batch_to_samples)} batches:")
-for batch, samples in batch_to_samples.items():
-    custom_logger.info(f"Batch {batch}: {len(samples)} samples")
+custom_logger.info(f"Found {len(summary_dict)} captures across {len(batch_to_captures)} batches:")
+for batch, captures in batch_to_captures.items():
+    custom_logger.info(f"Batch {batch}: {len(captures)} captures")
 
 rule all:
     input:
         expand(
             os.path.join(dirs_dict["LOGS_DIR"], "{batch}_cellranger_arc_aggr.done"),
-            batch=batch_to_samples.keys()
+            batch=batch_to_captures.keys()
         )
 
 rule cellranger_arc_count:
@@ -161,41 +160,41 @@ rule cellranger_arc_count:
     """
     input:
         reference = reference_genome,
-        library_csv = lambda wc: summary_dict[wc.sample_id]["Library_path"]
+        library_csv = lambda wc: summary_dict[wc.capture]["Library_path"]
     output:
-        done_flag = touch(os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.done")),
+        done_flag = touch(os.path.join(dirs_dict["LOGS_DIR"], "{capture}_cellranger_arc_count.done")),
     params:
         count_dir = dirs_dict["CELLRANGERARC_COUNT_DIR"],
     log:
-        os.path.join(dirs_dict["LOGS_DIR"], "{sample_id}_cellranger_arc_count.log")
+        os.path.join(dirs_dict["LOGS_DIR"], "{capture}_cellranger_arc_count.log")
     threads: 8
     resources:
         mem_gb = 64
     run:
-        Library_path = summary_dict[wildcards.sample_id]["Library_path"]
+        Library_path = summary_dict[wildcards.capture]["Library_path"]
         os.makedirs(params.count_dir, exist_ok=True)
 
         shell(f"""
-            cellranger-arc count --id={wildcards.sample_id} \
+            cellranger-arc count --id={wildcards.capture} \
                                  --reference={reference_genome} \
                                  --libraries={Library_path} \
                                  {jobmode} \
                                  {mempercore} \
                                  >> {log} 2>&1
             # mkdir -p {params.count_dir}
-            # mv {wildcards.sample_id} {params.count_dir}
+            # mv {wildcards.capture} {params.count_dir}
             """)
 
 rule cellranger_arc_aggr_csv:
     """
-    Generate a CSV file for use with `cellranger-arc aggr`, combining outputs from multiple samples.
+    Generate a CSV file for use with `cellranger-arc aggr`, combining outputs from multiple captures.
 
-    This rule collects the following files from each `cellranger-arc count` sample directory:
+    This rule collects the following files from each `cellranger-arc count` capture directory:
         - `outs/atac_fragments.tsv.gz`
         - `outs/per_barcode_metrics.csv`
         - `outs/gex_molecule_info.h5`
 
-    It assembles a CSV with one row per sample, suitable as input to:
+    It assembles a CSV with one row per capture, suitable as input to:
         `cellranger-arc aggr --csv`.
 
     Output CSV columns:
@@ -206,10 +205,10 @@ rule cellranger_arc_aggr_csv:
     """
     log: os.path.join(dirs_dict["LOGS_DIR"], "{batch}_cellranger_arc_aggr_csv.log")
     input:
-        # Require counts for all samples in batch before aggregation
+        # Require counts for all captures in batch before aggregation
         done_flags = lambda wildcards: [
-            os.path.join(dirs_dict["LOGS_DIR"], f"{sample}_cellranger_arc_count.done")
-            for sample in batch_to_samples[int(wildcards.batch)]
+            os.path.join(dirs_dict["LOGS_DIR"], f"{capture}_cellranger_arc_count.done")
+            for capture in batch_to_captures[int(wildcards.batch)]
         ]
     output:
         aggr_csv = os.path.join(dirs_dict["CELLRANGERARC_AGGR_DIR"], "{batch}", "{batch}_aggr.csv")
@@ -217,12 +216,12 @@ rule cellranger_arc_aggr_csv:
         batch = int(wildcards.batch)
         aggr_rows = []
 
-        for sample in batch_to_samples[batch]:
+        for capture in batch_to_captures[batch]:
             row = {
-                "library_id": sample,
-                "atac_fragments": os.path.abspath(os.path.join(sample, "outs", "atac_fragments.tsv.gz")),
-                "per_barcode_metrics": os.path.abspath(os.path.join(sample, "outs", "per_barcode_metrics.csv")),
-                "gex_molecule_info": os.path.abspath(os.path.join(sample, "outs", "gex_molecule_info.h5"))
+                "library_id": capture,
+                "atac_fragments": os.path.abspath(os.path.join(capture, "outs", "atac_fragments.tsv.gz")),
+                "per_barcode_metrics": os.path.abspath(os.path.join(capture, "outs", "per_barcode_metrics.csv")),
+                "gex_molecule_info": os.path.abspath(os.path.join(capture, "outs", "gex_molecule_info.h5"))
             }
             aggr_rows.append(row)
 
@@ -232,14 +231,14 @@ rule cellranger_arc_aggr_csv:
         aggr_csv_df = pd.DataFrame(aggr_rows)
         aggr_csv_df.to_csv(output.aggr_csv, index=False)
         
-        print(f"Created aggregation CSV for batch {batch} with {len(aggr_rows)} samples", file=sys.stderr)
+        print(f"Created aggregation CSV for batch {batch} with {len(aggr_rows)} captures", file=sys.stderr)
 
 rule cellranger_arc_aggr:
     """
     Run [cellranger-arc aggr](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments) 
     to aggregate multiple single-cell multiome libraries.
 
-    This rule only runs if there is more than one sample in a batch. If only one sample is present,
+    This rule only runs if there is more than one capture in a batch. If only one capture is present,
     the aggregation step is skipped.
     """
     log: os.path.join(dirs_dict["LOGS_DIR"], "{batch}_cellranger_arc_aggr.log")
@@ -252,11 +251,9 @@ rule cellranger_arc_aggr:
     resources:
         mem_gb = 64
     run:
-        batch_samples = batch_to_samples[int(wildcards.batch)]
+        batch_captures = batch_to_captures[int(wildcards.batch)]
         
-        if len(batch_samples) > 1:
-            # Change to aggregation directory
-            # ID = wildcards.batch
+        if len(batch_captures) > 1:
             shell(f"""
                 cellranger-arc aggr --id={wildcards.batch} \
                                     --reference={reference_genome} \
@@ -265,11 +262,11 @@ rule cellranger_arc_aggr:
                                     {normalize} \
                                     >> {{log}} 2>&1
             """)
-            print(f"Aggregated {len(batch_samples)} samples for batch {wildcards.batch}", file=sys.stderr)
+            print(f"Aggregated {len(batch_captures)} captures for batch {wildcards.batch}", file=sys.stderr)
         else:
-            print(f"Batch {wildcards.batch} has only one sample ({batch_samples[0]}). Skipping cellranger-arc aggr step.", file=sys.stderr)
+            print(f"Batch {wildcards.batch} has only one capture ({batch_captures[0]}). Skipping cellranger-arc aggr step.", file=sys.stderr)
             # Create empty output directory to satisfy the rule
             os.makedirs(output.aggr_output, exist_ok=True)
-            with open(os.path.join(output.aggr_output, "single_sample_batch.txt"), "w") as f:
-                f.write(f"This batch contained only one sample: {batch_samples[0]}\n")
+            with open(os.path.join(output.aggr_output, "single_capture_batch.txt"), "w") as f:
+                f.write(f"This batch contained only one capture: {batch_captures[0]}\n")
                 f.write("Aggregation was skipped.\n")
