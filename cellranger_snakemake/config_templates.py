@@ -114,8 +114,8 @@ directories_suffix: batch1_analysis
 Example of how to run the workflow on an HPC
 ```bash
  snakemake-run-cellranger --workflow ARC \
-                          --config-file ARC_default_config_filled_out.yaml \
-                          --additional-params '--cluster "sbatch -J {rule} --account={ACCOUNT} --partition={PARTITION} --ntasks=1 --cpus-per-task=12 --mem=50G --output={log}"'
+                          --config-file ARC_default_config.yaml \
+                          --additional-params '--cluster "sbatch -J {rule} --account={ACCOUNT} --partition={PARTITION} --ntasks=1 --cpus-per-task=12 --mem=50G --jobs 10 --output={log}"'
 ```
 
 ## Troubleshooting
@@ -186,6 +186,13 @@ B	1	ABC-B-1	/data/GEX/fastqs/
 ```yaml
 HPC_mode: 'slurm'  # Options: 'slurm', 'pbs', 'sge', or '' for local
 mempercore: 8      # GB of RAM per CPU core
+```
+
+Example of how to run the workflow on an HPC
+```bash
+ snakemake-run-cellranger --workflow ATAC \
+                          --config-file ATAC_default_config.yaml \
+                          --additional-params '--cluster "sbatch -J {rule} --account={ACCOUNT} --partition={PARTITION} --ntasks=1 --cpus-per-task=12 --mem=50G --jobs 10 --output={log}"'
 ```
 
 ### Common HPC Configurations
@@ -311,6 +318,13 @@ B	1	ABC-B-1	/data/GEX/fastqs/
 ```yaml
 HPC_mode: 'slurm'  # Options: 'slurm', 'pbs', 'sge', or '' for local
 mempercore: 8      # GB of RAM per CPU core
+```
+
+Example of how to run the workflow on an HPC
+```bash
+ snakemake-run-cellranger --workflow GEX \
+                          --config-file GEX_default_config.yaml \
+                          --additional-params '--cluster "sbatch -J {rule} --account={ACCOUNT} --partition={PARTITION} --ntasks=1 --cpus-per-task=12 --mem=50G --jobs 10 --output={log}"'
 ```
 
 ### Common HPC Configurations
