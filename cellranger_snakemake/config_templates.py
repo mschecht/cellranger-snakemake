@@ -172,7 +172,7 @@ Create a TSV file with format:
 ```
 $ cat libraries_list.tsv
 batch	capture	sample	fastqs
-B	1	ABC-B-1	/data/GEX/fastqs/
+B	1	ABC-B-1	/data/ATAC/fastqs/
 ```
 
 - batch: Batch number for grouping captures (no underscores allowed)
