@@ -5,7 +5,7 @@
 *.html
 *.egg-info/
 __pycache__/
-tests/pbmc_unsorted_3k/
+tests/00_TEST_DATA
 tests/refdata-cellranger-arc-GRCh38-2024-A/
 build/
 dist/
