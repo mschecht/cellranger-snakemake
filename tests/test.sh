@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # HPC variables
+ACCOUNT=""
 PARTITION=""
 NODELIST=""
 
@@ -28,16 +29,9 @@ snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml --
 snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml
 
 # HPC runs
-clusterize "snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml" \
-  --output 00_LOGS/TEST_ARC.log --nodelist $NODELIST --partition $PARTITION --mem=200G
-
-clusterize "snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml --dry-run \
-  --additional-params \"--cluster 'sbatch -J {rule} --account=pi-lbarreiro --partition=$PARTITION --ntasks=2 --cpus-per-task=12 --mem=40G' --jobs 10\"" \
-  --output 00_LOGS/TEST_ARC_dryrun.log --nodelist $NODELIST --partition $PARTITION --mem=20G
-
-clusterize "snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml \
-  --additional-params \"--cluster 'sbatch -J {rule} --account=pi-lbarreiro --partition=$PARTITION --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10\"" \
-  --output 00_LOGS/TEST_ARC_full.log --nodelist $NODELIST --partition $PARTITION --mem=20G
+snakemake-run-cellranger --workflow ARC \
+                         --config-file ARC_default_config.yaml \
+                         --additional-params \"--cluster 'sbatch -J {rule} --account=$ACCOUNT --partition=$PARTITION --nodelist $NODELIST --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10\"$
 
 ######################
 # GEX TESTS
@@ -55,9 +49,9 @@ snakemake-run-cellranger --workflow GEX --config-file GEX_default_config.yaml --
 snakemake-run-cellranger --workflow GEX --config-file GEX_default_config.yaml
 
 # HPC run
-clusterize "snakemake-run-cellranger --workflow GEX --config-file GEX_default_config.yaml \
-  --additional-params \"--cluster 'sbatch -J {rule} --account=pi-lbarreiro --partition=$PARTITION --ntasks=2 --cpus-per-task=12 --mem=40G' --jobs 10\"" \
-  --output 00_LOGS/TEST_GEX.log --nodelist $NODELIST --partition $PARTITION --mem=20G
+snakemake-run-cellranger --workflow GEX \
+                         --config-file GEX_default_config.yaml \
+                         --additional-params \"--cluster 'sbatch -J {rule} --account=$ACCOUNT --partition=$PARTITION --nodelist $NODELIST --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10\"$
 
 
 ######################
@@ -76,7 +70,6 @@ snakemake-run-cellranger --workflow ATAC --config-file ATAC_default_config.yaml 
 snakemake-run-cellranger --workflow ATAC --config-file ATAC_default_config.yaml
 
 # HPC run
-clusterize "snakemake-run-cellranger --workflow ATAC --config-file ATAC_default_config.yaml \
-  --additional-params \"--cluster 'sbatch -J {rule} --account=pi-lbarreiro --partition=$PARTITION --ntasks=2 --cpus-per-task=12 --mem=40G' --jobs 10\"" \
-  --output 00_LOGS/TEST_ATAC.log --nodelist $NODELIST --partition $PARTITION --mem=20G
-
+snakemake-run-cellranger --workflow ATAC \
+                         --config-file ATAC_default_config.yaml \
+                         --additional-params \"--cluster 'sbatch -J {rule} --account=$ACCOUNT --partition=$PARTITION --nodelist $NODELIST --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10\"$
