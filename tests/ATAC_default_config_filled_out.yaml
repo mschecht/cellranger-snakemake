@@ -1,5 +1,5 @@
-reference: ~/cellranger-snakemake/tests/refdata-cellranger-arc-GRCh38-2024-A
-libraries_ATAC: ~/cellranger-snakemake/tests/libraries_list_ATAC.tsv
+reference: path/to/refdata-cellranger-arc-GRCh38-2024-A
+libraries_ATAC: libraries_list_ATAC.tsv
 HPC_mode: 'slurm'
 chemistry: ARC-v1
 mempercore: 8

@@ -1,0 +1,10 @@
+reference: path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
+libraries: libraries_list_ARC.tsv
+HPC_mode: 'slurm'
+mempercore: '8'
+normalize: none
+directories_suffix: none
+directories:
+  LOGS_DIR: 00_LOGS_ARC
+  CELLRANGERARC_COUNT_DIR: 01_CELLRANGERARC_COUNT
+  CELLRANGERARC_AGGR_DIR: 02_CELLRANGERARC_AGGR

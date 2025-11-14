@@ -1,5 +1,5 @@
-reference: ~/cellranger-snakemake/tests/refdata-gex-GRCh38-2024-A
-libraries_GEX: ~/cellranger-snakemake/tests/libraries_list_GEX.tsv
+reference: path/to/refdata-gex-GRCh38-2024-A
+libraries_GEX: libraries_list_GEX.tsv
 HPC_mode: 'slurm'
 chemistry: ARC-v1
 mempercore: 8
