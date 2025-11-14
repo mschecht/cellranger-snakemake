@@ -77,14 +77,14 @@ cd path/to/cellranger-snakemake/tests/00_TEST_DATA/pbmc_unsorted_3k/
 # subset ATAC test data
 mkdir atac_L3
 mkdir atac_L4
-mv atac/pbmc_unsorted_3k_S3_L003_* atac_L3/
-mv atac/pbmc_unsorted_3k_S3_L004_* atac_L4/
+cp atac/pbmc_unsorted_3k_S3_L003_* atac_L3/
+cp atac/pbmc_unsorted_3k_S3_L004_* atac_L4/
 
 # subset GEX data
 mkdir gex_L3
 mkdir gex_L4
-mv gex/pbmc_unsorted_3k_S01_L003_* gex_L3/
-mv gex/pbmc_unsorted_3k_S01_L004_* gex_L4/
+cp gex/pbmc_unsorted_3k_S01_L003_* gex_L3/
+cp gex/pbmc_unsorted_3k_S01_L004_* gex_L4/
 ```
 
 ## Developer Testing Guide
