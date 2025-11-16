@@ -1,6 +1,6 @@
 reference: path/to/refdata-cellranger-arc-GRCh38-2024-A
 libraries_ATAC: libraries_list_ATAC.tsv
-HPC_mode: none
+HPC_mode: local
 chemistry: ARC-v1
 mempercore: 8
 normalize: none

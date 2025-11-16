@@ -1,6 +1,6 @@
 reference: path/to/refdata-gex-GRCh38-2024-A
 libraries_GEX: libraries_list_GEX.tsv
-HPC_mode: none
+HPC_mode: local
 chemistry: ARC-v1
 mempercore: 8
 normalize: none

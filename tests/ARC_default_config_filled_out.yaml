@@ -1,6 +1,6 @@
 reference: path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
 libraries: libraries_list_ARC.tsv
-HPC_mode: none
+HPC_mode: local
 mempercore: '8'
 normalize: none
 directories_suffix: none

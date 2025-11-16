@@ -4,7 +4,7 @@
 ARC_CONFIG = {
     "reference": "/path/to/reference-genome",
     "libraries": "/path/to/libraries_list.tsv",
-    "HPC_mode": "",
+    "HPC_mode": "local",
     "mempercore": "",
     "normalize": "none",
     "directories_suffix": "none",
@@ -134,7 +134,7 @@ Run `snakemake-run-cellranger --help` for additional options and usage informati
 ATAC_CONFIG = {
     "reference": "/path/to/cellranger-reference",
     "libraries_ATAC": "/path/to/libraries_list_ATAC.tsv",
-    "HPC_mode": "",
+    "HPC_mode": "local",
     "chemistry": "auto",
     "mempercore": "",
     "normalize": "none",
@@ -266,7 +266,7 @@ Run `snakemake-run-cellranger --help` for additional options and usage informati
 GEX_CONFIG = {
     "reference": "/path/to/cellranger-reference",
     "libraries_GEX": "/path/to/libraries_list_GEX.tsv",
-    "HPC_mode": "",
+    "HPC_mode": "local",
     "chemistry": "auto",
     "mempercore": "",
     "normalize": "none",
