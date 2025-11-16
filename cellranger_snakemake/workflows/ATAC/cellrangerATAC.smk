@@ -33,76 +33,7 @@ normalize = f"--normalize={config['normalize']}" if config.get("normalize") else
 if mempercore and not jobmode:
     raise ValueError("You need to set the jobmode in the config file if you want to use the memory per core option.")
 
-def sanity_check_libraries_list_ATAC_tsv(filepath, log_file=None):
-    """
-    Check the format of the libraries list TSV file.
-    Args:
-        filepath (str): Path to the TSV file.
-        log_file (str, optional): Path to the log file. Defaults to None.
-    Returns:
-        pd.DataFrame: Valid dataframe or exits on error
-    """
-
-    # Read the file
-    try:
-        df = pd.read_csv(filepath, sep="\t")
-        df.columns = df.columns.str.strip()
-
-    except Exception as e:
-        custom_logger.error(f"Pandas could not read your libraries filepath here: '{filepath}'. "
-                            f"This was the error: {e}")
-        sys.exit(1)
-
-    # Validate headers
-    expected_columns = {"batch", "capture", "sample", "fastqs"}
-    actual_columns = set(df.columns)
-    if expected_columns != actual_columns:
-        custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
-        sys.exit(1)
-
-    valid = True
-    for idx, row in df.iterrows():
-        if utils.has_underscore(str(row["batch"])):
-            custom_logger.error(f"Row {idx + 1} in '{filepath}': Batch name '{row['batch']}' cannot contain underscores.")
-            valid = False
-
-        if utils.has_underscore(str(row["capture"])):
-            custom_logger.error(f"Row {idx + 1} in '{filepath}': Capture name '{row['capture']}' cannot contain underscores.")
-            valid = False
-            
-        fastq_path = row["fastqs"]
-        error_location = f"Row {idx + 2} in '{filepath}'"
-        if not isinstance(fastq_path, str):
-            custom_logger.error(f"{error_location}: Path is not a string: {fastq_path}")
-            valid = False
-
-        # Try to identify if fastqs column has more than one path
-        DELIMITERS = [",", ";", ":", " "]
-        # First, check for disallowed delimiters
-        for delim in DELIMITERS[1:]:  # skip comma (allowed)
-            if delim in fastq_path:
-                custom_logger.error(f"{error_location}: Path contains invalid delimiter '{delim}'. Only comma-separated paths are allowed.")
-                sys.exit(1)
-
-        # Split the paths by comma
-        suspected_paths = [path.strip() for path in fastq_path.split(",") if path.strip()]
-        # Validate each individual path
-        for path in suspected_paths:
-            if not os.path.isabs(path):
-                custom_logger.error(f"{error_location}: Path is not absolute: {path}")
-                valid = False
-            elif not os.path.exists(path):
-                custom_logger.error(f"{error_location}: Path does not exist: {path}")
-                valid = False
-
-    if valid:
-        custom_logger.info(f"{libraries_file} file format is valid.")
-        return df
-    else:
-        custom_logger.error(f"Some errors were found in {libraries_file}.")
-        sys.exit(1)
-
-df = sanity_check_libraries_list_ATAC_tsv(libraries_file)
+df = utils.sanity_check_libraries_list_tsv(libraries_file)
 
 # Collect a summary
 summary_dict = {}
