@@ -1,11 +1,11 @@
 reference: path/to/refdata-gex-GRCh38-2024-A
 libraries_GEX: libraries_list_GEX.tsv
-HPC_mode: 'slurm'
+HPC_mode: none
 chemistry: ARC-v1
 mempercore: 8
 normalize: none
 directories_suffix: none
 directories:
-  LOGS_DIR: 00_LOGS
-  CELLRANGERGEX_COUNT_DIR: 01_CELLRANGERGEX_COUNT
-  CELLRANGERGEX_AGGR_DIR: 02_CELLRANGERGEX_AGGR
+  LOGS_DIR: 00_TEST_OUTPUT/00_LOGS
+  CELLRANGERGEX_COUNT_DIR: 00_TEST_OUTPUT/01_CELLRANGERGEX_COUNT
+  CELLRANGERGEX_AGGR_DIR: 00_TEST_OUTPUT/02_CELLRANGERGEX_AGGR

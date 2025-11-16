@@ -5,3 +5,5 @@ ARC.yaml
 GEX.yaml
 ATAC.yaml
 *dag*
+00_TEST_OUTPUT/
+*_test.yaml

@@ -1,11 +1,11 @@
 reference: path/to/refdata-cellranger-arc-GRCh38-2024-A
 libraries_ATAC: libraries_list_ATAC.tsv
-HPC_mode: 'slurm'
+HPC_mode: none
 chemistry: ARC-v1
 mempercore: 8
 normalize: none
 directories_suffix: none
 directories:
-  LOGS_DIR: 00_LOGS
-  CELLRANGERATAC_COUNT_DIR: 01_CELLRANGERATAC_COUNT
-  CELLRANGERATAC_AGGR_DIR: 02_CELLRANGERATAC_AGGR
+  LOGS_DIR: 00_TEST_OUTPUT/00_LOGS
+  CELLRANGERATAC_COUNT_DIR: 00_TEST_OUTPUT/01_CELLRANGERATAC_COUNT
+  CELLRANGERATAC_AGGR_DIR: 00_TEST_OUTPUT/02_CELLRANGERATAC_AGGR
