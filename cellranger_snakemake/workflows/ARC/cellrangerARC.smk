@@ -43,57 +43,12 @@ normalize = f"--normalize={config['normalize']}" if config.get("normalize") else
 if mempercore and not jobmode:
     raise ValueError("You need to set the jobmode in the config file if you want to use the memory per core option.")
 
-def sanity_check_libraries_list_tsv(filepath, log_file=None):
-    """
-    Check the format of the libraries list TSV file.
-    Args:
-        filepath (str): Path to the TSV file.
-        log_file (str, optional): Path to the log file. Defaults to None.
-    Returns:
-        pd.DataFrame: Valid dataframe or exits on error
-    """
-
-    # Read the file
-    try:
-        df = pd.read_csv(filepath, sep="\t")
-        df.columns = df.columns.str.strip()
-    except Exception as e:
-        custom_logger.error(f"Pandas could not read your libraries filepath here: '{filepath}'. "
-                     f"This was the error: {e}")
-        sys.exit(1)
-
-    # Validate headers
-    expected_columns = {"batch", "capture", "CSV"}
-    actual_columns = set(df.columns)
-    if expected_columns != actual_columns:
-        custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
-        sys.exit(1)
-
-    valid = True
-    for idx, row in df.iterrows():
-        csv_path = row["CSV"]
-        error_location = f"Row {idx + 2} in '{filepath}'"
-        if not isinstance(csv_path, str):
-            custom_logger.error(f"{error_location}: CSV path is not a string: {csv_path}")
-            valid = False
-        elif not os.path.isabs(csv_path):
-            custom_logger.error(f"{error_location}: Path is not absolute: {csv_path}")
-            valid = False
-        elif not csv_path.endswith(".csv"):
-            custom_logger.error(f"{error_location}: The path '{csv_path}' does not end with '.csv'. Please ensure all CSV paths are correctly specified and have the proper file extension.")
-            valid = False
-        elif not os.path.exists(csv_path):
-            custom_logger.error(f"{error_location}: CSV file does not exist: {csv_path}")
-            valid = False
-
-    if valid:
-        custom_logger.info("libraries_list.tsv file format is valid.")
-        return df
-    else:
-        custom_logger.error("Some errors were found in the file. Please check the log.")
-        sys.exit(1)
-
-df = sanity_check_libraries_list_tsv(libraries_file)
+df = utils.sanity_check_libraries_list_tsv(
+    libraries_file, 
+    expected_columns={"batch", "capture", "CSV"}, 
+    path_column="CSV", 
+    file_extension=".csv"
+)
 
 # Collect a summary and validate library CSV files
 summary_dict = {}
@@ -110,6 +65,29 @@ for idx, row in df.iterrows():
         required_lib_columns = {"fastqs", "sample", "library_type"}
         if not required_lib_columns.issubset(lib_df.columns):
             raise ValueError(f"Library CSV missing required columns: {required_lib_columns - set(lib_df.columns)}")
+        
+        # Validate and convert fastqs paths to absolute paths
+        for lib_idx, lib_row in lib_df.iterrows():
+            fastq_path = lib_row["fastqs"]
+            library_type = lib_row["library_type"]
+            
+            if not isinstance(fastq_path, str):
+                raise ValueError(f"Library CSV row {lib_idx + 1}: fastqs path is not a string: {fastq_path}")
+            
+            # Convert relative path to absolute
+            if not os.path.isabs(fastq_path):
+                abs_fastq_path = os.path.abspath(fastq_path)
+                custom_logger.warning(f"CSV '{csv_path}', row {lib_idx + 1} ({library_type}): Converting relative path '{fastq_path}' to absolute path '{abs_fastq_path}'")
+                lib_df.at[lib_idx, "fastqs"] = abs_fastq_path
+                fastq_path = abs_fastq_path
+            
+            # Validate path exists
+            if not os.path.exists(fastq_path):
+                raise ValueError(f"Library CSV row {lib_idx + 1} ({library_type}): fastqs path does not exist: {fastq_path}")
+        
+        # Save the updated CSV with absolute paths
+        lib_df.to_csv(csv_path, index=False)
+        custom_logger.info(f"Updated CSV file '{csv_path}' with absolute paths")
         
         # Extract paths for ATAC and GEX
         atac_rows = lib_df[lib_df["library_type"] == "Chromatin Accessibility"]
