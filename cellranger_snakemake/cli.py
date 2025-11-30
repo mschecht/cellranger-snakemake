@@ -71,7 +71,7 @@ Examples:
     parser.add_argument("--snakefile", default="Snakefile", help="Snakefile to use (default: Snakefile)")
     parser.add_argument("--cores", type=int, help="Number of CPU cores to use")
     parser.add_argument("--output-dir", default=".", help="Output dir for default files")
-    parser.add_argument("--additional-params", default="", help="Extra Snakemake args")
+    parser.add_argument("--additional-params", type=str, default="", help="Extra Snakemake args (quote the entire string)")
 
     args = parser.parse_args()
 

@@ -132,7 +132,8 @@ class Workflow:
                 cmd.append("-n")
             cmd += ["-j", str(cores or 1)]
             if additional_args:
-                cmd += shlex.split(additional_args)
+                custom_logger.info(f"Additional args: {additional_args.strip()}")
+                cmd += shlex.split(additional_args.strip())
 
             custom_logger.info(f"Running command: {' '.join(cmd)}")
 
