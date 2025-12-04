@@ -5,6 +5,7 @@ import json
 import pandas as pd
 
 from collections import defaultdict
+from tempfile import gettempdir
 from cellranger_snakemake.utils import utils
 from cellranger_snakemake.utils.custom_logger import custom_logger
 
@@ -39,6 +40,11 @@ libraries_file = config["libraries"]
 jobmode = f"--jobmode={config['HPC_mode']}" if config.get("HPC_mode") else ""
 mempercore = f"--mempercore={config['mempercore']}" if config.get("mempercore") else ""
 normalize = f"--normalize={config['normalize']}" if config.get("normalize") else ""
+
+# Get resource parameters from config
+resources_config = config["resources"]
+mem_gb = resources_config.get("mem_gb", 64)
+tmpdir = resources_config.get("tmpdir") if resources_config.get("tmpdir") else gettempdir()
 
 if mempercore and not jobmode:
     raise ValueError("You need to set the jobmode in the config file if you want to use the memory per core option.")
@@ -129,6 +135,8 @@ rule all:
             os.path.join(dirs_dict["LOGS_DIR"], "{batch}_cellranger_arc_aggr.done"),
             batch=batch_to_captures.keys()
         )
+    resources:
+        tmpdir = tmpdir if tmpdir else ""
 
 rule cellranger_arc_count:
     """
@@ -147,7 +155,8 @@ rule cellranger_arc_count:
         os.path.join(dirs_dict["LOGS_DIR"], "{capture}_cellranger_arc_count.log")
     threads: 8
     resources:
-        mem_gb = 64
+        mem_gb = mem_gb,
+        tmpdir = tmpdir if tmpdir else ""
     run:
         Library_path = summary_dict[wildcards.capture]["Library_path"]
         os.makedirs(params.count_dir, exist_ok=True)
@@ -190,6 +199,8 @@ rule cellranger_arc_aggr_csv:
         ]
     output:
         aggr_csv = os.path.join(dirs_dict["CELLRANGERARC_AGGR_DIR"], "{batch}", "{batch}_aggr.csv")
+    resources:
+        tmpdir = tmpdir if tmpdir else ""
     run:
         batch = int(wildcards.batch)
         aggr_rows = []
@@ -227,7 +238,8 @@ rule cellranger_arc_aggr:
         aggr_output = directory(os.path.join(dirs_dict["CELLRANGERARC_AGGR_DIR"], "{batch}", "outs"))
     threads: 8
     resources:
-        mem_gb = 64
+        mem_gb = mem_gb,
+        tmpdir = tmpdir if tmpdir else ""
     run:
         batch_captures = batch_to_captures[int(wildcards.batch)]
         

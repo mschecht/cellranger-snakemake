@@ -7,6 +7,10 @@ ARC_CONFIG = {
     "HPC_mode": "local",
     "mempercore": "",
     "normalize": "none",
+    "resources": {
+        "mem_gb": 32,
+        "tmpdir": ""
+    },
     "directories_suffix": "none",
     "directories": {
         "LOGS_DIR": "00_LOGS",
@@ -138,6 +142,10 @@ ATAC_CONFIG = {
     "chemistry": "auto",
     "mempercore": "",
     "normalize": "none",
+    "resources": {
+        "mem_gb": 32,
+        "tmpdir": ""
+    },
     "directories_suffix": "none",
     "directories": {
         "LOGS_DIR": "00_LOGS",
@@ -270,6 +278,10 @@ GEX_CONFIG = {
     "chemistry": "auto",
     "mempercore": "",
     "normalize": "none",
+    "resources": {
+        "mem_gb": 32,
+        "tmpdir": ""
+    },
     "directories_suffix": "none",
     "directories": {
         "LOGS_DIR": "00_LOGS",

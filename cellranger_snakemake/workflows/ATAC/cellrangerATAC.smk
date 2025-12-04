@@ -5,6 +5,7 @@ import json
 import pandas as pd
 
 from collections import defaultdict
+from tempfile import gettempdir
 from cellranger_snakemake.utils import utils
 from cellranger_snakemake.utils.custom_logger import custom_logger
 
@@ -29,6 +30,11 @@ chemistry =  config["chemistry"]
 jobmode = f"--jobmode={config['HPC_mode']}" if config.get("HPC_mode") else ""
 mempercore = f"--mempercore={config['mempercore']}" if config.get("mempercore") else ""
 normalize = f"--normalize={config['normalize']}" if config.get("normalize") else ""
+
+# Get resource parameters from config
+resources_config = config["resources"]
+mem_gb = resources_config.get("mem_gb", 64)
+tmpdir = resources_config.get("tmpdir") if resources_config.get("tmpdir") else gettempdir()
 
 if mempercore and not jobmode:
     raise ValueError("You need to set the jobmode in the config file if you want to use the memory per core option.")
@@ -77,6 +83,8 @@ done_files = [
 rule all:
     input:
         done_files
+    resources:
+        tmpdir = tmpdir if tmpdir else ""
 
 rule cellranger_atac_count:
     """
@@ -95,7 +103,8 @@ rule cellranger_atac_count:
         os.path.join(dirs_dict["LOGS_DIR"], "{batch}_{capture}_cellranger_atac_count.log")
     threads: 8
     resources:
-        mem_gb = 64
+        mem_gb = mem_gb,
+        tmpdir = tmpdir if tmpdir else ""
     run:
         shell(f"""
         cellranger-atac count \
@@ -123,6 +132,8 @@ rule cellranger_atac_aggr_csv:
     output:
         aggr_csv = "{ID}_aggr.csv",
         done_flag = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_aggr.done")
+    resources:
+        tmpdir = tmpdir if tmpdir else ""
     run:
         sample = wildcards.ID
         aggr_rows = []
@@ -157,7 +168,8 @@ rule cellranger_atac_aggr:
         done_flag = os.path.join(dirs_dict["LOGS_DIR"], "{ID}_cellranger_atac_aggr.done")
     threads: 8
     resources:
-        mem_gb = 64
+        mem_gb = mem_gb,
+        tmpdir = tmpdir if tmpdir else ""
     run:
         batch_samples = capture_to_batch[(wildcards.ID)]
         
