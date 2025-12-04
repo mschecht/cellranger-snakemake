@@ -3,6 +3,9 @@ libraries: libraries_list_ARC.tsv
 HPC_mode: local
 mempercore: '8'
 normalize: none
+resources:
+  mem_gb: 32
+  tmpdir: ''
 directories_suffix: none
 directories:
   LOGS_DIR: 00_TEST_OUTPUT/00_LOGS_ARC

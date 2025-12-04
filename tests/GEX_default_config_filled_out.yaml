@@ -4,6 +4,9 @@ HPC_mode: local
 chemistry: ARC-v1
 mempercore: 8
 normalize: none
+resources:
+  mem_gb: 32
+  tmpdir: ''
 directories_suffix: none
 directories:
   LOGS_DIR: 00_TEST_OUTPUT/00_LOGS
