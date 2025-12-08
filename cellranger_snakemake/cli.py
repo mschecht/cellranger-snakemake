@@ -22,19 +22,22 @@ Examples:
   # Generate unified config interactively
   snakemake-run-cellranger init-config
 
-  # Validate a config file
+  # Quick config validation (optional - 'run' auto-validates)
   snakemake-run-cellranger validate-config --config-file pipeline_config.yaml
 
-  # Run the pipeline (dry-run)
+  # Run the pipeline (dry-run, auto-validates config first)
   snakemake-run-cellranger run --config-file pipeline_config.yaml --dry-run
 
-  # Run the pipeline (real run with 8 cores)
+  # Run the pipeline (real run with 8 cores, auto-validates config first)
   snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
 
   # Generate DAG visualization
   snakemake-run-cellranger run --config-file pipeline_config.yaml --dag | dot -Tpng > dag.png
 
-  # Show available parameters for a method
+  # Show available parameters for a Cell Ranger modality
+  snakemake-run-cellranger show-params --step cellranger --method gex
+
+  # Show available parameters for a processing method
   snakemake-run-cellranger show-params --step doublet_detection --method scrublet
 
   # List all available methods
@@ -53,9 +56,11 @@ Examples:
     # Run workflow subcommand
     run_parser = subparsers.add_parser(
         'run',
-        help='Run the Snakemake workflow',
+        help='Run the Snakemake workflow (auto-validates config)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Note: Config is automatically validated before running. No need to run validate-config first.
+
 Any additional arguments are passed directly to Snakemake.
 
 Common Snakemake arguments:
@@ -89,7 +94,7 @@ Common Snakemake arguments:
     # Validate config subcommand
     validate_parser = subparsers.add_parser(
         'validate-config',
-        help='Validate a configuration file'
+        help='Validate a configuration file (quick check without running workflow)'
     )
     validate_parser.add_argument(
         '--config-file',
@@ -105,7 +110,7 @@ Common Snakemake arguments:
     params_parser.add_argument(
         '--step',
         required=True,
-        help='Pipeline step (demultiplexing, doublet_detection, celltype_annotation)'
+        help='Pipeline step (cellranger, demultiplexing, doublet_detection, celltype_annotation)'
     )
     params_parser.add_argument(
         '--method',

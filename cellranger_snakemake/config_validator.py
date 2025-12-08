@@ -57,6 +57,12 @@ class ConfigValidator:
         """
         Validate a configuration file.
         
+        Note: The 'run' command automatically validates configs before execution.
+        This method is useful for:
+        - Quick validation during config development
+        - CI/CD pipelines that need standalone validation
+        - Checking configs without triggering Snakemake setup
+        
         Args:
             config_path: Path to YAML configuration file
             
@@ -104,8 +110,8 @@ class ConfigValidator:
         Show available parameters for a specific method.
         
         Args:
-            step: Pipeline step (e.g., 'demultiplexing', 'doublet_detection', 'celltype_annotation')
-            method: Method name (e.g., 'scrublet', 'demuxlet', etc.)
+            step: Pipeline step (e.g., 'cellranger', 'demultiplexing', 'doublet_detection', 'celltype_annotation')
+            method: Method name (e.g., 'gex', 'atac', 'arc', 'scrublet', 'demuxlet', etc.)
         """
         if step not in cls.METHOD_SCHEMAS:
             print(f"❌ Unknown step: {step}")
@@ -259,7 +265,7 @@ def main():
     # Show params command
     params_parser = subparsers.add_parser('show-params', help='Show parameters for a method')
     params_parser.add_argument('--step', required=True, 
-                               help='Pipeline step (demultiplexing, doublet_detection, celltype_annotation)')
+                               help='Pipeline step (cellranger, demultiplexing, doublet_detection, celltype_annotation)')
     params_parser.add_argument('--method', required=True, help='Method name')
     
     # List methods command
