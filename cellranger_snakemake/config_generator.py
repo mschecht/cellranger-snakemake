@@ -97,7 +97,7 @@ class ConfigGenerator:
         
         # Project metadata
         project_name = Prompt.ask("Project name")
-        output_dir = Prompt.ask("Output directory", default="./output")
+        output_dir = Prompt.ask("Output directory", default="output")
         
         # HPC configuration
         self.console.print("\n[bold]HPC Configuration[/bold]")

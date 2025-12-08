@@ -90,7 +90,7 @@ def get_output_dir(config):
     Returns:
         str: Output directory path
     """
-    return config.get("output_dir", "./output")
+    return config.get("output_dir", "output")
 
 
 def get_resources(config):

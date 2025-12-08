@@ -26,7 +26,7 @@ def parse_cellranger_config(config, modality_key, has_chemistry=True):
         dict: Parsed configuration with standardized keys
     """
     mod_config = config[modality_key]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     
     # Get directories with defaults
     dirs = mod_config.get("directories", {})

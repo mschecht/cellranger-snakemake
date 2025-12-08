@@ -33,7 +33,7 @@ class PipelineConfig(BaseModel):
     
     # Project metadata
     project_name: str = Field(description="Name of the project")
-    output_dir: str = Field(default="./output", description="Base output directory")
+    output_dir: str = Field(default="output", description="Base output directory")
     
     # Sample information
     samples: Dict[str, SampleMetadata] = Field(

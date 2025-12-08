@@ -195,7 +195,7 @@ class ConfigValidator:
         """
         example_config = {
             "project_name": "my_scrna_project",
-            "output_dir": "./output",
+            "output_dir": "output",
             "samples": {
                 "sample1": {
                     "sample_id": "sample1",

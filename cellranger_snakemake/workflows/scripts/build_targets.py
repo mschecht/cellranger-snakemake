@@ -73,7 +73,7 @@ def get_cellranger_gex_outputs(config):
     """
     import os
     gex_config = config["cellranger_gex"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     dirs = gex_config.get("directories", {})
     logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
@@ -101,7 +101,7 @@ def get_cellranger_atac_outputs(config):
     """
     import os
     atac_config = config["cellranger_atac"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     dirs = atac_config.get("directories", {})
     logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
@@ -128,7 +128,7 @@ def get_cellranger_arc_outputs(config):
     """
     import os
     arc_config = config["cellranger_arc"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     dirs = arc_config.get("directories", {})
     logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
@@ -156,7 +156,7 @@ def get_demux_outputs(config):
     """
     demux_config = config["demultiplexing"]
     method = demux_config["method"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     
     # Get sample IDs
     sample_ids = list(config.get("samples", {}).keys())
@@ -180,7 +180,7 @@ def get_doublet_outputs(config):
     """
     doublet_config = config["doublet_detection"]
     method = doublet_config["method"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     
     # Get sample IDs
     sample_ids = list(config.get("samples", {}).keys())
@@ -205,7 +205,7 @@ def get_annotation_outputs(config):
     """
     annot_config = config["celltype_annotation"]
     method = annot_config["method"]
-    output_dir = config.get("output_dir", "./output")
+    output_dir = config.get("output_dir", "output")
     
     # Get sample IDs
     sample_ids = list(config.get("samples", {}).keys())
