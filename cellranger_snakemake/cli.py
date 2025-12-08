@@ -26,13 +26,13 @@ Examples:
   snakemake-run-cellranger validate-config --config-file pipeline_config.yaml
 
   # Run the pipeline (dry-run, auto-validates config first)
-  snakemake-run-cellranger run --config-file pipeline_config.yaml --dry-run
+  snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
 
   # Run the pipeline (real run with 8 cores, auto-validates config first)
   snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
 
   # Generate DAG visualization
-  snakemake-run-cellranger run --config-file pipeline_config.yaml --dag | dot -Tpng > dag.png
+  snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag.png
 
   # Show available parameters for a Cell Ranger modality
   snakemake-run-cellranger show-params --step cellranger --method gex
@@ -63,15 +63,26 @@ Note: Config is automatically validated before running. No need to run validate-
 
 Any additional arguments are passed directly to Snakemake.
 
-Common Snakemake arguments:
-  --dry-run, -n              Perform a dry run
-  --cores N, -c N            Number of cores to use
+Common Snakemake arguments (--cores is REQUIRED):
+  --cores N, -c N            Number of cores to use (REQUIRED - e.g., --cores 8)
+  --cores all                Use all available cores
+  --dry-run, -n              Perform a dry run (still requires --cores)
   --dag                      Generate DAG visualization
   --rulegraph                Generate rule graph
   --forceall, -F             Force re-run of all rules
   --unlock                   Unlock working directory
   --cluster "cmd"            Submit jobs to cluster
   --cluster-config FILE      Cluster configuration file
+
+Examples:
+  # Dry run to check what will be executed
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 --dry-run
+  
+  # Run with 8 cores
+  snakemake-run-cellranger run --config-file config.yaml --cores 8
+  
+  # Use all available cores
+  snakemake-run-cellranger run --config-file config.yaml --cores all
         """
     )
     run_parser.add_argument(
