@@ -148,6 +148,14 @@ Common Snakemake arguments:
             custom_logger.error(f"Config file not found: {args.config_file}")
             sys.exit(1)
         
+        # Validate config before running
+        try:
+            config = ConfigValidator.validate_config_file(args.config_file)
+            custom_logger.info(f"Config validated. Enabled steps: {', '.join(config.get_enabled_steps())}")
+        except Exception:
+            custom_logger.error("Config validation failed. Fix errors before running.")
+            sys.exit(1)
+        
         # Build snakemake command
         snakemake_cmd = [
             "snakemake",
