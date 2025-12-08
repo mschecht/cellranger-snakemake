@@ -7,6 +7,9 @@ from typing import Dict, Any, Optional, Type
 from pydantic import ValidationError
 
 from cellranger_snakemake.schemas.config import PipelineConfig
+from cellranger_snakemake.schemas.cellranger import (
+    CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
+)
 from cellranger_snakemake.schemas.demultiplexing import (
     DemuxletConfig, SouporcellConfig, FreemuxletConfig, ViralConfig
 )
@@ -23,6 +26,11 @@ class ConfigValidator:
     
     # Method-specific parameter schemas
     METHOD_SCHEMAS = {
+        "cellranger": {
+            "gex": CellRangerGEXConfig,
+            "atac": CellRangerATACConfig,
+            "arc": CellRangerARCConfig,
+        },
         "demultiplexing": {
             "demuxlet": DemuxletConfig,
             "souporcell": SouporcellConfig,
