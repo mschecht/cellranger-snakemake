@@ -88,39 +88,50 @@ if config.get("cellranger_gex"):
         """Run Cell Ranger count for gene expression data."""
         input:
             reference = GEX_REFERENCE,
-            fastqs = lambda wc: gex_df[gex_df["capture"] == wc.sample]["fastqs"].iloc[0]
+            fastqs = lambda wc: gex_df[gex_df["capture"] == wc.capture]["fastqs"].iloc[0]
         output:
-            h5 = os.path.join(GEX_COUNT_DIR, "{sample}/outs/filtered_feature_bc_matrix.h5"),
-            summary = os.path.join(GEX_COUNT_DIR, "{sample}/outs/web_summary.html"),
-            done = touch(os.path.join(GEX_LOGS_DIR, "{sample}_gex_count.done"))
+            h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+            summary = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.done"))
         params:
             outdir = GEX_COUNT_DIR,
             chemistry = GEX_CHEMISTRY,
             mem_gb = RESOURCES.get("mem_gb", 64),
-            sample_name = lambda wc: gex_df[gex_df["capture"] == wc.sample]["sample"].iloc[0]
+            sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
         log:
-            os.path.join(GEX_LOGS_DIR, "{sample}_gex_count.log")
-        shell:
-            """
-            (cd {params.outdir} && cellranger count \\
-                --id={wildcards.sample} \\
-                --transcriptome={input.reference} \\
-                --fastqs={input.fastqs} \\
-                --sample={params.sample_name} \\
-                --chemistry={params.chemistry} \\
-                --localcores={threads} \\
-                --localmem={params.mem_gb} \\
-                2>&1 | tee {log})
-            """
+            os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.log")
+        run:
+            import shutil
+            output_id = f"{wildcards.batch}_{wildcards.capture}"
+            shell(
+                f"""
+                cellranger count \\
+                    --id={output_id} \\
+                    --transcriptome={input.reference} \\
+                    --fastqs={input.fastqs} \\
+                    --sample={params.sample_name} \\
+                    --chemistry={params.chemistry} \\
+                    --localcores={threads} \\
+                    --localmem={params.mem_gb} \\
+                    2>&1 | tee {log}
+                """
+            )
+            # Move output to final location
+            if os.path.exists(output_id):
+                final_path = os.path.join(params.outdir, output_id)
+                if os.path.exists(final_path):
+                    shutil.rmtree(final_path)
+                shutil.move(output_id, final_path)
     
     
     rule cellranger_gex_aggr:
         """Aggregate multiple GEX samples."""
         input:
             samples = lambda wc: expand(
-                os.path.join(GEX_COUNT_DIR, "{sample}/outs/filtered_feature_bc_matrix.h5"),
-                sample=gex_batch_to_samples[wc.batch]
+                os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+                batch=wc.batch,
+                capture=gex_batch_to_samples[wc.batch]
             )
         output:
             h5 = os.path.join(GEX_AGGR_DIR, "{batch}/outs/count/filtered_feature_bc_matrix.h5"),
@@ -134,33 +145,40 @@ if config.get("cellranger_gex"):
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.log")
         run:
+            import shutil
             # Create aggregation CSV
-            samples = gex_batch_to_samples[wildcards.batch]
+            captures = gex_batch_to_samples[wildcards.batch]
             aggr_data = []
-            for sample in samples:
+            for capture in captures:
                 molecule_h5 = os.path.join(
                     GEX_COUNT_DIR,
-                    f"{sample}/outs/molecule_info.h5"
+                    f"{wildcards.batch}_{capture}/outs/molecule_info.h5"
                 )
-                aggr_data.append({"sample_id": sample, "molecule_h5": molecule_h5})
+                aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "molecule_h5": molecule_h5})
             
             pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
             
-            # Only run aggregation if more than one sample
-            if len(samples) > 1:
+            # Only run aggregation if more than one capture
+            if len(captures) > 1:
                 shell(
-                    """
-                    (cd {params.outdir} && cellranger aggr \\
+                    f"""
+                    cellranger aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log})
+                        2>&1 | tee {log}
                     """
                 )
+                # Move output to final location
+                if os.path.exists(wildcards.batch):
+                    final_path = os.path.join(params.outdir, wildcards.batch)
+                    if os.path.exists(final_path):
+                        shutil.rmtree(final_path)
+                    shutil.move(wildcards.batch, final_path)
             else:
-                custom_logger.info(f"Batch {wildcards.batch} has only one sample ({samples[0]}). Skipping cellranger aggr step.")
+                custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger aggr step.")
 
 
 # ============================================================================
@@ -196,40 +214,51 @@ if config.get("cellranger_atac"):
         """Run Cell Ranger ATAC count."""
         input:
             reference = ATAC_REFERENCE,
-            fastqs = lambda wc: atac_df[atac_df["capture"] == wc.sample]["fastqs"].iloc[0]
+            fastqs = lambda wc: atac_df[atac_df["capture"] == wc.capture]["fastqs"].iloc[0]
         output:
-            h5 = os.path.join(ATAC_COUNT_DIR, "{sample}/outs/filtered_peak_bc_matrix.h5"),
-            summary = os.path.join(ATAC_COUNT_DIR, "{sample}/outs/web_summary.html"),
-            done = touch(os.path.join(ATAC_LOGS_DIR, "{sample}_atac_count.done"))
+            h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/filtered_peak_bc_matrix.h5"),
+            summary = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
             outdir = ATAC_COUNT_DIR,
             mem_gb = RESOURCES.get("mem_gb", 64),
-            sample_name = lambda wc: atac_df[atac_df["capture"] == wc.sample]["sample"].iloc[0]
+            sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
         log:
-            os.path.join(ATAC_LOGS_DIR, "{sample}_atac_count.log")
-        shell:
-            """
-            (cd {params.outdir} && cellranger-atac count \\
-                --id={wildcards.sample} \\
-                --reference={input.reference} \\
-                --fastqs={input.fastqs} \\
-                --sample={params.sample_name} \\
-                --localcores={threads} \\
-                --localmem={params.mem_gb} \\
-                2>&1 | tee {log})
-            """
+            os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.log")
+        run:
+            import shutil
+            output_id = f"{wildcards.batch}_{wildcards.capture}"
+            shell(
+                f"""
+                cellranger-atac count \\
+                    --id={output_id} \\
+                    --reference={input.reference} \\
+                    --fastqs={input.fastqs} \\
+                    --sample={params.sample_name} \\
+                    --localcores={threads} \\
+                    --localmem={params.mem_gb} \\
+                    2>&1 | tee {log}
+                """
+            )
+            # Move output to final location
+            if os.path.exists(output_id):
+                final_path = os.path.join(params.outdir, output_id)
+                if os.path.exists(final_path):
+                    shutil.rmtree(final_path)
+                shutil.move(output_id, final_path)
     
     
     rule cellranger_atac_aggr:
         """Aggregate multiple ATAC samples."""
         input:
             samples = lambda wc: expand(
-                os.path.join(ATAC_COUNT_DIR, "{sample}/outs/filtered_peak_bc_matrix.h5"),
-                sample=atac_batch_to_samples[wc.batch]
+                os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/filtered_peak_bc_matrix.h5"),
+                batch=wc.batch,
+                capture=atac_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}/outs/filtered_peak_bc_matrix.h5"),
+            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}/outs/count/filtered_peak_bc_matrix.h5"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done"))
         params:
             outdir = ATAC_AGGR_DIR,
@@ -240,33 +269,40 @@ if config.get("cellranger_atac"):
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.log")
         run:
+            import shutil
             # Create aggregation CSV
-            samples = atac_batch_to_samples[wildcards.batch]
+            captures = atac_batch_to_samples[wildcards.batch]
             aggr_data = []
-            for sample in samples:
+            for capture in captures:
                 fragments = os.path.join(
                     ATAC_COUNT_DIR,
-                    f"{sample}/outs/fragments.tsv.gz"
+                    f"{wildcards.batch}_{capture}/outs/fragments.tsv.gz"
                 )
-                aggr_data.append({"library_id": sample, "fragments": fragments, "cells": None})
+                aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "fragments": fragments})
             
             pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
             
-            # Only run aggregation if more than one sample
-            if len(samples) > 1:
+            # Only run aggregation if more than one capture
+            if len(captures) > 1:
                 shell(
-                    """
-                    (cd {params.outdir} && cellranger-atac aggr \\
+                    f"""
+                    cellranger-atac aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log})
+                        2>&1 | tee {log}
                     """
                 )
+                # Move output to final location
+                if os.path.exists(wildcards.batch):
+                    final_path = os.path.join(params.outdir, wildcards.batch)
+                    if os.path.exists(final_path):
+                        shutil.rmtree(final_path)
+                    shutil.move(wildcards.batch, final_path)
             else:
-                custom_logger.info(f"Batch {wildcards.batch} has only one sample ({samples[0]}). Skipping cellranger-atac aggr step.")
+                custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-atac aggr step.")
 
 
 # ============================================================================
@@ -301,34 +337,45 @@ if config.get("cellranger_arc"):
         """Run Cell Ranger ARC count for multiome data."""
         input:
             reference = ARC_REFERENCE,
-            library_csv = lambda wc: arc_df[arc_df["capture"] == wc.capture]["CSV"].iloc[0]
+            libraries_csv = lambda wc: arc_df[arc_df["capture"] == wc.capture]["CSV"].iloc[0]
         output:
-            h5 = os.path.join(ARC_COUNT_DIR, "{capture}/outs/filtered_feature_bc_matrix.h5"),
-            summary = os.path.join(ARC_COUNT_DIR, "{capture}/outs/web_summary.html"),
-            done = touch(os.path.join(ARC_LOGS_DIR, "{capture}_arc_count.done"))
+            h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+            summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
             outdir = ARC_COUNT_DIR,
             mem_gb = RESOURCES.get("mem_gb", 64)
         threads: 8
         log:
-            os.path.join(ARC_LOGS_DIR, "{capture}_arc_count.log")
-        shell:
-            """
-            (cd {params.outdir} && cellranger-arc count \\
-                --id={wildcards.capture} \\
-                --reference={input.reference} \\
-                --libraries={input.libraries_csv} \\
-                --localcores={threads} \\
-                --localmem={params.mem_gb} \\
-                2>&1 | tee {log})
-            """
+            os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.log")
+        run:
+            import shutil
+            output_id = f"{wildcards.batch}_{wildcards.capture}"
+            shell(
+                f"""
+                cellranger-arc count \\
+                    --id={output_id} \\
+                    --reference={input.reference} \\
+                    --libraries={input.libraries_csv} \\
+                    --localcores={threads} \\
+                    --localmem={params.mem_gb} \\
+                    2>&1 | tee {log}
+                """
+            )
+            # Move output to final location
+            if os.path.exists(output_id):
+                final_path = os.path.join(params.outdir, output_id)
+                if os.path.exists(final_path):
+                    shutil.rmtree(final_path)
+                shutil.move(output_id, final_path)
     
     
     rule cellranger_arc_aggr:
         """Aggregate multiple ARC captures."""
         input:
             captures = lambda wc: expand(
-                os.path.join(ARC_COUNT_DIR, "{capture}/outs/filtered_feature_bc_matrix.h5"),
+                os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+                batch=wc.batch,
                 capture=arc_batch_to_captures[wc.batch]
             )
         output:
@@ -343,28 +390,37 @@ if config.get("cellranger_arc"):
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.log")
         run:
+            import shutil
             # Create aggregation CSV
             captures = arc_batch_to_captures[wildcards.batch]
             aggr_data = []
             for capture in captures:
-                count_dir = os.path.join(ARC_COUNT_DIR, f"{capture}/outs")
-                aggr_data.append({"library_id": capture, "atac_fragments": f"{count_dir}/atac_fragments.tsv.gz", 
-                                 "per_barcode_metrics": f"{count_dir}/per_barcode_metrics.csv"})
+                molecule_h5 = os.path.join(
+                    ARC_COUNT_DIR,
+                    f"{wildcards.batch}_{capture}/outs/gex_molecule_info.h5"
+                )
+                aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "molecule_h5": molecule_h5})
             
             pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
             
             # Only run aggregation if more than one capture
             if len(captures) > 1:
                 shell(
-                    """
-                    (cd {params.outdir} && cellranger-arc aggr \\
+                    f"""
+                    cellranger-arc aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log})
+                        2>&1 | tee {log}
                     """
                 )
+                # Move output to final location
+                if os.path.exists(wildcards.batch):
+                    final_path = os.path.join(params.outdir, wildcards.batch)
+                    if os.path.exists(final_path):
+                        shutil.rmtree(final_path)
+                    shutil.move(wildcards.batch, final_path)
             else:
                 custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-arc aggr step.")
