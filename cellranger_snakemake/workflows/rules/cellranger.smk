@@ -103,8 +103,7 @@ if config.get("cellranger_gex"):
             os.path.join(GEX_LOGS_DIR, "{sample}_gex_count.log")
         shell:
             """
-            cd {params.outdir}
-            cellranger count \\
+            (cd {params.outdir} && cellranger count \\
                 --id={wildcards.sample} \\
                 --transcriptome={input.reference} \\
                 --fastqs={input.fastqs} \\
@@ -112,7 +111,7 @@ if config.get("cellranger_gex"):
                 --chemistry={params.chemistry} \\
                 --localcores={threads} \\
                 --localmem={params.mem_gb} \\
-                2>&1 | tee {log}
+                2>&1 | tee {log})
             """
     
     
@@ -151,14 +150,13 @@ if config.get("cellranger_gex"):
             if len(samples) > 1:
                 shell(
                     """
-                    cd {params.outdir}
-                    cellranger aggr \\
+                    (cd {params.outdir} && cellranger aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log}
+                        2>&1 | tee {log})
                     """
                 )
             else:
@@ -212,15 +210,14 @@ if config.get("cellranger_atac"):
             os.path.join(ATAC_LOGS_DIR, "{sample}_atac_count.log")
         shell:
             """
-            cd {params.outdir}
-            cellranger-atac count \\
+            (cd {params.outdir} && cellranger-atac count \\
                 --id={wildcards.sample} \\
                 --reference={input.reference} \\
                 --fastqs={input.fastqs} \\
                 --sample={params.sample_name} \\
                 --localcores={threads} \\
                 --localmem={params.mem_gb} \\
-                2>&1 | tee {log}
+                2>&1 | tee {log})
             """
     
     
@@ -259,14 +256,13 @@ if config.get("cellranger_atac"):
             if len(samples) > 1:
                 shell(
                     """
-                    cd {params.outdir}
-                    cellranger-atac aggr \\
+                    (cd {params.outdir} && cellranger-atac aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log}
+                        2>&1 | tee {log})
                     """
                 )
             else:
@@ -318,14 +314,13 @@ if config.get("cellranger_arc"):
             os.path.join(ARC_LOGS_DIR, "{capture}_arc_count.log")
         shell:
             """
-            cd {params.outdir}
-            cellranger-arc count \\
+            (cd {params.outdir} && cellranger-arc count \\
                 --id={wildcards.capture} \\
                 --reference={input.reference} \\
-                --libraries={input.library_csv} \\
+                --libraries={input.libraries_csv} \\
                 --localcores={threads} \\
                 --localmem={params.mem_gb} \\
-                2>&1 | tee {log}
+                2>&1 | tee {log})
             """
     
     
@@ -362,14 +357,13 @@ if config.get("cellranger_arc"):
             if len(captures) > 1:
                 shell(
                     """
-                    cd {params.outdir}
-                    cellranger-arc aggr \\
+                    (cd {params.outdir} && cellranger-arc aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
                         --localmem={params.mem_gb} \\
-                        2>&1 | tee {log}
+                        2>&1 | tee {log})
                     """
                 )
             else:
