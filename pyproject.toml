@@ -4,18 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellranger-snakemake"
-version = "1.0.0"
+version = "2.0.0"
 authors = [
     {name = "Matthew S. Schechter", email = "mschechter@uchicago.edu"},
 ]
-description = "Snakemake wrapper for Cell Ranger workflows"
+description = "Snakemake wrapper for single-cell preprocessing workflows"
 requires-python = ">=3.7"
 dependencies = [
-    # Add other dependencies here
+    "pydantic>=2.0",
+    "pyyaml>=5.1",
+    "rich>=10.0",  # Optional but recommended for better UX
 ]
 
 [project.scripts]
 snakemake-run-cellranger = "cellranger_snakemake.cli:main"
+sc-preprocess = "cellranger_snakemake.cli:main"  # Alias for new unified pipeline
+sc-config-init = "cellranger_snakemake.config_generator:main"
+sc-config-validate = "cellranger_snakemake.config_validator:main"
 
 [tool.setuptools]
 include-package-data = true
