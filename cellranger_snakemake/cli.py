@@ -61,7 +61,9 @@ Examples:
         epilog="""
 Note: Config is automatically validated before running. No need to run validate-config first.
 
-Any additional arguments are passed directly to Snakemake.
+Additional Snakemake arguments can be passed in two ways:
+1. Directly as arguments (e.g., --cores 8 --dry-run)
+2. Via --additional-params for complex arguments (e.g., cluster config with quotes)
 
 Common Snakemake arguments (--cores is REQUIRED):
   --cores N, -c N            Number of cores to use (REQUIRED - e.g., --cores 8)
@@ -73,6 +75,7 @@ Common Snakemake arguments (--cores is REQUIRED):
   --unlock                   Unlock working directory
   --cluster "cmd"            Submit jobs to cluster
   --cluster-config FILE      Cluster configuration file
+  --jobs N                   Use at most N CPU cluster/cloud jobs in parallel
 
 Examples:
   # Dry run to check what will be executed
@@ -83,12 +86,24 @@ Examples:
   
   # Use all available cores
   snakemake-run-cellranger run --config-file config.yaml --cores all
+  
+  # Run with cluster execution
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 \\
+    --additional-params "--cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10"
+  
+  # Unlock working directory
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 --additional-params "--unlock"
         """
     )
     run_parser.add_argument(
         '--config-file',
         required=True,
         help='Path to pipeline configuration file'
+    )
+    run_parser.add_argument(
+        '--additional-params',
+        default='',
+        help='Additional parameters to pass to Snakemake (e.g., "--unlock" or cluster config)'
     )
     
     # Init config subcommand
@@ -179,7 +194,12 @@ Examples:
             "--configfile", args.config_file
         ]
         
-        # Add any additional snakemake arguments
+        # Add additional parameters if provided
+        if args.additional_params:
+            import shlex
+            snakemake_cmd.extend(shlex.split(args.additional_params))
+        
+        # Add any additional snakemake arguments from command line
         snakemake_cmd.extend(unknown_args)
         
         # Run snakemake
