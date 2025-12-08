@@ -14,7 +14,7 @@ class CellRangerGEXConfig(BaseStepConfig):
     libraries: str = Field(
         description="Path to libraries TSV file with columns: batch, capture, sample, fastqs"
     )
-    chemistry: Literal["auto", "threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2"] = Field(
+    chemistry: Literal["auto", "ARC-v1", "threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC3Pv3", "SC5P-PE", "SC5P-R2"] = Field(
         default="auto",
         description="Assay chemistry configuration"
     )
