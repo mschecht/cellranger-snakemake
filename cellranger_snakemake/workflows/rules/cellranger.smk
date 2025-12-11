@@ -12,6 +12,16 @@ sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from utils import sanity_check_libraries_list_tsv, get_directories
 from custom_logger import custom_logger
 
+# Parse HPC config for optional --jobmode parameter
+# Note: --jobmode should only be used if Cell Ranger manages cluster submission
+# For Snakemake cluster management (--cluster), leave this empty
+HPC_MODE = config.get("hpc", {}).get("mode", "local")
+JOBMODE_PARAM = f"--jobmode={HPC_MODE}" if HPC_MODE and HPC_MODE != "local" else ""
+MEMPERCORE_PARAM = f"--mempercore={config.get('hpc', {}).get('mempercore')}" if config.get("hpc", {}).get("mempercore") else ""
+
+if MEMPERCORE_PARAM and not JOBMODE_PARAM:
+    raise ValueError("mempercore requires jobmode to be set in hpc config")
+
 
 def parse_cellranger_config(config, modality_key, has_chemistry=True):
     """
@@ -106,6 +116,8 @@ if config.get("cellranger_gex"):
         run:
             import shutil
             output_id = f"{wildcards.batch}_{wildcards.capture}"
+            jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+            mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
             shell(
                 f"""
                 cellranger count \\
@@ -115,7 +127,7 @@ if config.get("cellranger_gex"):
                     --sample={params.sample_name} \\
                     --chemistry={params.chemistry} \\
                     --localcores={threads} \\
-                    --localmem={resources.mem_gb} \\
+                    --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                     2>&1 | tee {log}
                 """
             )
@@ -166,6 +178,8 @@ if config.get("cellranger_gex"):
             
             # Only run aggregation if more than one capture
             if len(captures) > 1:
+                jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+                mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
                 shell(
                     f"""
                     cellranger aggr \\
@@ -173,7 +187,7 @@ if config.get("cellranger_gex"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={resources.mem_gb} \\
+                        --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                         2>&1 | tee {log}
                     """
                 )
@@ -237,6 +251,8 @@ if config.get("cellranger_atac"):
         run:
             import shutil
             output_id = f"{wildcards.batch}_{wildcards.capture}"
+            jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+            mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
             shell(
                 f"""
                 cellranger-atac count \\
@@ -245,7 +261,7 @@ if config.get("cellranger_atac"):
                     --fastqs={input.fastqs} \\
                     --sample={params.sample_name} \\
                     --localcores={threads} \\
-                    --localmem={resources.mem_gb} \\
+                    --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                     2>&1 | tee {log}
                 """
             )
@@ -296,6 +312,8 @@ if config.get("cellranger_atac"):
             
             # Only run aggregation if more than one capture
             if len(captures) > 1:
+                jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+                mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
                 shell(
                     f"""
                     cellranger-atac aggr \\
@@ -303,7 +321,7 @@ if config.get("cellranger_atac"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={resources.mem_gb} \\
+                        --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                         2>&1 | tee {log}
                     """
                 )
@@ -365,6 +383,8 @@ if config.get("cellranger_arc"):
         run:
             import shutil
             output_id = f"{wildcards.batch}_{wildcards.capture}"
+            jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+            mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
             shell(
                 f"""
                 cellranger-arc count \\
@@ -372,7 +392,7 @@ if config.get("cellranger_arc"):
                     --reference={input.reference} \\
                     --libraries={input.libraries_csv} \\
                     --localcores={threads} \\
-                    --localmem={resources.mem_gb} \\
+                    --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                     2>&1 | tee {log}
                 """
             )
@@ -423,6 +443,8 @@ if config.get("cellranger_arc"):
             
             # Only run aggregation if more than one capture
             if len(captures) > 1:
+                jobmode_cmd = f" {JOBMODE_PARAM}" if JOBMODE_PARAM else ""
+                mempercore_cmd = f" {MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
                 shell(
                     f"""
                     cellranger-arc aggr \\
@@ -430,7 +452,7 @@ if config.get("cellranger_arc"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={resources.mem_gb} \\
+                        --localmem={resources.mem_gb}{jobmode_cmd}{mempercore_cmd} \\
                         2>&1 | tee {log}
                     """
                 )
