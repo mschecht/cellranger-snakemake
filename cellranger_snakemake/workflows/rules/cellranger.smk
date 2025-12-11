@@ -96,7 +96,6 @@ if config.get("cellranger_gex"):
         params:
             outdir = GEX_COUNT_DIR,
             chemistry = GEX_CHEMISTRY,
-            mem_gb = RESOURCES.get("mem_gb", 64),
             sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
         resources:
@@ -116,7 +115,7 @@ if config.get("cellranger_gex"):
                     --sample={params.sample_name} \\
                     --chemistry={params.chemistry} \\
                     --localcores={threads} \\
-                    --localmem={params.mem_gb} \\
+                    --localmem={resources.mem_gb} \\
                     2>&1 | tee {log}
                 """
             )
@@ -142,7 +141,6 @@ if config.get("cellranger_gex"):
         params:
             outdir = GEX_AGGR_DIR,
             normalize = GEX_NORMALIZE,
-            mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(GEX_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
         resources:
@@ -175,7 +173,7 @@ if config.get("cellranger_gex"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={params.mem_gb} \\
+                        --localmem={resources.mem_gb} \\
                         2>&1 | tee {log}
                     """
                 )
@@ -229,7 +227,6 @@ if config.get("cellranger_atac"):
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
             outdir = ATAC_COUNT_DIR,
-            mem_gb = RESOURCES.get("mem_gb", 64),
             sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
         resources:
@@ -248,7 +245,7 @@ if config.get("cellranger_atac"):
                     --fastqs={input.fastqs} \\
                     --sample={params.sample_name} \\
                     --localcores={threads} \\
-                    --localmem={params.mem_gb} \\
+                    --localmem={resources.mem_gb} \\
                     2>&1 | tee {log}
                 """
             )
@@ -274,7 +271,6 @@ if config.get("cellranger_atac"):
         params:
             outdir = ATAC_AGGR_DIR,
             normalize = ATAC_NORMALIZE,
-            mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(ATAC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
         resources:
@@ -307,7 +303,7 @@ if config.get("cellranger_atac"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={params.mem_gb} \\
+                        --localmem={resources.mem_gb} \\
                         2>&1 | tee {log}
                     """
                 )
@@ -359,8 +355,7 @@ if config.get("cellranger_arc"):
             summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
-            outdir = ARC_COUNT_DIR,
-            mem_gb = RESOURCES.get("mem_gb", 64)
+            outdir = ARC_COUNT_DIR
         threads: 8
         resources:
             mem_gb = RESOURCES.get("mem_gb", 64),
@@ -377,7 +372,7 @@ if config.get("cellranger_arc"):
                     --reference={input.reference} \\
                     --libraries={input.libraries_csv} \\
                     --localcores={threads} \\
-                    --localmem={params.mem_gb} \\
+                    --localmem={resources.mem_gb} \\
                     2>&1 | tee {log}
                 """
             )
@@ -403,7 +398,6 @@ if config.get("cellranger_arc"):
         params:
             outdir = ARC_AGGR_DIR,
             normalize = ARC_NORMALIZE,
-            mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(ARC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
         resources:
@@ -436,7 +430,7 @@ if config.get("cellranger_arc"):
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
                         --localcores={threads} \\
-                        --localmem={params.mem_gb} \\
+                        --localmem={resources.mem_gb} \\
                         2>&1 | tee {log}
                     """
                 )
