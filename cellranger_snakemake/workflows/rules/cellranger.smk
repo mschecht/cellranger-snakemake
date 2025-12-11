@@ -99,6 +99,9 @@ if config.get("cellranger_gex"):
             mem_gb = RESOURCES.get("mem_gb", 64),
             sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.log")
         run:
@@ -142,6 +145,9 @@ if config.get("cellranger_gex"):
             mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(GEX_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.log")
         run:
@@ -224,6 +230,9 @@ if config.get("cellranger_atac"):
             mem_gb = RESOURCES.get("mem_gb", 64),
             sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.log")
         run:
@@ -266,6 +275,9 @@ if config.get("cellranger_atac"):
             mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(ATAC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.log")
         run:
@@ -346,6 +358,9 @@ if config.get("cellranger_arc"):
             outdir = ARC_COUNT_DIR,
             mem_gb = RESOURCES.get("mem_gb", 64)
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.log")
         run:
@@ -387,6 +402,9 @@ if config.get("cellranger_arc"):
             mem_gb = RESOURCES.get("mem_gb", 64),
             csv = os.path.join(ARC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.log")
         run:
