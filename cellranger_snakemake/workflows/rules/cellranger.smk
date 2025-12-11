@@ -90,8 +90,8 @@ if config.get("cellranger_gex"):
             reference = GEX_REFERENCE,
             fastqs = lambda wc: gex_df[gex_df["capture"] == wc.capture]["fastqs"].iloc[0]
         output:
-            h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
-            summary = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
+            summary = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.done"))
         params:
             outdir = GEX_COUNT_DIR,
@@ -132,12 +132,12 @@ if config.get("cellranger_gex"):
         """Aggregate multiple GEX samples."""
         input:
             samples = lambda wc: expand(
-                os.path.join(GEX_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+                os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
                 batch=wc.batch,
                 capture=gex_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(GEX_AGGR_DIR, "{batch}/outs/count/filtered_feature_bc_matrix.h5"),
+            h5 = os.path.join(GEX_AGGR_DIR, "{batch}", "outs", "count", "filtered_feature_bc_matrix.h5"),
             done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.done"))
         params:
             outdir = GEX_AGGR_DIR,
@@ -158,7 +158,9 @@ if config.get("cellranger_gex"):
             for capture in captures:
                 molecule_h5 = os.path.join(
                     GEX_COUNT_DIR,
-                    f"{wildcards.batch}_{capture}/outs/molecule_info.h5"
+                    f"{wildcards.batch}_{capture}",
+                    "outs",
+                    "molecule_info.h5"
                 )
                 aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "molecule_h5": molecule_h5})
             
@@ -222,8 +224,8 @@ if config.get("cellranger_atac"):
             reference = ATAC_REFERENCE,
             fastqs = lambda wc: atac_df[atac_df["capture"] == wc.capture]["fastqs"].iloc[0]
         output:
-            h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/filtered_peak_bc_matrix.h5"),
-            summary = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
+            summary = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
             outdir = ATAC_COUNT_DIR,
@@ -262,12 +264,12 @@ if config.get("cellranger_atac"):
         """Aggregate multiple ATAC samples."""
         input:
             samples = lambda wc: expand(
-                os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}/outs/filtered_peak_bc_matrix.h5"),
+                os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
                 batch=wc.batch,
                 capture=atac_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}/outs/count/filtered_peak_bc_matrix.h5"),
+            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}", "outs", "count", "filtered_peak_bc_matrix.h5"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done"))
         params:
             outdir = ATAC_AGGR_DIR,
@@ -288,7 +290,9 @@ if config.get("cellranger_atac"):
             for capture in captures:
                 fragments = os.path.join(
                     ATAC_COUNT_DIR,
-                    f"{wildcards.batch}_{capture}/outs/fragments.tsv.gz"
+                    f"{wildcards.batch}_{capture}",
+                    "outs",
+                    "fragments.tsv.gz"
                 )
                 aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "fragments": fragments})
             
@@ -351,8 +355,8 @@ if config.get("cellranger_arc"):
             reference = ARC_REFERENCE,
             libraries_csv = lambda wc: arc_df[arc_df["capture"] == wc.capture]["CSV"].iloc[0]
         output:
-            h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
-            summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/web_summary.html"),
+            h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
+            summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
             outdir = ARC_COUNT_DIR,
@@ -389,12 +393,12 @@ if config.get("cellranger_arc"):
         """Aggregate multiple ARC captures."""
         input:
             captures = lambda wc: expand(
-                os.path.join(ARC_COUNT_DIR, "{batch}_{capture}/outs/filtered_feature_bc_matrix.h5"),
+                os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
                 batch=wc.batch,
                 capture=arc_batch_to_captures[wc.batch]
             )
         output:
-            h5 = os.path.join(ARC_AGGR_DIR, "{batch}/outs/count/filtered_feature_bc_matrix.h5"),
+            h5 = os.path.join(ARC_AGGR_DIR, "{batch}", "outs", "count", "filtered_feature_bc_matrix.h5"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.done"))
         params:
             outdir = ARC_AGGR_DIR,
@@ -415,7 +419,9 @@ if config.get("cellranger_arc"):
             for capture in captures:
                 molecule_h5 = os.path.join(
                     ARC_COUNT_DIR,
-                    f"{wildcards.batch}_{capture}/outs/gex_molecule_info.h5"
+                    f"{wildcards.batch}_{capture}",
+                    "outs",
+                    "gex_molecule_info.h5"
                 )
                 aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "molecule_h5": molecule_h5})
             
