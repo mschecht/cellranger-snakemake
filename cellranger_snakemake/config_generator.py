@@ -102,8 +102,7 @@ class ConfigGenerator:
         # HPC configuration
         self.console.print("\n[bold]HPC Configuration[/bold]")
         hpc_mode = Prompt.ask(
-            "HPC scheduler",
-            choices=["local", "slurm", "pbs", "sge"],
+            "Cell Ranger --jobmode value (or 'local' to disable)",
             default="local"
         )
         mempercore = None

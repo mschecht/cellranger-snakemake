@@ -24,14 +24,14 @@ class DirectoryConfig(BaseModel):
 
 
 class HPCConfig(BaseModel):
-    """HPC scheduler configuration."""
-    mode: Literal["local", "slurm", "pbs", "sge"] = Field(
+    """Configuration for Cell Ranger's --jobmode flag."""
+    mode: str = Field(
         default="local", 
-        description="HPC scheduler type or 'local' for local execution"
+        description="Value passed to Cell Ranger's --jobmode flag"
     )
     mempercore: Optional[int] = Field(
         default=None, 
-        description="GB of RAM per CPU core (HPC only)"
+        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag)"
     )
 
 

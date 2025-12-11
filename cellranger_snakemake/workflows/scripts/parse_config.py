@@ -96,7 +96,31 @@ def get_output_dir(config):
 def get_resources(config):
     """
     Get resource configuration.
-    
+    - [cellranger count args](https://www.10xgenomics.com/support/software/cell-ranger/latest/resources/cr-command-line-arguments#count)
+    - `--localcores` and `--localmem`: Specify the number of cores and memory to use for local execution.
+    - How resources flow from config to cluster:
+
+        1. **YAML config**:
+           ```yaml
+           resources:
+             mem_gb: 77    # Memory Cell Ranger will use
+           ```
+
+        2. **Snakemake rule** (`cellranger.smk`):
+           ```python
+           resources:
+             mem_gb = RESOURCES.get("mem_gb", 64)  # Available to cluster command
+           threads: 8                                # Available to cluster command
+           ```
+
+        3. **Cluster submission** (use Snakemake wildcards):
+           ```bash
+           --cluster 'sbatch --mem={resources.mem_gb}G --cpus-per-task={threads}'
+           ```
+           - `{resources.mem_gb}` → expands to `77` (from YAML)
+           - `{threads}` → expands to `8` (from rule)
+           - Cluster allocates what Cell Ranger will actually use
+
     Args:
         config: Snakemake config dictionary
         

@@ -205,8 +205,8 @@ class ConfigValidator:
                 }
             },
             "hpc": {
-                "mode": "slurm",
-                "mempercore": 8,
+                "mode": "local",
+                "mempercore": None
             },
             "resources": {
                 "mem_gb": 32,

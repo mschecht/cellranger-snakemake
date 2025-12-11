@@ -12,15 +12,13 @@ sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from utils import sanity_check_libraries_list_tsv, get_directories
 from custom_logger import custom_logger
 
-# Parse HPC config for optional --jobmode parameter
-# Note: --jobmode should only be used if Cell Ranger manages cluster submission
-# For Snakemake cluster management (--cluster), leave this empty
+# Cell Ranger --jobmode and --mempercore flags (passed directly from config)
 HPC_MODE = config.get("hpc", {}).get("mode", "local")
 JOBMODE_PARAM = f"--jobmode={HPC_MODE}" if HPC_MODE and HPC_MODE != "local" else ""
 MEMPERCORE_PARAM = f"--mempercore={config.get('hpc', {}).get('mempercore')}" if config.get("hpc", {}).get("mempercore") else ""
 
 if MEMPERCORE_PARAM and not JOBMODE_PARAM:
-    raise ValueError("mempercore requires jobmode to be set in hpc config")
+    raise ValueError("mempercore requires jobmode (hpc.mode cannot be 'local')")
 
 
 def parse_cellranger_config(config, modality_key, has_chemistry=True):
