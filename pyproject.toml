@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.0",
     "pyyaml>=5.1",
     "rich>=10.0",  # Optional but recommended for better UX
+    "packaging>=20.0",  # For version comparison
 ]
 
 [project.scripts]

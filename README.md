@@ -76,7 +76,24 @@ $ cellranger-arc --version
 cellranger-arc cellranger-arc-2.0.2
 ```
 
-If not, please install it :)
+If not, please install them. Once installed, you can verify the installation using the built-in version checker:
+
+```bash
+# Check all Cell Ranger tools
+snakemake-run-cellranger check-versions
+
+# Check specific workflow requirements
+snakemake-run-cellranger check-versions --workflow GEX
+snakemake-run-cellranger check-versions --workflow ATAC
+snakemake-run-cellranger check-versions --workflow ARC
+```
+
+**Minimum supported versions:**
+- Cell Ranger (GEX): 7.0.0 or higher
+- Cell Ranger ATAC: 2.0.0 or higher
+- Cell Ranger ARC: 2.0.0 or higher
+
+### Linking Cell Ranger to the conda environment
 
 Once installed, link [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest), [Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [Cell Ranger ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) to the conda env:
 ```bash
@@ -109,12 +126,17 @@ ln -s "$SOURCE" "$TARGET"
 conda activate cellranger-snakemake
 ```
 
-2. **Create a config file:**
+2. **Verify Cell Ranger installation (optional but recommended)**
+```bash
+snakemake-run-cellranger check-versions
+```
+
+3. **Create a config file:**
 ```bash
 snakemake-run-cellranger --workflow ARC --get-default-config
 ```
 
-3. **Run a workflow:**
+4. **Run a workflow:**
 ```bash
 snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml
 ```

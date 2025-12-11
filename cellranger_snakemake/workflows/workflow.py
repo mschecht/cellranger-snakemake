@@ -9,6 +9,7 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, ATAC_README_content, GEX_CONFIG, GEX_README_content
 from cellranger_snakemake.schemas.config import PipelineConfig
 from cellranger_snakemake.config_validator import ConfigValidator
+from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 
 class Workflow:
     def __init__(self, name, get_default_config, config_file):
@@ -98,6 +99,20 @@ class Workflow:
 
         if not os.path.exists(config_file):
             custom_logger.error(f"Configuration file '{config_file}' not found.")
+            sys.exit(1)
+        
+        # Validate Cell Ranger version before running workflow
+        custom_logger.info(f"Validating Cell Ranger installation for {self.name} workflow...")
+        is_valid, messages = CellRangerVersionChecker.validate_for_workflow(self.name)
+        
+        for msg in messages:
+            if "not found" in msg.lower() or "below minimum" in msg.lower():
+                custom_logger.error(msg)
+            else:
+                custom_logger.info(msg)
+        
+        if not is_valid:
+            custom_logger.error(f"Cell Ranger version validation failed for {self.name} workflow")
             sys.exit(1)
 
         # Try to load as unified config first, fall back to legacy

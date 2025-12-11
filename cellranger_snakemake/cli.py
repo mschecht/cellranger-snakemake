@@ -9,6 +9,7 @@ from pathlib import Path
 from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.config_generator import ConfigGenerator
 from cellranger_snakemake.config_validator import ConfigValidator
+from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 
 __version__ = "2.0.0"
 __description__ = "Snakemake wrapper for single-cell preprocessing pipelines"
@@ -24,6 +25,10 @@ Examples:
 
   # Quick config validation (optional - 'run' auto-validates)
   snakemake-run-cellranger validate-config --config-file pipeline_config.yaml
+
+  # Check installed Cell Ranger versions
+  snakemake-run-cellranger check-versions
+  snakemake-run-cellranger check-versions --workflow GEX
 
   # Run the pipeline (dry-run, auto-validates config first)
   snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
@@ -150,6 +155,17 @@ Examples:
         help='List all available methods for each pipeline step'
     )
     
+    # Check versions subcommand
+    versions_parser = subparsers.add_parser(
+        'check-versions',
+        help='Check installed Cell Ranger versions'
+    )
+    versions_parser.add_argument(
+        '--workflow',
+        choices=['GEX', 'ATAC', 'ARC'],
+        help='Check versions for specific workflow (default: check all)'
+    )
+    
     # Generate example subcommand
     example_parser = subparsers.add_parser(
         'generate-example',
@@ -242,6 +258,37 @@ Examples:
     
     elif args.subcommand == 'generate-example':
         ConfigValidator.generate_example_config(args.output)
+    
+    elif args.subcommand == 'check-versions':
+        checker = CellRangerVersionChecker()
+        
+        if args.workflow:
+            # Check specific workflow
+            is_valid, messages = checker.validate_for_workflow(args.workflow)
+            
+            for msg in messages:
+                if "not found" in msg.lower() or "below minimum" in msg.lower():
+                    custom_logger.error(msg)
+                else:
+                    custom_logger.info(msg)
+            
+            if is_valid:
+                custom_logger.info(f"✓ All required tools for {args.workflow} workflow are installed and meet minimum version requirements")
+                sys.exit(0)
+            else:
+                custom_logger.error(f"✗ Version check failed for {args.workflow} workflow")
+                sys.exit(1)
+        else:
+            # Check all tools
+            checker.print_all_versions()
+            versions = checker.get_all_versions()
+            
+            if all(v is not None for v in versions.values()):
+                custom_logger.info("\n✓ All Cell Ranger tools are installed")
+                sys.exit(0)
+            else:
+                custom_logger.warning("\n⚠ Some Cell Ranger tools are not installed")
+                sys.exit(0)  # Don't exit with error if just checking all
     
     else:
         parser.print_help()
