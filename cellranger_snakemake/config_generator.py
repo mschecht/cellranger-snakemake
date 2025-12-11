@@ -322,6 +322,7 @@ class ConfigGenerator:
                     new_path = Prompt.ask("Enter a new filename", default=output_path)
                     if not Path(new_path).exists():
                         final_path = new_path
+                        self.console.print(f"\n[bold cyan]→[/bold cyan] Using new filename: '{final_path}'")
                         break
                     else:
                         self.console.print(f"[yellow]File '{new_path}' also exists. Please choose another name.[/yellow]")
