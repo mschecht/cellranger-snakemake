@@ -10,6 +10,7 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.config_generator import ConfigGenerator
 from cellranger_snakemake.config_validator import ConfigValidator
 from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+from cellranger_snakemake.utils.test_data_generator import TestDataGenerator
 
 __version__ = "2.0.0"
 __description__ = "Snakemake wrapper for single-cell preprocessing pipelines"
@@ -49,7 +50,7 @@ Examples:
   snakemake-run-cellranger list-methods
 
   # Generate example config
-  snakemake-run-cellranger generate-example
+  snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA
         """
     )
 
@@ -166,15 +167,20 @@ Examples:
         help='Check versions for specific workflow (default: check all)'
     )
     
-    # Generate example subcommand
-    example_parser = subparsers.add_parser(
-        'generate-example',
-        help='Generate example configuration file'
+    # Generate test data subcommand
+    testdata_parser = subparsers.add_parser(
+        'generate-test-data',
+        help='Generate test data for a specific workflow'
     )
-    example_parser.add_argument(
-        '--output',
-        default='example_pipeline_config.yaml',
-        help='Output path for example config'
+    testdata_parser.add_argument(
+        'workflow',
+        choices=['GEX', 'ATAC', 'ARC'],
+        help='Workflow type (GEX, ATAC, or ARC)'
+    )
+    testdata_parser.add_argument(
+        '--output-dir',
+        default='00_TEST_DATA',
+        help='Directory where test data will be generated (default: 00_TEST_DATA)'
     )
 
     # Parse known args to allow passing unknown args to snakemake
@@ -256,8 +262,39 @@ Examples:
     elif args.subcommand == 'list-methods':
         ConfigValidator.list_all_methods()
     
-    elif args.subcommand == 'generate-example':
-        ConfigValidator.generate_example_config(args.output)
+    elif args.subcommand == 'generate-test-data':
+        workflow_type = args.workflow  # 'GEX', 'ATAC', or 'ARC'
+        output_dir = Path(args.output_dir)
+        
+        custom_logger.info(f"Generating {workflow_type} test data in {output_dir}")
+        
+        # Create output directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate test data files (libraries TSV, reference file)
+        test_data_paths = TestDataGenerator.generate_test_data(workflow_type, output_dir)
+        
+        if not test_data_paths:
+            custom_logger.error("Failed to generate test data")
+            sys.exit(1)
+        
+        # Generate test configuration file with actual paths
+        config_path = output_dir / f"test_config_{workflow_type.lower()}.yaml"
+        ConfigValidator.generate_test_data_config(
+            workflow=workflow_type,
+            test_data_dir=str(output_dir),
+            reference_path=test_data_paths['reference_path'],
+            output_path=str(config_path)
+        )
+        
+        custom_logger.info(f"\n{'='*60}")
+        custom_logger.info(f"Test data generation complete!")
+        custom_logger.info(f"{'='*60}")
+        custom_logger.info(f"Libraries file: {test_data_paths['libraries_file']}")
+        custom_logger.info(f"Reference path: {test_data_paths['reference_path']}")
+        custom_logger.info(f"Config file: {config_path}")
+        custom_logger.info(f"\nTo run the test pipeline:")
+        custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 8")
     
     elif args.subcommand == 'check-versions':
         checker = CellRangerVersionChecker()
@@ -293,11 +330,6 @@ Examples:
     else:
         parser.print_help()
         sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
-
 
 
 if __name__ == "__main__":

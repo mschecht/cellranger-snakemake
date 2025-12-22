@@ -12,9 +12,43 @@ class CellRangerVersionChecker:
     
     # Minimum supported versions
     MIN_VERSIONS = {
-        "cellranger": "7.0.0",
+        "cellranger": "9.0.0",
         "cellranger-atac": "2.0.0",
         "cellranger-arc": "2.0.0",
+    }
+    
+    # Version-specific test data paths (relative to cellranger installation directory)
+    # These patterns are tried in order until a match is found
+    TEST_DATA_PATHS = {
+        'GEX': {
+            'fastq_patterns': [
+                'external/cellranger_tiny_fastq',
+            ],
+            'ref_patterns': [
+                'external/cellranger_tiny_ref',
+            ]
+        },
+        'ATAC': {
+            'fastq_patterns': [
+                'external/cellranger_atac_tiny_fastq/1.0.0',
+                'external/cellranger_atac_tiny_fastq',
+            ],
+            'ref_patterns': [
+                'external/arc_testrun_files/reference/fasta',
+                'external/arc_testrun_files/reference',
+                'external/cellranger_atac_tiny_ref',
+            ]
+        },
+        'ARC': {
+            'fastq_patterns': [
+                'external/arc_testrun_files/fastqs',
+                'external/cellranger_arc_tiny_fastq',
+            ],
+            'ref_patterns': [
+                'external/arc_testrun_files/reference',
+                'external/cellranger_arc_tiny_ref',
+            ]
+        }
     }
     
     @staticmethod
