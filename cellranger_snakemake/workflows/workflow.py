@@ -93,7 +93,7 @@ class Workflow:
             return None
     
 
-    def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, dag=False, additional_args=""):
+    def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, additional_args=""):
         config_file = config_file or self.config_file
         snakefile = snakefile or self.snakefile
 
@@ -151,50 +151,25 @@ class Workflow:
             custom_logger.error(f"Snakefile '{snakefile}' not found.")
             sys.exit(1)
 
-        if dag:
-            # Export DAG to PDF instead of running workflow
-            output_file = f"{self.name}_dag.pdf"
-            custom_logger.info(f"Exporting DAG to {output_file}")
-            try:
-                with open(output_file, "wb") as out_pdf:
-                    dag_process = subprocess.Popen(
-                        ["snakemake", "-s", snakefile, "--configfile", config_file, "--dag", "--forceall"],
-                        stdout=subprocess.PIPE
-                    )
-                    subprocess.run(
-                        ["dot", "-Tpdf"],
-                        stdin=dag_process.stdout,
-                        stdout=out_pdf,
-                        check=True
-                    )
-                custom_logger.info(f"DAG exported successfully to {output_file}")
-            except FileNotFoundError:
-                custom_logger.error("Graphviz 'dot' not found. Install it with e.g. `conda install -c conda-forge graphviz`.")
-                sys.exit(1)
-            except subprocess.CalledProcessError as e:
-                custom_logger.error(f"Failed to export DAG: {e}")
-                sys.exit(1)
-            return  # Do not run workflow
-        else:
-            cmd = ["snakemake", "-s", snakefile, "--configfile", config_file]
-            if dry_run:
-                cmd.append("-n")
-            cmd += ["-j", str(cores or 1)]
-            if additional_args:
-                custom_logger.info(f"Additional args: {additional_args.strip()}")
-                cmd += shlex.split(additional_args.strip())
+        cmd = ["snakemake", "-s", snakefile, "--configfile", config_file]
+        if dry_run:
+            cmd.append("-n")
+        cmd += ["-j", str(cores or 1)]
+        if additional_args:
+            custom_logger.info(f"Additional args: {additional_args.strip()}")
+            cmd += shlex.split(additional_args.strip())
 
-            custom_logger.info(f"Running command: {' '.join(cmd)}")
+        custom_logger.info(f"Running command: {' '.join(cmd)}")
 
-            try:
-                subprocess.run(cmd, check=True)
-                if not dry_run:
-                    custom_logger.info("Workflow completed successfully!")
-            except subprocess.CalledProcessError as e:
-                custom_logger.error(f"Snakemake failed: {e}")
-                sys.exit(1)
-            except FileNotFoundError:
-                custom_logger.error("Snakemake not found. Please install it.")
-                sys.exit(1)
+        try:
+            subprocess.run(cmd, check=True)
+            if not dry_run:
+                custom_logger.info("Workflow completed successfully!")
+        except subprocess.CalledProcessError as e:
+            custom_logger.error(f"Snakemake failed: {e}")
+            sys.exit(1)
+        except FileNotFoundError:
+            custom_logger.error("Snakemake not found. Please install it.")
+            sys.exit(1)
 
 

@@ -22,6 +22,11 @@ class CellRangerGEXConfig(BaseStepConfig):
         default="none",
         description="Normalization method for aggregation"
     )
+    create_bam: bool = Field(
+        default=False,
+        description="Whether to create a BAM file",
+        alias="create-bam"
+    )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",

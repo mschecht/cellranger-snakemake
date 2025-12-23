@@ -129,10 +129,21 @@ class TestDataGenerator:
         with open(output_path, 'w') as f:
             # Write header
             if workflow == 'ARC':
-                f.write("batch\tcapture\tsample\tfastqs\tlibrary_type\n")
-                # ARC requires both GEX and ATAC libraries
-                f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\tGene Expression\n")
-                f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\tChromatin Accessibility\n")
+                # For ARC: Generate library CSV files first, then metadata TSV pointing to them
+                output_dir = Path(output_path).parent
+                
+                # Generate library CSV file for capture L001
+                csv_file = output_dir / "1_L001_library.csv"
+                with open(csv_file, 'w') as cf:
+                    cf.write("fastqs,sample,library_type\n")
+                    cf.write(f"{fastq_path},tiny_arc_gex,Gene Expression\n")
+                    cf.write(f"{fastq_path},tiny_arc_atac,Chromatin Accessibility\n")
+                custom_logger.info(f"Created ARC library CSV: {csv_file}")
+                
+                # Write metadata TSV pointing to library CSV
+                f.write("batch\tcapture\tCSV\n")
+                f.write(f"1\tL001\t{csv_file}\n")
+                f.write(f"1\tL002\t{csv_file}\n")
             else:
                 f.write("batch\tcapture\tsample\tfastqs\n")
                 f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\n")
@@ -165,11 +176,11 @@ class TestDataGenerator:
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # Generate libraries TSV
-        libraries_file = output_dir / f"libraries_list_{workflow.lower()}.tsv"
+        libraries_file = os.path.join(output_dir, f"libraries_list_{workflow.lower()}.tsv")
         cls.generate_libraries_tsv(workflow, fastq_path, libraries_file)
         
         # Create reference file (optional, for documentation)
-        ref_file = output_dir / f"reference_{workflow.lower()}.txt"
+        ref_file = os.path.join(output_dir, f"reference_{workflow.lower()}.txt")
         if ref_path:
             with open(ref_file, 'w') as f:
                 f.write(ref_path)
