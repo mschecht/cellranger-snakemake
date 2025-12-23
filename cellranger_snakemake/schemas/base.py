@@ -25,9 +25,9 @@ class DirectoryConfig(BaseModel):
 
 class HPCConfig(BaseModel):
     """Configuration for Cell Ranger's --jobmode flag."""
-    mode: str = Field(
-        default="local", 
-        description="Value passed to Cell Ranger's --jobmode flag"
+    jobmode: Literal["local", "slurm", "sge"] = Field(
+        default="local",
+        description="Select job manager for cellranger: local or HPC scheduler \n Value passed to Cell Ranger's `--jobmode`"
     )
     mempercore: Optional[int] = Field(
         default=None, 
