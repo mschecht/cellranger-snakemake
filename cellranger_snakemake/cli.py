@@ -2,8 +2,10 @@
 
 import sys
 import os
+import shlex
 import argparse
 import subprocess
+
 from pathlib import Path
 
 from cellranger_snakemake.utils.custom_logger import custom_logger
@@ -190,9 +192,9 @@ Examples:
     if args.subcommand == 'run':
         # Get the path to the main.smk file
         package_dir = Path(__file__).parent
-        snakefile = package_dir / "workflows" / "main.smk"
+        snakefile = os.path.join(package_dir, "workflows", "main.smk")
         
-        if not snakefile.exists():
+        if not os.path.exists(snakefile):
             custom_logger.error(f"Snakefile not found: {snakefile}")
             sys.exit(1)
         
@@ -218,7 +220,6 @@ Examples:
         
         # Add additional parameters if provided
         if args.additional_params:
-            import shlex
             snakemake_cmd.extend(shlex.split(args.additional_params))
         
         # Add any additional snakemake arguments from command line
