@@ -109,7 +109,6 @@ if config.get("cellranger_gex"):
         params:
             outdir = GEX_COUNT_DIR,
             chemistry = GEX_CHEMISTRY,
-            chemi = GEX_CHEMISTRY,
             create_bam = GEX_CREATE_BAM,
             sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 10
