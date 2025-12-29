@@ -8,9 +8,10 @@ import subprocess
 
 from pathlib import Path
 
-from cellranger_snakemake.utils.custom_logger import custom_logger
+from cellranger_snakemake.utils.utils import validate_cores
 from cellranger_snakemake.config_generator import ConfigGenerator
 from cellranger_snakemake.config_validator import ConfigValidator
+from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 from cellranger_snakemake.utils.test_data_generator import TestDataGenerator
 
@@ -73,9 +74,7 @@ Additional Snakemake arguments can be passed in two ways:
 1. Directly as arguments (e.g., --cores 8 --dry-run)
 2. Via --snakemake-args for complex arguments (e.g., cluster config with quotes)
 
-Common Snakemake arguments (--cores is REQUIRED):
-  --cores N, -c N            Number of cores to use (REQUIRED - e.g., --cores 8)
-  --cores all                Use all available cores
+Common Snakemake arguments):
   --dry-run, -n              Perform a dry run (still requires --cores)
   --dag                      Generate DAG visualization
   --rulegraph                Generate rule graph
@@ -84,6 +83,7 @@ Common Snakemake arguments (--cores is REQUIRED):
   --cluster "cmd"            Submit jobs to cluster
   --cluster-config FILE      Cluster configuration file
   --jobs N                   Use at most N CPU cluster/cloud jobs in parallel
+  --printshellcmds           Print shell commands that are executed
 
 Examples:
   # Dry run to check what will be executed
@@ -107,6 +107,14 @@ Examples:
         '--config-file',
         required=True,
         help='Path to pipeline configuration file'
+    )
+    run_parser.add_argument(
+        '--cores',
+        required=True,
+        type=validate_cores,
+        help='Number of CPU cores for Snakemake to use (REQUIRED BY SNAKEMAKE). '
+             'Specify a positive integer (e.g., 8) or "all" to use all available cores. '
+             'This controls local parallelization. For cluster execution, also use --snakemake-args with --jobs flag.'
     )
     run_parser.add_argument(
         '--snakemake-args',
@@ -215,7 +223,8 @@ Examples:
         snakemake_cmd = [
             "snakemake",
             "--snakefile", str(snakefile),
-            "--configfile", args.config_file
+            "--configfile", args.config_file,
+            "--cores", args.cores
         ]
         
         # Add additional parameters if provided
