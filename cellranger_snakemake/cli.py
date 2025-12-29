@@ -231,10 +231,16 @@ Examples:
             custom_logger.error("Config validation failed. Fix errors before running.")
             sys.exit(1)
         
-        # Validate that --cores is not in snakemake-args
+        # Validate that reserved flags are not in snakemake-args
         if args.snakemake_args:
             if '--cores' in args.snakemake_args or ' -c ' in args.snakemake_args:
-                custom_logger.error("Do not pass --cores or -c to --snakemake-args. You already let us know how many cores you want to allocate with snakemake-run-cellranger --cores")
+                custom_logger.error("Do not pass --cores or -c to --snakemake-args. Use the --cores flag instead.")
+                sys.exit(1)
+            if '--dry-run' in args.snakemake_args or ' -n ' in args.snakemake_args:
+                custom_logger.error("Do not pass --dry-run or -n to --snakemake-args. Use the --dry-run flag instead.")
+                sys.exit(1)
+            if '--dag' in args.snakemake_args:
+                custom_logger.error("Do not pass --dag to --snakemake-args. Use the --dag flag instead.")
                 sys.exit(1)
         
         # Build snakemake command
@@ -247,21 +253,17 @@ Examples:
         
         # Add dry-run flag if specified
         if args.dry_run:
-            if '--dry-run' in args.snakemake_args or ' -n ' in args.snakemake_args:
-                custom_logger.error("Do not pass --dry-run or -n to --snakemake-args. Use the --dry-run flag instead.")
-                sys.exit(1)
             snakemake_cmd.append("--dry-run")
         
         # Add dag flag if specified
         if args.dag:
-            if '--dag' in args.snakemake_args or ' -d ' in args.snakemake_args:
-                custom_logger.error("Do not pass --dag or -d to --snakemake-args. Use the --dag flag instead.")
-                sys.exit(1)
             snakemake_cmd.append("--dag")
         
         # Add additional parameters if provided
         if args.snakemake_args:
             snakemake_cmd.extend(shlex.split(args.snakemake_args))
+
+        custom_logger.info(f"Running Snakemake with command: {' '.join(snakemake_cmd)}")
         
         # Run snakemake
         try:
