@@ -70,11 +70,10 @@ Examples:
         epilog="""
 Note: Config is automatically validated before running. No need to run validate-config first.
 
-Additional Snakemake arguments can be passed in two ways:
-1. Directly as arguments (e.g., --cores 8 --dry-run)
-2. Via --snakemake-args for complex arguments (e.g., cluster config with quotes)
+Additional Snakemake arguments must be passed via --snakemake-args.
+For complex arguments with quotes (e.g., cluster config), wrap the entire value in quotes.
 
-Common Snakemake arguments):
+Common Snakemake arguments:
   --dry-run, -n              Perform a dry run (still requires --cores)
   --dag                      Generate DAG visualization
   --rulegraph                Generate rule graph
@@ -117,9 +116,22 @@ Examples:
              'This controls local parallelization. For cluster execution, also use --snakemake-args with --jobs flag.'
     )
     run_parser.add_argument(
+        '--dry-run',
+        '-n',
+        action='store_true',
+        help='Perform a dry run without executing actions'
+    )
+    run_parser.add_argument(
+        '--dag',
+        action='store_true',
+        help='Generate workflow DAG (directed acyclic graph) visualization. Pipe to dot: | dot -Tpng > dag.png'
+    )
+    run_parser.add_argument(
         '--snakemake-args',
         default='',
-        help='Additional arguments to pass to Snakemake (e.g., "--unlock" or cluster config)'
+        help='Additional arguments to pass to Snakemake. '
+             'Examples: "--forceall", '
+             '"--cluster \'sbatch -J {rule}\' --jobs 10"'
     )
     
     # Init config subcommand
@@ -193,8 +205,8 @@ Examples:
         help='Directory where test data will be generated (default: 00_TEST_DATA)'
     )
 
-    # Parse known args to allow passing unknown args to snakemake
-    args, unknown_args = parser.parse_known_args()
+    # Parse arguments
+    args = parser.parse_args()
 
     # Handle subcommands
     if args.subcommand == 'run':
@@ -219,6 +231,12 @@ Examples:
             custom_logger.error("Config validation failed. Fix errors before running.")
             sys.exit(1)
         
+        # Validate that --cores is not in snakemake-args
+        if args.snakemake_args:
+            if '--cores' in args.snakemake_args or ' -c ' in args.snakemake_args:
+                custom_logger.error("Do not pass --cores or -c to --snakemake-args. You already let us know how many cores you want to allocate with snakemake-run-cellranger --cores")
+                sys.exit(1)
+        
         # Build snakemake command
         snakemake_cmd = [
             "snakemake",
@@ -227,12 +245,23 @@ Examples:
             "--cores", args.cores
         ]
         
+        # Add dry-run flag if specified
+        if args.dry_run:
+            if '--dry-run' in args.snakemake_args or ' -n ' in args.snakemake_args:
+                custom_logger.error("Do not pass --dry-run or -n to --snakemake-args. Use the --dry-run flag instead.")
+                sys.exit(1)
+            snakemake_cmd.append("--dry-run")
+        
+        # Add dag flag if specified
+        if args.dag:
+            if '--dag' in args.snakemake_args or ' -d ' in args.snakemake_args:
+                custom_logger.error("Do not pass --dag or -d to --snakemake-args. Use the --dag flag instead.")
+                sys.exit(1)
+            snakemake_cmd.append("--dag")
+        
         # Add additional parameters if provided
         if args.snakemake_args:
             snakemake_cmd.extend(shlex.split(args.snakemake_args))
-        
-        # Add any additional snakemake arguments from command line
-        snakemake_cmd.extend(unknown_args)
         
         # Run snakemake
         try:
