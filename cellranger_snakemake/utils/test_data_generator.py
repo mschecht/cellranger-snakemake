@@ -91,11 +91,11 @@ class TestDataGenerator:
             candidate = cellranger_dir / pattern
             if candidate.exists():
                 fastq_path = str(candidate)
-                custom_logger.info(f"Found FASTQ path: {fastq_path}")
+                custom_logger.info(f"Found {workflow} test FASTQ path: {fastq_path}")
                 break
         
         if not fastq_path:
-            custom_logger.warning(f"FASTQ path not found. Tried patterns: {fastq_patterns}")
+            custom_logger.warning(f"{workflow} test FASTQ path not found. Tried patterns: {fastq_patterns}")
             return None, None
         
         # Try to find reference directory
@@ -104,11 +104,11 @@ class TestDataGenerator:
             candidate = cellranger_dir / pattern
             if candidate.exists():
                 ref_path = str(candidate)
-                custom_logger.info(f"Found reference path: {ref_path}")
+                custom_logger.info(f"Found {workflow} test reference path: {ref_path}")
                 break
         
         if not ref_path:
-            custom_logger.warning(f"Reference path not found. Tried patterns: {ref_patterns}")
+            custom_logger.warning(f"{workflow} test reference path not found. Tried patterns: {ref_patterns}")
             return fastq_path, None
         
         return fastq_path, ref_path
@@ -149,7 +149,7 @@ class TestDataGenerator:
                 f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\n")
                 f.write(f"1\tL002\ttiny{workflow.lower()}\t{fastq_path}\n")
         
-        custom_logger.info(f"Created libraries TSV: {output_path}")
+        custom_logger.info(f"Created {workflow} libraries.tsv: {output_path}")
         return output_path
     
     @classmethod
@@ -184,9 +184,9 @@ class TestDataGenerator:
         if ref_path:
             with open(ref_file, 'w') as f:
                 f.write(ref_path)
-            custom_logger.info(f"Created reference file: {ref_file}")
+            custom_logger.info(f"Created {workflow} test reference file: {ref_file}")
         else:
-            custom_logger.warning(f"Reference path not found, skipping reference file creation")
+            custom_logger.warning(f"{workflow} test reference path not found, skipping reference file creation")
             ref_path = f"/path/to/{workflow.lower()}/reference"
         
         return {

@@ -294,7 +294,7 @@ Examples:
         custom_logger.info(f"Libraries file: {test_data_paths['libraries_file']}")
         custom_logger.info(f"Reference path: {test_data_paths['reference_path']}")
         custom_logger.info(f"Config file: {config_path}")
-        custom_logger.info(f"\nTo run the test pipeline:")
+        custom_logger.info(f"\nTo run the {workflow_type} test pipeline:")
         custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 8")
     
     elif args.subcommand == 'check-versions':
