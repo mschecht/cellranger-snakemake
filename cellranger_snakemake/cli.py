@@ -70,19 +70,15 @@ Examples:
         epilog="""
 Note: Config is automatically validated before running. No need to run validate-config first.
 
-Additional Snakemake arguments must be passed via --snakemake-args.
-For complex arguments with quotes (e.g., cluster config), wrap the entire value in quotes.
+Additional Snakemake arguments can be passed via --snakemake-args.
+IMPORTANT: --snakemake-args must be the LAST argument in your command.
 
 Common Snakemake arguments:
-  --dry-run, -n              Perform a dry run (still requires --cores)
-  --dag                      Generate DAG visualization
-  --rulegraph                Generate rule graph
   --forceall, -F             Force re-run of all rules
   --unlock                   Unlock working directory
   --cluster "cmd"            Submit jobs to cluster
-  --cluster-config FILE      Cluster configuration file
   --jobs N                   Use at most N CPU cluster/cloud jobs in parallel
-  --printshellcmds           Print shell commands that are executed
+  --printshellcmds, -p       Print shell commands that are executed
 
 Examples:
   # Dry run to check what will be executed
@@ -94,12 +90,11 @@ Examples:
   # Use all available cores
   snakemake-run-cellranger run --config-file config.yaml --cores all
   
-  # Run with cluster execution
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 \\
-    --snakemake-args "--cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10"
+  # Run with cluster execution (note: --snakemake-args is LAST)
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args --cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' \\\n    --jobs 10
   
   # Unlock working directory
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args "--unlock"
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args --unlock
         """
     )
     run_parser.add_argument(
@@ -128,10 +123,11 @@ Examples:
     )
     run_parser.add_argument(
         '--snakemake-args',
-        default='',
+        nargs=argparse.REMAINDER,
+        default=[],
         help='Additional arguments to pass to Snakemake. '
-             'Examples: "--forceall", '
-             '"--cluster \'sbatch -J {rule}\' --jobs 10"'
+             'MUST be the last argument in the command. '
+             'Example: --snakemake-args --forceall --jobs 10 --cluster "sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G"'
     )
     
     # Init config subcommand
@@ -233,10 +229,11 @@ Examples:
         
         # Validate that reserved flags are not in snakemake-args
         if args.snakemake_args:
-            if '--cores' in args.snakemake_args or ' -c ' in args.snakemake_args:
+            snakemake_args_str = ' '.join(args.snakemake_args)
+            if '--cores' in snakemake_args_str or '-c' in args.snakemake_args:
                 custom_logger.error("Do not pass --cores or -c to --snakemake-args. Use the --cores flag instead.")
                 sys.exit(1)
-            if '--dry-run' in args.snakemake_args or ' -n ' in args.snakemake_args:
+            if '--dry-run' in snakemake_args_str or '-n' in args.snakemake_args:
                 custom_logger.error("Do not pass --dry-run or -n to --snakemake-args. Use the --dry-run flag instead.")
                 sys.exit(1)
             if '--dag' in args.snakemake_args:
@@ -259,9 +256,9 @@ Examples:
         if args.dag:
             snakemake_cmd.append("--dag")
         
-        # Add additional parameters if provided
+        # Add additional parameters if provided (already a list, no need to split)
         if args.snakemake_args:
-            snakemake_cmd.extend(shlex.split(args.snakemake_args))
+            snakemake_cmd.extend(args.snakemake_args)
 
         custom_logger.info(f"Running Snakemake with command: {' '.join(snakemake_cmd)}")
         
