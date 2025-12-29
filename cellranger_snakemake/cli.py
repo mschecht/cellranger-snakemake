@@ -71,7 +71,7 @@ Note: Config is automatically validated before running. No need to run validate-
 
 Additional Snakemake arguments can be passed in two ways:
 1. Directly as arguments (e.g., --cores 8 --dry-run)
-2. Via --additional-params for complex arguments (e.g., cluster config with quotes)
+2. Via --snakemake-args for complex arguments (e.g., cluster config with quotes)
 
 Common Snakemake arguments (--cores is REQUIRED):
   --cores N, -c N            Number of cores to use (REQUIRED - e.g., --cores 8)
@@ -97,10 +97,10 @@ Examples:
   
   # Run with cluster execution
   snakemake-run-cellranger run --config-file config.yaml --cores 1 \\
-    --additional-params "--cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10"
+    --snakemake-args "--cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' --jobs 10"
   
   # Unlock working directory
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 --additional-params "--unlock"
+  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args "--unlock"
         """
     )
     run_parser.add_argument(
@@ -109,9 +109,9 @@ Examples:
         help='Path to pipeline configuration file'
     )
     run_parser.add_argument(
-        '--additional-params',
+        '--snakemake-args',
         default='',
-        help='Additional parameters to pass to Snakemake (e.g., "--unlock" or cluster config)'
+        help='Additional arguments to pass to Snakemake (e.g., "--unlock" or cluster config)'
     )
     
     # Init config subcommand
@@ -219,8 +219,8 @@ Examples:
         ]
         
         # Add additional parameters if provided
-        if args.additional_params:
-            snakemake_cmd.extend(shlex.split(args.additional_params))
+        if args.snakemake_args:
+            snakemake_cmd.extend(shlex.split(args.snakemake_args))
         
         # Add any additional snakemake arguments from command line
         snakemake_cmd.extend(unknown_args)

@@ -133,12 +133,12 @@ snakemake-run-cellranger check-versions
 
 3. **Create a config file:**
 ```bash
-snakemake-run-cellranger --workflow ARC --get-default-config
+snakemake-run-cellranger init-config --output pipeline_config.yaml
 ```
 
 4. **Run a workflow:**
 ```bash
-snakemake-run-cellranger --workflow ARC --config-file ARC_default_config.yaml
+snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
 ```
 
 # Tutorial
