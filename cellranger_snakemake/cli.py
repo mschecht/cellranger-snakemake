@@ -52,7 +52,7 @@ Examples:
   # List all available methods
   snakemake-run-cellranger list-methods
 
-  # Generate example config
+  # Generate example test data files e.g. for ATAC workflow
   snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA
         """
     )
