@@ -341,8 +341,8 @@ Examples:
             sys.exit(1)
         
         # Generate test configuration file with actual paths
-        config_path = output_dir / f"test_config_{workflow_type.lower()}.yaml"
-        ConfigValidator.generate_test_data_config(
+        config_path = os.path.join(output_dir, f"test_config_{workflow_type.lower()}.yaml")
+        TestDataGenerator.generate_test_config(
             workflow=workflow_type,
             test_data_dir=str(output_dir),
             reference_path=test_data_paths['reference_path'],

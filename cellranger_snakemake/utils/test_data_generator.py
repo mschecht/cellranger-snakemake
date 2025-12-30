@@ -194,3 +194,86 @@ class TestDataGenerator:
             'reference_path': ref_path,
             'fastq_path': fastq_path
         }
+    
+    @staticmethod
+    def generate_test_config(workflow: str, test_data_dir: str, reference_path: str, output_path: Optional[str] = None) -> str:
+        """
+        Generate a test configuration file for a specific workflow.
+        
+        Args:
+            workflow: Workflow type ('GEX', 'ATAC', or 'ARC')
+            test_data_dir: Directory where test data files are located
+            reference_path: Path to reference genome
+            output_path: Optional path to save the test config
+            
+        Returns:
+            Path to generated config file
+        """
+        import yaml
+        
+        base_config = {
+            "project_name": f"test_{workflow.lower()}",
+            "output_dir": f"test_output_{workflow.lower()}",
+            "samples": {},
+            "hpc": {
+                "mode": "local",
+                "mempercore": None
+            },
+            "resources": {
+                "mem_gb": 64,
+                "tmpdir": "/tmp",
+            },
+            "directories_suffix": "none",
+        }
+        
+        # Add workflow-specific configuration
+        if workflow == 'GEX':
+            base_config["cellranger_gex"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_gex.tsv"),
+                "chemistry": "auto",
+                "normalize": "none",
+                "create-bam": False,
+            }
+        elif workflow == 'ATAC':
+            base_config["cellranger_atac"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_atac.tsv"),
+            }
+        elif workflow == 'ARC':
+            base_config["cellranger_arc"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_arc.tsv"),
+            }
+
+        # Add optional processing steps for GEX
+        base_config["doublet_detection"] = {
+            "enabled": False,
+            "method": "scrublet",
+            "scrublet": {
+                "expected_doublet_rate": 0.06,
+                "min_counts": 2,
+                "min_cells": 3,
+            }
+        }
+
+        base_config["celltype_annotation"] = {
+            "enabled": False,
+            "method": "celltypist",
+            "celltypist": {
+                "model": "Immune_All_Low.pkl",
+                "majority_voting": False,
+            }
+        }
+        
+        if output_path is None:
+            output_path = f"test_config_{workflow.lower()}.yaml"
+        
+        with open(output_path, 'w') as f:
+            yaml.dump(base_config, f, default_flow_style=False, sort_keys=False, indent=2)
+        
+        custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
+        return output_path
