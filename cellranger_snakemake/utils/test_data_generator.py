@@ -272,8 +272,35 @@ class TestDataGenerator:
         if output_path is None:
             output_path = f"test_config_{workflow.lower()}.yaml"
         
+        # Save main config
         with open(output_path, 'w') as f:
             yaml.dump(base_config, f, default_flow_style=False, sort_keys=False, indent=2)
         
         custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
+        
+        # Generate HPC profile configuration
+        output_dir = Path(output_path).parent
+        profile_dir = os.path.join(output_dir, "HPC_profiles")
+        os.makedirs(profile_dir, exist_ok=True)
+        
+        # Boilerplate SLURM profile
+        slurm_profile = {
+            "executor": "slurm",
+            "jobs": 1,
+            "default-resources": [
+                "slurm_account=",
+                "slurm_partition=",
+                "mem_mb=",
+                "runtime="
+            ],
+            "retries": 2,
+            "latency-wait": 60
+        }
+        
+        profile_path = os.path.join(profile_dir, "config.yaml")
+        with open(profile_path, 'w') as f:
+            yaml.dump(slurm_profile, f, default_flow_style=False, sort_keys=False, indent=2)
+        
+        custom_logger.info(f"✓ SLURM profile configuration saved to: {profile_path}")
+        
         return output_path
