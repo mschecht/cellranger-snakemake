@@ -278,20 +278,20 @@ class TestDataGenerator:
         
         custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
         
-        # Generate HPC profile configuration
+        # Generate HPC profile configuration (for SLURM cluster execution)
         output_dir = Path(output_path).parent
         profile_dir = os.path.join(output_dir, "HPC_profiles")
         os.makedirs(profile_dir, exist_ok=True)
         
-        # Boilerplate SLURM profile
+        # Template SLURM profile - EDIT THIS FILE with your cluster settings
         slurm_profile = {
             "executor": "slurm",
-            "jobs": 1,
+            "jobs": 10,
             "default-resources": [
-                "slurm_account=",
-                "slurm_partition=",
-                "mem_mb=",
-                "runtime="
+                "slurm_account=YOUR_ACCOUNT",
+                "slurm_partition=YOUR_PARTITION",
+                "mem_mb=65536",
+                "runtime=720"
             ],
             "retries": 2,
             "latency-wait": 60
@@ -301,6 +301,7 @@ class TestDataGenerator:
         with open(profile_path, 'w') as f:
             yaml.dump(slurm_profile, f, default_flow_style=False, sort_keys=False, indent=2)
         
-        custom_logger.info(f"✓ SLURM profile configuration saved to: {profile_path}")
+        custom_logger.info(f"✓ HPC SLURM profile template saved to: {profile_path}")
+        custom_logger.info(f"  ⚠️  Edit {profile_path} with your SLURM account and partition before cluster execution")
         
         return output_path

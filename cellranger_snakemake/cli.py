@@ -355,8 +355,12 @@ Examples:
         custom_logger.info(f"Libraries file: {test_data_paths['libraries_file']}")
         custom_logger.info(f"Reference path: {test_data_paths['reference_path']}")
         custom_logger.info(f"Config file: {config_path}")
+        custom_logger.info(f"HPC profile: {output_dir}/HPC_profiles/config.yaml")
         custom_logger.info(f"\nTo run the {workflow_type} test pipeline:")
+        custom_logger.info(f"  # Local execution:")
         custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 8")
+        custom_logger.info(f"\n  # Cluster execution (edit HPC_profiles/config.yaml first):")
+        custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 1 --snakemake-args --profile {output_dir}/HPC_profiles")
     
     elif args.subcommand == 'check-versions':
         checker = CellRangerVersionChecker()
