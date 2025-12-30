@@ -188,17 +188,41 @@ Examples:
     # Generate test data subcommand
     testdata_parser = subparsers.add_parser(
         'generate-test-data',
-        help='Generate test data for a specific workflow'
+        help='Generate example test data files and configuration for pipeline testing',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+        This command creates a complete set of test files for the specified workflow, including:
+          - libraries_list.tsv: TSV containing the metadata and paths for your Cell Ranger libraries
+          - Reference genome path file
+          - Test configuration YAML file with example settings
+
+        These files provide a sandbox environment to test and develop your workflow.
+
+        NOTE: The test data is derived from the Cell Ranger `testrun` command, which leverages test data 
+        that comes with `cellranger`. For more information, see:
+        https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-in#testrun
+
+        Examples:
+          # Generate GEX workflow test files
+          snakemake-run-cellranger generate-test-data GEX --output-dir 00_TEST_DATA_GEX
+
+          # Generate ATAC workflow test files in custom directory
+          snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA_ATAC
+
+          # Generate ARC workflow test files
+          snakemake-run-cellranger generate-test-data ARC --output-dir 00_TEST_DATA_ARC
+        """
     )
     testdata_parser.add_argument(
         'workflow',
         choices=['GEX', 'ATAC', 'ARC'],
-        help='Workflow type (GEX, ATAC, or ARC)'
+        help='Workflow type: GEX (Gene Expression), ATAC (Chromatin Accessibility), or ARC (Multiome)'
     )
     testdata_parser.add_argument(
         '--output-dir',
         default='00_TEST_DATA',
-        help='Directory where test data will be generated (default: 00_TEST_DATA)'
+        help='Directory where test data files will be generated (default: 00_TEST_DATA). '
+             'Creates the directory if it does not exist.'
     )
 
     # Parse arguments
