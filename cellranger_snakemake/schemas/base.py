@@ -23,18 +23,6 @@ class DirectoryConfig(BaseModel):
         return v
 
 
-class HPCConfig(BaseModel):
-    """Configuration for Cell Ranger's --jobmode flag."""
-    jobmode: Literal["local", "slurm", "sge"] = Field(
-        default="local",
-        description="Select job manager for cellranger: local or HPC scheduler \n Value passed to Cell Ranger's `--jobmode`"
-    )
-    mempercore: Optional[int] = Field(
-        default=None, 
-        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag)"
-    )
-
-
 class BaseStepConfig(BaseModel):
     """Base configuration for pipeline steps."""
     enabled: bool = Field(default=True, description="Whether this step is enabled")

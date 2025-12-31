@@ -2,7 +2,7 @@
 
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field, field_validator
-from .base import ResourceConfig, HPCConfig
+from .base import ResourceConfig
 from .cellranger import CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 from .demultiplexing import DemultiplexingConfig
 from .doublet_detection import DoubletDetectionConfig
@@ -42,10 +42,6 @@ class PipelineConfig(BaseModel):
     )
     
     # Global settings
-    hpc: HPCConfig = Field(
-        default_factory=HPCConfig,
-        description="HPC configuration"
-    )
     resources: ResourceConfig = Field(
         default_factory=ResourceConfig,
         description="Computational resources"

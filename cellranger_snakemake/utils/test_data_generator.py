@@ -215,10 +215,6 @@ class TestDataGenerator:
         base_config = {
             "project_name": f"test_{workflow.lower()}",
             "output_dir": f"test_output_{workflow.lower()}",
-            "hpc": {
-                "mode": "local",
-                "mempercore": None
-            },
             "resources": {
                 "mem_gb": 64,
                 "tmpdir": "",

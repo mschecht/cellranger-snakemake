@@ -67,7 +67,7 @@ except ImportError:
 
 
 from cellranger_snakemake.schemas.config import PipelineConfig, SampleMetadata
-from cellranger_snakemake.schemas.base import HPCConfig, ResourceConfig
+from cellranger_snakemake.schemas.base import ResourceConfig
 from cellranger_snakemake.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
@@ -99,18 +99,6 @@ class ConfigGenerator:
         project_name = Prompt.ask("Project name")
         output_dir = Prompt.ask("Output directory", default="output")
         
-        # HPC configuration
-        self.console.print("\n[bold]HPC Configuration[/bold]")
-        hpc_mode = Prompt.ask(
-            "Cell Ranger --jobmode value (or 'local' to disable)",
-            default="local"
-        )
-        mempercore = None
-        if hpc_mode != "local":
-            mempercore = IntPrompt.ask("Memory per core (GB)", default=8)
-        
-        hpc = HPCConfig(mode=hpc_mode, mempercore=mempercore)
-        
         # Resource configuration
         self.console.print("\n[bold]Resource Configuration[/bold]")
         mem_gb = IntPrompt.ask("Total memory (GB)", default=32)
@@ -124,7 +112,6 @@ class ConfigGenerator:
         config_dict = {
             "project_name": project_name,
             "output_dir": output_dir,
-            "hpc": hpc,
             "resources": resources,
             "directories_suffix": directories_suffix,
         }

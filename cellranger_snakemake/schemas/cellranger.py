@@ -37,6 +37,21 @@ class CellRangerGEXConfig(BaseStepConfig):
         gt=0,
         description="Memory (GB) for cellranger count"
     )
+    
+    # Cell Ranger job submission options (--jobmode and --mempercore, --maxjobs): https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-job-submission-mode
+    jobmode: Optional[Literal["local", "slurm", "sge"]] = Field(
+        default=None,
+        description="Cell Ranger's --jobmode flag (use Snakemake --profile instead for cluster execution)"
+    )
+    mempercore: Optional[int] = Field(
+        default=None,
+        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag)"
+    )
+    maxjobs: Optional[int] = Field(
+        default=None,
+        description="Maximum number of jobs (Cell Ranger's --maxjobs flag)"
+    )
+    
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",
@@ -78,6 +93,21 @@ class CellRangerATACConfig(BaseStepConfig):
         gt=0,
         description="Memory (GB) for cellranger-atac count"
     )
+    
+    # Cell Ranger job submission options (optional, for cellranger's built-in cluster submission)
+    jobmode: Optional[Literal["local", "slurm", "sge"]] = Field(
+        default=None,
+        description="Cell Ranger's --jobmode flag (use Snakemake --profile instead for cluster execution)"
+    )
+    mempercore: Optional[int] = Field(
+        default=None,
+        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag)"
+    )
+    maxjobs: Optional[int] = Field(
+        default=None,
+        description="Maximum number of jobs (Cell Ranger's --maxjobs flag)"
+    )
+    
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",
@@ -121,6 +151,20 @@ class CellRangerARCConfig(BaseStepConfig):
         default=64,
         gt=0,
         description="Memory (GB) for cellranger-arc count"
+    )
+    
+    # Cell Ranger job submission options (optional, for cellranger's built-in cluster submission)
+    jobmode: Optional[Literal["local", "slurm", "sge"]] = Field(
+        default=None,
+        description="Cell Ranger's --jobmode flag (use Snakemake --profile instead for cluster execution)"
+    )
+    mempercore: Optional[int] = Field(
+        default=None,
+        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag)"
+    )
+    maxjobs: Optional[int] = Field(
+        default=None,
+        description="Maximum number of jobs (Cell Ranger's --maxjobs flag)"
     )
     
     class DirectoryConfig(DirectoryConfig):
