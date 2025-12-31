@@ -222,7 +222,7 @@ class TestDataGenerator:
             },
             "resources": {
                 "mem_gb": 64,
-                "tmpdir": "/tmp",
+                "tmpdir": "",
             },
             "directories_suffix": "none",
         }
