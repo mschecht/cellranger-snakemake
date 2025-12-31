@@ -301,7 +301,10 @@ class TestDataGenerator:
                 "runtime=720"
             ],
             "retries": 2,
-            "latency-wait": 60
+            "latency-wait": 60,
+            "printshellcmds": True,
+            "keep-going": True,
+            "rerun-incomplete": True
         }
         
         profile_path = os.path.join(profile_dir, "config.yaml")
