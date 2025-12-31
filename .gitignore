@@ -5,9 +5,11 @@
 *.html
 *.egg-info/
 __pycache__/
-tests/00_TEST_DATA
+tests/00_TEST_DATA*
 tests/refdata-cellranger-arc-GRCh38-2024-A/
 build/
 dist/
 .DS_Store
 .snakemake/
+.vscode/
+tests/test_*
