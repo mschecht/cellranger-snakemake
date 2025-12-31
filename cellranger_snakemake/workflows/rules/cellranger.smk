@@ -1,18 +1,16 @@
 """Cell Ranger workflow rules for all modalities (GEX, ATAC, ARC)."""
 
+# Standard library imports
 import os
 import sys
 import shutil
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
-
 from pathlib import Path
 from tempfile import gettempdir
 from collections import defaultdict
-from custom_logger import custom_logger
-from utils import sanity_check_libraries_list_tsv, get_directories
+from cellranger_snakemake import utils as u
 
 # Cell Ranger --jobmode and --mempercore flags (passed directly from config)
 HPC_MODE = config.get("hpc", {}).get("jobmode", "local")
@@ -83,7 +81,7 @@ if config.get("cellranger_gex"):
     GEX_AGGR_DIR = gex_cfg["aggr_dir"]
     
     # Parse libraries file
-    gex_df = sanity_check_libraries_list_tsv(
+    gex_df = u.sanity_check_libraries_list_tsv(
         GEX_LIBRARIES,
         expected_columns={"batch", "capture", "sample", "fastqs"},
         path_column="fastqs",
@@ -94,7 +92,7 @@ if config.get("cellranger_gex"):
     gex_samples = gex_df["capture"].unique().tolist()
     gex_batch_to_samples = {str(k): v for k, v in gex_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
-    custom_logger.info(f"Cell Ranger GEX: Found {len(gex_samples)} sample(s) across {len(gex_batch_to_samples)} batch(es)")
+    u.custom_logger.info(f"Cell Ranger GEX: Found {len(gex_samples)} sample(s) across {len(gex_batch_to_samples)} batch(es)")
     
     
     rule cellranger_gex_count:
@@ -119,11 +117,8 @@ if config.get("cellranger_gex"):
             os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.log")
         run:
             output_id = f"{wildcards.batch}_{wildcards.capture}"
-            # mempercore_cmd = f"--mempercore={MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
-            # Let Cell Ranger auto-detect resources when in local mode
-            # local_resources = f"--localcores={threads} --localmem={int(resources.mem_gb * 0.75)}" if HPC_MODE == "local" else ""
-            # Convert Python boolean to lowercase string for Cell Ranger
-            create_bam_str = str(params.create_bam).lower()
+            create_bam_str = str(params.create_bam).lower() # Convert Python boolean to lowercase string for Cell Ranger
+
             shell(
                 f"""
                 cellranger count \\
@@ -166,7 +161,6 @@ if config.get("cellranger_gex"):
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.log")
         run:
-            import shutil
             # Create aggregation CSV
             captures = gex_batch_to_samples[wildcards.batch]
             aggr_data = []
@@ -199,7 +193,7 @@ if config.get("cellranger_gex"):
                         shutil.rmtree(final_path)
                     shutil.move(wildcards.batch, final_path)
             else:
-                custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger aggr step.")
+                u.custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger aggr step.")
 
 
 # ============================================================================
@@ -218,7 +212,7 @@ if config.get("cellranger_atac"):
     ATAC_AGGR_DIR = atac_cfg["aggr_dir"]
     
     # Parse libraries file
-    atac_df = sanity_check_libraries_list_tsv(
+    atac_df = u.sanity_check_libraries_list_tsv(
         ATAC_LIBRARIES,
         expected_columns={"batch", "capture", "sample", "fastqs"},
         path_column="fastqs",
@@ -228,7 +222,7 @@ if config.get("cellranger_atac"):
     atac_samples = atac_df["capture"].unique().tolist()
     atac_batch_to_samples = {str(k): v for k, v in atac_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
-    custom_logger.info(f"Cell Ranger ATAC: Found {len(atac_samples)} sample(s) across {len(atac_batch_to_samples)} batch(es)")
+    u.custom_logger.info(f"Cell Ranger ATAC: Found {len(atac_samples)} sample(s) across {len(atac_batch_to_samples)} batch(es)")
     
     
     rule cellranger_atac_count:
@@ -250,7 +244,6 @@ if config.get("cellranger_atac"):
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.log")
         run:
-            import shutil
             output_id = f"{wildcards.batch}_{wildcards.capture}"
             shell(
                 f"""
@@ -292,7 +285,6 @@ if config.get("cellranger_atac"):
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.log")
         run:
-            import shutil
             # Create aggregation CSV
             captures = atac_batch_to_samples[wildcards.batch]
             aggr_data = []
@@ -325,7 +317,7 @@ if config.get("cellranger_atac"):
                         shutil.rmtree(final_path)
                     shutil.move(wildcards.batch, final_path)
             else:
-                custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-atac aggr step.")
+                u.custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-atac aggr step.")
 
 
 # ============================================================================
@@ -343,7 +335,7 @@ if config.get("cellranger_arc"):
     ARC_AGGR_DIR = arc_cfg["aggr_dir"]
     
     # Parse libraries file (ARC uses CSV column)
-    arc_df = sanity_check_libraries_list_tsv(
+    arc_df = u.sanity_check_libraries_list_tsv(
         ARC_LIBRARIES,
         expected_columns={"batch", "capture", "CSV"},
         path_column="CSV",
@@ -353,7 +345,7 @@ if config.get("cellranger_arc"):
     arc_captures = arc_df["capture"].unique().tolist()
     arc_batch_to_captures = {str(k): v for k, v in arc_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
-    custom_logger.info(f"Cell Ranger ARC: Found {len(arc_captures)} capture(s) across {len(arc_batch_to_captures)} batch(es)")
+    u.custom_logger.info(f"Cell Ranger ARC: Found {len(arc_captures)} capture(s) across {len(arc_batch_to_captures)} batch(es)")
     
     
     rule cellranger_arc_count:
@@ -368,13 +360,12 @@ if config.get("cellranger_arc"):
         params:
             outdir = ARC_COUNT_DIR
         threads: 8
-        # resources:
-        #     mem_gb = RESOURCES.get("mem_gb", 64),
-        #     tmpdir = RESOURCES.get("tmpdir") or gettempdir()
+        resources:
+            mem_gb = RESOURCES.get("mem_gb", 64),
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.log")
         run:
-            import shutil
             output_id = f"{wildcards.batch}_{wildcards.capture}"
             shell(
                 f"""
@@ -416,7 +407,6 @@ if config.get("cellranger_arc"):
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.log")
         run:
-            import shutil
             # Create aggregation CSV for cellranger-arc aggr
             captures = arc_batch_to_captures[wildcards.batch]
             aggr_data = []
@@ -468,4 +458,4 @@ if config.get("cellranger_arc"):
                         shutil.rmtree(final_path)
                     shutil.move(wildcards.batch, final_path)
             else:
-                custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-arc aggr step.")
+                u.custom_logger.info(f"Batch {wildcards.batch} has only one capture ({captures[0]}). Skipping cellranger-arc aggr step.")

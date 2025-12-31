@@ -2,9 +2,10 @@
 
 import os
 import subprocess
+
 from pathlib import Path
 from typing import Optional, Tuple, Dict
-from cellranger_snakemake.utils.custom_logger import custom_logger
+from cellranger_snakemake import utils as u
 from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 
 
@@ -53,7 +54,7 @@ class TestDataGenerator:
             return cellranger_dir
             
         except subprocess.CalledProcessError:
-            custom_logger.warning(f"{program} not found in PATH")
+            u.custom_logger.warning(f"{program} not found in PATH")
             return None
     
     @classmethod
@@ -69,7 +70,7 @@ class TestDataGenerator:
         """
         program = cls.WORKFLOW_PROGRAMS.get(workflow)
         if not program:
-            custom_logger.error(f"Unknown workflow type: {workflow}")
+            u.custom_logger.error(f"Unknown workflow type: {workflow}")
             return None, None
         
         cellranger_dir = cls.find_cellranger_path(program)
@@ -79,7 +80,7 @@ class TestDataGenerator:
         # Get version-specific path patterns
         path_config = CellRangerVersionChecker.TEST_DATA_PATHS.get(workflow)
         if not path_config:
-            custom_logger.error(f"No test data path configuration for workflow: {workflow}")
+            u.custom_logger.error(f"No test data path configuration for workflow: {workflow}")
             return None, None
         
         fastq_patterns = path_config['fastq_patterns']
@@ -91,11 +92,11 @@ class TestDataGenerator:
             candidate = cellranger_dir / pattern
             if candidate.exists():
                 fastq_path = str(candidate)
-                custom_logger.info(f"Found {workflow} test FASTQ path: {fastq_path}")
+                u.custom_logger.info(f"Found {workflow} test FASTQ path: {fastq_path}")
                 break
         
         if not fastq_path:
-            custom_logger.warning(f"{workflow} test FASTQ path not found. Tried patterns: {fastq_patterns}")
+            u.custom_logger.warning(f"{workflow} test FASTQ path not found. Tried patterns: {fastq_patterns}")
             return None, None
         
         # Try to find reference directory
@@ -104,11 +105,11 @@ class TestDataGenerator:
             candidate = cellranger_dir / pattern
             if candidate.exists():
                 ref_path = str(candidate)
-                custom_logger.info(f"Found {workflow} test reference path: {ref_path}")
+                u.custom_logger.info(f"Found {workflow} test reference path: {ref_path}")
                 break
         
         if not ref_path:
-            custom_logger.warning(f"{workflow} test reference path not found. Tried patterns: {ref_patterns}")
+            u.custom_logger.warning(f"{workflow} test reference path not found. Tried patterns: {ref_patterns}")
             return fastq_path, None
         
         return fastq_path, ref_path
@@ -138,7 +139,7 @@ class TestDataGenerator:
                     cf.write("fastqs,sample,library_type\n")
                     cf.write(f"{fastq_path},tiny_arc_gex,Gene Expression\n")
                     cf.write(f"{fastq_path},tiny_arc_atac,Chromatin Accessibility\n")
-                custom_logger.info(f"Created ARC library CSV: {csv_file}")
+                u.custom_logger.info(f"Created ARC library CSV: {csv_file}")
                 
                 # Write metadata TSV pointing to library CSV
                 f.write("batch\tcapture\tCSV\n")
@@ -149,7 +150,7 @@ class TestDataGenerator:
                 f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\n")
                 f.write(f"1\tL002\ttiny{workflow.lower()}\t{fastq_path}\n")
         
-        custom_logger.info(f"Created {workflow} libraries.tsv: {output_path}")
+        u.custom_logger.info(f"Created {workflow} libraries.tsv: {output_path}")
         return output_path
     
     @classmethod
@@ -168,8 +169,8 @@ class TestDataGenerator:
         fastq_path, ref_path = cls.find_tiny_test_data(workflow)
         
         if not fastq_path:
-            custom_logger.error(f"Could not find tiny test data for {workflow}")
-            custom_logger.info(f"Make sure {cls.WORKFLOW_PROGRAMS[workflow]} is installed and in your PATH")
+            u.custom_logger.error(f"Could not find tiny test data for {workflow}")
+            u.custom_logger.info(f"Make sure {cls.WORKFLOW_PROGRAMS[workflow]} is installed and in your PATH")
             return {}
         
         # Create output directory
@@ -184,9 +185,9 @@ class TestDataGenerator:
         if ref_path:
             with open(ref_file, 'w') as f:
                 f.write(ref_path)
-            custom_logger.info(f"Created {workflow} test reference file: {ref_file}")
+            u.custom_logger.info(f"Created {workflow} test reference file: {ref_file}")
         else:
-            custom_logger.warning(f"{workflow} test reference path not found, skipping reference file creation")
+            u.custom_logger.warning(f"{workflow} test reference path not found, skipping reference file creation")
             ref_path = f"/path/to/{workflow.lower()}/reference"
         
         return {
@@ -282,7 +283,7 @@ class TestDataGenerator:
         with open(output_path, 'w') as f:
             yaml.dump(base_config, f, default_flow_style=False, sort_keys=False, indent=2)
         
-        custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
+        u.custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
         
         # Generate HPC profile configuration (for SLURM cluster execution)
         output_dir = Path(output_path).parent
@@ -307,7 +308,7 @@ class TestDataGenerator:
         with open(profile_path, 'w') as f:
             yaml.dump(slurm_profile, f, default_flow_style=False, sort_keys=False, indent=2)
         
-        custom_logger.info(f"✓ HPC SLURM profile template saved to: {profile_path}")
-        custom_logger.info(f"  ⚠️  Edit {profile_path} with your SLURM account and partition before cluster execution")
+        u.custom_logger.info(f"✓ HPC SLURM profile template saved to: {profile_path}")
+        u.custom_logger.info(f"  ⚠️  Edit {profile_path} with your SLURM account and partition before cluster execution")
         
         return output_path
