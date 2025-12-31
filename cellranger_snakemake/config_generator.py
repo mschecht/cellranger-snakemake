@@ -94,42 +94,50 @@ class ConfigGenerator:
     def generate_default_config(self) -> PipelineConfig:
         """Generate configuration with all parameters set to default values (no prompts)."""
         self.console.print("\n[bold blue]Generating default configuration with ALL parameters...[/bold blue]\n")
+        self.console.print("[yellow]Note: All steps are disabled by default. Edit and enable the ones you need.[/yellow]\n")
         
         # Create config with all pipeline steps showing all available parameters
+        # All steps are explicitly disabled so users must enable what they need
         config_dict = {
             "project_name": "my_project",
             "output_dir": "output",
             "resources": ResourceConfig(),
             "directories_suffix": "none",
             
-            # Cell Ranger configs with placeholder paths
+            # Cell Ranger configs with placeholder paths - disabled by default
             "cellranger_gex": CellRangerGEXConfig(
+                enabled=False,
                 reference="/path/to/cellranger/reference",
                 libraries="libraries_gex.tsv"
             ),
             "cellranger_atac": CellRangerATACConfig(
+                enabled=False,
                 reference="/path/to/cellranger-atac/reference",
                 libraries="libraries_atac.tsv"
             ),
             "cellranger_arc": CellRangerARCConfig(
+                enabled=False,
                 reference="/path/to/cellranger-arc/reference",
                 libraries="libraries_arc.tsv"
             ),
             
-            # Demultiplexing config
+            # Demultiplexing config - disabled by default
             "demultiplexing": DemultiplexingConfig(
+                enabled=False,
                 method="demuxlet",
                 demuxlet=DemuxletConfig(vcf="/path/to/genotypes.vcf")
             ),
             
-            # Doublet detection config
+            # Doublet detection config - disabled by default
             "doublet_detection": DoubletDetectionConfig(
+                enabled=False,
                 method="scrublet",
                 scrublet=ScrubletConfig()
             ),
             
-            # Cell type annotation config
+            # Cell type annotation config - disabled by default
             "celltype_annotation": CelltypeAnnotationConfig(
+                enabled=False,
                 method="celltypist",
                 celltypist=CelltypistConfig(model="Immune_All_Low.pkl")
             ),
