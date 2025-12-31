@@ -111,17 +111,17 @@ if config.get("cellranger_gex"):
             chemistry = GEX_CHEMISTRY,
             create_bam = GEX_CREATE_BAM,
             sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
-        threads: 10
+        threads: config["cellranger_gex"].get("threads", 10)
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024,
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.log")
         run:
             output_id = f"{wildcards.batch}_{wildcards.capture}"
-            mempercore_cmd = f"--mempercore={MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
+            # mempercore_cmd = f"--mempercore={MEMPERCORE_PARAM}" if MEMPERCORE_PARAM else ""
             # Let Cell Ranger auto-detect resources when in local mode
-            local_resources = f"--localcores={threads} --localmem={int(resources.mem_gb * 0.75)}" if HPC_MODE == "local" else ""
+            # local_resources = f"--localcores={threads} --localmem={int(resources.mem_gb * 0.75)}" if HPC_MODE == "local" else ""
             # Convert Python boolean to lowercase string for Cell Ranger
             create_bam_str = str(params.create_bam).lower()
             shell(
@@ -159,9 +159,9 @@ if config.get("cellranger_gex"):
             outdir = GEX_AGGR_DIR,
             normalize = GEX_NORMALIZE,
             csv = os.path.join(GEX_AGGR_DIR, "{batch}_aggregation.csv")
-        threads: 8
+        threads: config["cellranger_gex"].get("threads", 10)
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024, # NOTE: SLURM resources uses M  B
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.log")

@@ -27,6 +27,16 @@ class CellRangerGEXConfig(BaseStepConfig):
         description="Whether to create a BAM file",
         alias="create-bam"
     )
+    threads: int = Field(
+        default=10,
+        ge=1,
+        description="CPU threads for cellranger count"
+    )
+    mem_gb: int = Field(
+        default=64,
+        gt=0,
+        description="Memory (GB) for cellranger count"
+    )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",
@@ -57,6 +67,16 @@ class CellRangerATACConfig(BaseStepConfig):
     normalize: Literal["none", "depth"] = Field(
         default="none",
         description="Normalization method for aggregation"
+    )
+    threads: int = Field(
+        default=10,
+        ge=1,
+        description="CPU threads for cellranger-atac count"
+    )
+    mem_gb: int = Field(
+        default=64,
+        gt=0,
+        description="Memory (GB) for cellranger-atac count"
     )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
@@ -91,6 +111,16 @@ class CellRangerARCConfig(BaseStepConfig):
             CELLRANGERARC_COUNT_DIR="01_CELLRANGERARC_COUNT",
             CELLRANGERARC_AGGR_DIR="02_CELLRANGERARC_AGGR"
         )
+    )
+    threads: int = Field(
+        default=10,
+        ge=1,
+        description="CPU threads for cellranger-arc count"
+    )
+    mem_gb: int = Field(
+        default=64,
+        gt=0,
+        description="Memory (GB) for cellranger-arc count"
     )
     
     class DirectoryConfig(DirectoryConfig):

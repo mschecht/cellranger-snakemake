@@ -235,18 +235,24 @@ class TestDataGenerator:
                 "chemistry": "auto",
                 "normalize": "none",
                 "create-bam": False,
+                "threads": 10,
+                "mem_gb": 64,
             }
         elif workflow == 'ATAC':
             base_config["cellranger_atac"] = {
                 "enabled": True,
                 "reference": reference_path,
                 "libraries": os.path.join(test_data_dir, "libraries_list_atac.tsv"),
+                "threads": 10,
+                "mem_gb": 64,
             }
         elif workflow == 'ARC':
             base_config["cellranger_arc"] = {
                 "enabled": True,
                 "reference": reference_path,
                 "libraries": os.path.join(test_data_dir, "libraries_list_arc.tsv"),
+                "threads": 10,
+                "mem_gb": 64,
             }
 
         # Add optional processing steps for GEX
@@ -283,14 +289,14 @@ class TestDataGenerator:
         profile_dir = os.path.join(output_dir, "HPC_profiles")
         os.makedirs(profile_dir, exist_ok=True)
         
-        # Template SLURM profile - EDIT THIS FILE with your cluster settings
+        # SLURM profile - cluster-specific settings only
+        # NOTE: Memory and threads are configured in the main YAML config under each workflow section
         slurm_profile = {
             "executor": "slurm",
             "jobs": 10,
             "default-resources": [
                 "slurm_account=YOUR_ACCOUNT",
                 "slurm_partition=YOUR_PARTITION",
-                "mem_mb=65536",
                 "runtime=720"
             ],
             "retries": 2,
