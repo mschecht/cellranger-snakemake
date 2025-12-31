@@ -1,7 +1,7 @@
 """Main unified configuration schema for single-cell preprocessing pipeline."""
 
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from .base import ResourceConfig
 from .cellranger import CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 from .demultiplexing import DemultiplexingConfig
@@ -88,6 +88,27 @@ class PipelineConfig(BaseModel):
         if not v or v.isspace():
             raise ValueError("output_dir cannot be empty")
         return v
+    
+    @model_validator(mode='after')
+    def validate_single_cellranger(self) -> 'PipelineConfig':
+        """Ensure only one Cell Ranger workflow is enabled at a time."""
+        enabled_cr = []
+        
+        if self.cellranger_gex and self.cellranger_gex.enabled:
+            enabled_cr.append("cellranger_gex")
+        if self.cellranger_atac and self.cellranger_atac.enabled:
+            enabled_cr.append("cellranger_atac")
+        if self.cellranger_arc and self.cellranger_arc.enabled:
+            enabled_cr.append("cellranger_arc")
+        
+        if len(enabled_cr) > 1:
+            raise ValueError(
+                f"Only one Cell Ranger workflow can be enabled at a time. "
+                f"Found {len(enabled_cr)} enabled: {', '.join(enabled_cr)}. "
+                f"Please disable all but one."
+            )
+        
+        return self
     
     def get_enabled_steps(self) -> list[str]:
         """Return list of enabled pipeline steps."""
