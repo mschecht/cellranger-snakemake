@@ -12,16 +12,6 @@ from tempfile import gettempdir
 from collections import defaultdict
 from cellranger_snakemake import utils as u
 
-# Cell Ranger --jobmode and --mempercore flags (passed directly from config)
-HPC_MODE = config.get("hpc", {}).get("jobmode", "local")
-MEMPERCORE_PARAM = f"--mempercore={config.get('hpc', {}).get('mempercore')}" if config.get("hpc", {}).get("mempercore") else ""
-
-if MEMPERCORE_PARAM and HPC_MODE == "local":
-    raise ValueError("mempercore requires jobmode (hpc.mode cannot be 'local')")
-
-if MEMPERCORE_PARAM and RESOURCES:
-    raise ValueError("mempercore cannot be used together with resource specifications")
-
 def parse_cellranger_config(config, modality_key, has_chemistry=True):
     """
     Parse Cell Ranger configuration for a specific modality.
