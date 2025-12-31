@@ -127,8 +127,8 @@ if config.get("cellranger_gex"):
                     --fastqs={input.fastqs} \\
                     --sample={params.sample_name} \\
                     --create-bam={create_bam_str} \\
-                    --chemistry={params.chemistry} 
-                    2>&1 | tee {log}
+                    --chemistry={params.chemistry} \\
+                    2>&1 > {log}
                 """
             )
             # Move output to final location
@@ -182,8 +182,8 @@ if config.get("cellranger_gex"):
                     cellranger aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
-                        --normalize={params.normalize}
-                        2>&1 | tee {log}
+                        --normalize={params.normalize} \\
+                        2>&1 > {log}
                     """
                 )
                 # Move output to final location
@@ -252,7 +252,7 @@ if config.get("cellranger_atac"):
                     --reference={input.reference} \\
                     --fastqs={input.fastqs} \\
                     --sample={params.sample_name} \\
-                    2>&1 | tee {log}
+                    2>&1 > {log}
                 """
             )
             # Move output to final location
@@ -307,7 +307,7 @@ if config.get("cellranger_atac"):
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
                         --normalize={params.normalize} \\
-                        2>&1 | tee {log}
+                        2>&1 > {log}
                     """
                 )
                 # Move output to final location
@@ -373,7 +373,7 @@ if config.get("cellranger_arc"):
                     --id={output_id} \\
                     --reference={input.reference} \\
                     --libraries={input.libraries_csv} \\
-                    2>&1 | tee {log}
+                    2>&1 > {log}
                 """
             )
             # Move output to final location
@@ -448,7 +448,7 @@ if config.get("cellranger_arc"):
                         --csv={params.csv} \\
                         --reference={params.reference} \\
                         --normalize={params.normalize} \\
-                        2>&1 | tee {log}
+                        2>&1 > {log}
                     """
                 )
                 # Move output to final location
