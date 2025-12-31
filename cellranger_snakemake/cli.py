@@ -140,6 +140,11 @@ Examples:
         default='pipeline_config.yaml',
         help='Output path for configuration file'
     )
+    init_parser.add_argument(
+        '--get-default-config',
+        help='Generate configuration file with ALL parameters set to default values (no interactive prompts)',
+        action='store_true'
+    )
     
     # Validate config subcommand
     validate_parser = subparsers.add_parser(
@@ -300,7 +305,10 @@ Examples:
     elif args.subcommand == 'init-config':
         generator = ConfigGenerator()
         try:
-            config = generator.generate()
+            if args.get_default_config:
+                config = generator.generate_default_config()
+            else:
+                config = generator.generate()
             generator.save_config(config, args.output)
             custom_logger.info(f"Enabled steps: {', '.join(config.get_enabled_steps())}")
         except KeyboardInterrupt:

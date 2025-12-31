@@ -91,6 +91,52 @@ class ConfigGenerator:
     def __init__(self):
         self.console = Console()
     
+    def generate_default_config(self) -> PipelineConfig:
+        """Generate configuration with all parameters set to default values (no prompts)."""
+        self.console.print("\n[bold blue]Generating default configuration with ALL parameters...[/bold blue]\n")
+        
+        # Create config with all pipeline steps showing all available parameters
+        config_dict = {
+            "project_name": "my_project",
+            "output_dir": "output",
+            "resources": ResourceConfig(),
+            "directories_suffix": "none",
+            
+            # Cell Ranger configs with placeholder paths
+            "cellranger_gex": CellRangerGEXConfig(
+                reference="/path/to/cellranger/reference",
+                libraries="libraries_gex.tsv"
+            ),
+            "cellranger_atac": CellRangerATACConfig(
+                reference="/path/to/cellranger-atac/reference",
+                libraries="libraries_atac.tsv"
+            ),
+            "cellranger_arc": CellRangerARCConfig(
+                reference="/path/to/cellranger-arc/reference",
+                libraries="libraries_arc.tsv"
+            ),
+            
+            # Demultiplexing config
+            "demultiplexing": DemultiplexingConfig(
+                method="demuxlet",
+                demuxlet=DemuxletConfig(vcf="/path/to/genotypes.vcf")
+            ),
+            
+            # Doublet detection config
+            "doublet_detection": DoubletDetectionConfig(
+                method="scrublet",
+                scrublet=ScrubletConfig()
+            ),
+            
+            # Cell type annotation config
+            "celltype_annotation": CelltypeAnnotationConfig(
+                method="celltypist",
+                celltypist=CelltypistConfig(model="Immune_All_Low.pkl")
+            ),
+        }
+        
+        return PipelineConfig(**config_dict)
+    
     def generate(self) -> PipelineConfig:
         """Generate configuration interactively."""
         self.console.print("\n[bold blue]Single-Cell Preprocessing Pipeline Configuration Generator[/bold blue]\n")
@@ -295,7 +341,7 @@ class ConfigGenerator:
     def save_config(self, config: PipelineConfig, output_path: str):
         """Save configuration to YAML file."""
         # Convert to dict for YAML serialization
-        config_dict = config.model_dump(exclude_none=True, mode='python')
+        config_dict = config.model_dump(exclude_none=True, by_alias=True)
         
         # Check if file exists and prompt for new name if needed
         final_path = output_path
