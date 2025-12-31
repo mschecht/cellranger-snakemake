@@ -7,6 +7,9 @@ import subprocess
 from pathlib import Path
 from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, ATAC_README_content, GEX_CONFIG, GEX_README_content
+from cellranger_snakemake.schemas.config import PipelineConfig
+from cellranger_snakemake.config_validator import ConfigValidator
+from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 
 class Workflow:
     def __init__(self, name, get_default_config, config_file):
@@ -90,62 +93,83 @@ class Workflow:
             return None
     
 
-    def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, dag=False, additional_args=""):
+    def run(self, config_file=None, snakefile=None, dry_run=False, cores=1, additional_args=""):
         config_file = config_file or self.config_file
         snakefile = snakefile or self.snakefile
 
         if not os.path.exists(config_file):
             custom_logger.error(f"Configuration file '{config_file}' not found.")
             sys.exit(1)
+        
+        # Validate Cell Ranger version before running workflow
+        custom_logger.info(f"Validating Cell Ranger installation for {self.name} workflow...")
+        is_valid, messages = CellRangerVersionChecker.validate_for_workflow(self.name)
+        
+        for msg in messages:
+            if "not found" in msg.lower() or "below minimum" in msg.lower():
+                custom_logger.error(msg)
+            else:
+                custom_logger.info(msg)
+        
+        if not is_valid:
+            custom_logger.error(f"Cell Ranger version validation failed for {self.name} workflow")
+            sys.exit(1)
+
+        # Try to load as unified config first, fall back to legacy
+        try:
+            unified_config = ConfigValidator.validate_config_file(config_file)
+            custom_logger.info(f"Detected unified configuration format")
+            custom_logger.info(f"Enabled steps: {', '.join(unified_config.get_enabled_steps())}")
+            
+            # Convert to legacy format for this workflow
+            legacy_config = unified_config.to_legacy_config(self.name)
+            if not legacy_config:
+                custom_logger.error(
+                    f"Unified config does not have configuration for workflow '{self.name}'. "
+                    f"Please ensure 'cellranger_{self.name.lower()}' section is configured."
+                )
+                sys.exit(1)
+            
+            # Write temporary legacy config for snakemake
+            temp_config_file = f".tmp_{self.name}_config.yaml"
+            with open(temp_config_file, 'w') as f:
+                yaml.dump(legacy_config, f, indent=2, sort_keys=False)
+            config_file = temp_config_file
+            custom_logger.info(f"Converted unified config to legacy format: {temp_config_file}")
+            
+        except Exception as e:
+            # Try loading as legacy config
+            custom_logger.info(f"Using legacy configuration format")
+            try:
+                with open(config_file, 'r') as f:
+                    yaml.safe_load(f)  # Just validate it's valid YAML
+            except Exception as yaml_error:
+                custom_logger.error(f"Configuration file is invalid: {yaml_error}")
+                sys.exit(1)
 
         if not os.path.exists(snakefile):
             custom_logger.error(f"Snakefile '{snakefile}' not found.")
             sys.exit(1)
 
-        if dag:
-            # Export DAG to PDF instead of running workflow
-            output_file = f"{self.name}_dag.pdf"
-            custom_logger.info(f"Exporting DAG to {output_file}")
-            try:
-                with open(output_file, "wb") as out_pdf:
-                    dag_process = subprocess.Popen(
-                        ["snakemake", "-s", snakefile, "--configfile", config_file, "--dag", "--forceall"],
-                        stdout=subprocess.PIPE
-                    )
-                    subprocess.run(
-                        ["dot", "-Tpdf"],
-                        stdin=dag_process.stdout,
-                        stdout=out_pdf,
-                        check=True
-                    )
-                custom_logger.info(f"DAG exported successfully to {output_file}")
-            except FileNotFoundError:
-                custom_logger.error("Graphviz 'dot' not found. Install it with e.g. `conda install -c conda-forge graphviz`.")
-                sys.exit(1)
-            except subprocess.CalledProcessError as e:
-                custom_logger.error(f"Failed to export DAG: {e}")
-                sys.exit(1)
-            return  # Do not run workflow
-        else:
-            cmd = ["snakemake", "-s", snakefile, "--configfile", config_file]
-            if dry_run:
-                cmd.append("-n")
-            cmd += ["-j", str(cores or 1)]
-            if additional_args:
-                custom_logger.info(f"Additional args: {additional_args.strip()}")
-                cmd += shlex.split(additional_args.strip())
+        cmd = ["snakemake", "-s", snakefile, "--configfile", config_file]
+        if dry_run:
+            cmd.append("-n")
+        cmd += ["-j", str(cores or 1)]
+        if additional_args:
+            custom_logger.info(f"Additional args: {additional_args.strip()}")
+            cmd += shlex.split(additional_args.strip())
 
-            custom_logger.info(f"Running command: {' '.join(cmd)}")
+        custom_logger.info(f"Running command: {' '.join(cmd)}")
 
-            try:
-                subprocess.run(cmd, check=True)
-                if not dry_run:
-                    custom_logger.info("Workflow completed successfully!")
-            except subprocess.CalledProcessError as e:
-                custom_logger.error(f"Snakemake failed: {e}")
-                sys.exit(1)
-            except FileNotFoundError:
-                custom_logger.error("Snakemake not found. Please install it.")
-                sys.exit(1)
+        try:
+            subprocess.run(cmd, check=True)
+            if not dry_run:
+                custom_logger.info("Workflow completed successfully!")
+        except subprocess.CalledProcessError as e:
+            custom_logger.error(f"Snakemake failed: {e}")
+            sys.exit(1)
+        except FileNotFoundError:
+            custom_logger.error("Snakemake not found. Please install it.")
+            sys.exit(1)
 
 

@@ -1,9 +1,24 @@
 import os
 import sys
+import argparse
 
 import pandas as pd
 
 from cellranger_snakemake.utils.custom_logger import custom_logger
+
+
+def validate_cores(value):
+    """Validate that cores is either a positive integer or 'all'."""
+    if value.lower() == 'all':
+        return value
+    try:
+        cores = int(value)
+        if cores < 1:
+            raise argparse.ArgumentTypeError("cores must be a positive integer or 'all'")
+        return str(cores)
+    except ValueError:
+        raise argparse.ArgumentTypeError("cores must be a positive integer or 'all'")
+
 
 # Function to apply suffix if specified
 def get_directories(config):

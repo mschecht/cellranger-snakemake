@@ -1,0 +1,312 @@
+"""Test data generation utilities for cellranger workflows."""
+
+import os
+import yaml
+import subprocess
+
+from pathlib import Path
+from typing import Optional, Tuple, Dict
+from cellranger_snakemake import utils as u
+from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+
+
+class TestDataGenerator:
+    """Generate test data files and configurations for cellranger workflows."""
+    
+    # Map workflow types to cellranger programs
+    WORKFLOW_PROGRAMS = {
+        'GEX': 'cellranger',
+        'ATAC': 'cellranger-atac',
+        'ARC': 'cellranger-arc'
+    }
+    
+    @staticmethod
+    def find_cellranger_path(program: str) -> Optional[Path]:
+        """
+        Find the installation path of a cellranger program.
+        
+        Args:
+            program: Name of cellranger program (e.g., 'cellranger', 'cellranger-atac')
+            
+        Returns:
+            Path to cellranger installation directory, or None if not found
+        """
+        try:
+            # Use 'which' to find the program
+            result = subprocess.run(
+                ['which', program],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            program_path = result.stdout.strip()
+            
+            # Resolve symlinks
+            real_path = subprocess.run(
+                ['readlink', '-f', program_path],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            real_path_str = real_path.stdout.strip()
+            
+            # Get cellranger directory (two levels up from binary)
+            cellranger_dir = Path(real_path_str).parent.parent
+            return cellranger_dir
+            
+        except subprocess.CalledProcessError:
+            u.custom_logger.warning(f"{program} not found in PATH")
+            return None
+    
+    @classmethod
+    def find_tiny_test_data(cls, workflow: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Find tiny test data paths for a specific workflow.
+        
+        Args:
+            workflow: Workflow type ('GEX', 'ATAC', 'ARC')
+            
+        Returns:
+            Tuple of (fastq_path, reference_path), or (None, None) if not found
+        """
+        program = cls.WORKFLOW_PROGRAMS.get(workflow)
+        if not program:
+            u.custom_logger.error(f"Unknown workflow type: {workflow}")
+            return None, None
+        
+        cellranger_dir = cls.find_cellranger_path(program)
+        if not cellranger_dir:
+            return None, None
+        
+        # Get version-specific path patterns
+        path_config = CellRangerVersionChecker.TEST_DATA_PATHS.get(workflow)
+        if not path_config:
+            u.custom_logger.error(f"No test data path configuration for workflow: {workflow}")
+            return None, None
+        
+        fastq_patterns = path_config['fastq_patterns']
+        ref_patterns = path_config['ref_patterns']
+        
+        # Try to find FASTQ directory
+        fastq_path = None
+        for pattern in fastq_patterns:
+            candidate = cellranger_dir / pattern
+            if candidate.exists():
+                fastq_path = str(candidate)
+                u.custom_logger.info(f"Found {workflow} test FASTQ path: {fastq_path}")
+                break
+        
+        if not fastq_path:
+            u.custom_logger.warning(f"{workflow} test FASTQ path not found. Tried patterns: {fastq_patterns}")
+            return None, None
+        
+        # Try to find reference directory
+        ref_path = None
+        for pattern in ref_patterns:
+            candidate = cellranger_dir / pattern
+            if candidate.exists():
+                ref_path = str(candidate)
+                u.custom_logger.info(f"Found {workflow} test reference path: {ref_path}")
+                break
+        
+        if not ref_path:
+            u.custom_logger.warning(f"{workflow} test reference path not found. Tried patterns: {ref_patterns}")
+            return fastq_path, None
+        
+        return fastq_path, ref_path
+    
+    @classmethod
+    def generate_libraries_tsv(cls, workflow: str, fastq_path: str, output_path: Path) -> Path:
+        """
+        Generate a libraries TSV file for test data.
+        
+        Args:
+            workflow: Workflow type ('GEX', 'ATAC', 'ARC')
+            fastq_path: Path to fastq directory
+            output_path: Output file path
+            
+        Returns:
+            Path to created TSV file
+        """
+        with open(output_path, 'w') as f:
+            # Write header
+            if workflow == 'ARC':
+                # For ARC: Generate library CSV files first, then metadata TSV pointing to them
+                output_dir = Path(output_path).parent
+                
+                # Generate library CSV file for capture L001
+                csv_file = output_dir / "1_L001_library.csv"
+                with open(csv_file, 'w') as cf:
+                    cf.write("fastqs,sample,library_type\n")
+                    cf.write(f"{fastq_path},tiny_arc_gex,Gene Expression\n")
+                    cf.write(f"{fastq_path},tiny_arc_atac,Chromatin Accessibility\n")
+                u.custom_logger.info(f"Created ARC library CSV: {csv_file}")
+                
+                # Write metadata TSV pointing to library CSV
+                f.write("batch\tcapture\tCSV\n")
+                f.write(f"1\tL001\t{csv_file}\n")
+                f.write(f"1\tL002\t{csv_file}\n")
+            else:
+                f.write("batch\tcapture\tsample\tfastqs\n")
+                f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\n")
+                f.write(f"1\tL002\ttiny{workflow.lower()}\t{fastq_path}\n")
+        
+        u.custom_logger.info(f"Created {workflow} libraries.tsv: {output_path}")
+        return output_path
+    
+    @classmethod
+    def generate_test_data(cls, workflow: str, output_dir: Path) -> Dict[str, str]:
+        """
+        Generate complete test data setup for a workflow.
+        
+        Args:
+            workflow: Workflow type ('GEX', 'ATAC', 'ARC')
+            output_dir: Directory where test data files will be created
+            
+        Returns:
+            Dictionary with paths to generated files
+        """
+        # Find test data paths
+        fastq_path, ref_path = cls.find_tiny_test_data(workflow)
+        
+        if not fastq_path:
+            u.custom_logger.error(f"Could not find tiny test data for {workflow}")
+            u.custom_logger.info(f"Make sure {cls.WORKFLOW_PROGRAMS[workflow]} is installed and in your PATH")
+            return {}
+        
+        # Create output directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate libraries TSV
+        libraries_file = os.path.join(output_dir, f"libraries_list_{workflow.lower()}.tsv")
+        cls.generate_libraries_tsv(workflow, fastq_path, libraries_file)
+        
+        # Create reference file (optional, for documentation)
+        ref_file = os.path.join(output_dir, f"reference_{workflow.lower()}.txt")
+        if ref_path:
+            with open(ref_file, 'w') as f:
+                f.write(ref_path)
+            u.custom_logger.info(f"Created {workflow} test reference file: {ref_file}")
+        else:
+            u.custom_logger.warning(f"{workflow} test reference path not found, skipping reference file creation")
+            ref_path = f"/path/to/{workflow.lower()}/reference"
+        
+        return {
+            'libraries_file': str(libraries_file),
+            'reference_path': ref_path,
+            'fastq_path': fastq_path
+        }
+    
+    @staticmethod
+    def generate_test_config(workflow: str, test_data_dir: str, reference_path: str, output_path: Optional[str] = None) -> str:
+        """
+        Generate a test configuration file for a specific workflow.
+        
+        Args:
+            workflow: Workflow type ('GEX', 'ATAC', or 'ARC')
+            test_data_dir: Directory where test data files are located
+            reference_path: Path to reference genome
+            output_path: Optional path to save the test config
+            
+        Returns:
+            Path to generated config file
+        """
+        
+        base_config = {
+            "project_name": f"test_{workflow.lower()}",
+            "output_dir": f"test_output_{workflow.lower()}",
+            "resources": {
+                "mem_gb": 64,
+                "tmpdir": "",
+            },
+            "directories_suffix": "none",
+        }
+        
+        # Add workflow-specific configuration
+        if workflow == 'GEX':
+            base_config["cellranger_gex"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_gex.tsv"),
+                "chemistry": "auto",
+                "normalize": "none",
+                "create-bam": False,
+                "threads": 10,
+                "mem_gb": 64,
+            }
+        elif workflow == 'ATAC':
+            base_config["cellranger_atac"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_atac.tsv"),
+                "threads": 10,
+                "mem_gb": 64,
+            }
+        elif workflow == 'ARC':
+            base_config["cellranger_arc"] = {
+                "enabled": True,
+                "reference": reference_path,
+                "libraries": os.path.join(test_data_dir, "libraries_list_arc.tsv"),
+                "threads": 10,
+                "mem_gb": 64,
+            }
+
+        # Add optional processing steps for GEX
+        base_config["doublet_detection"] = {
+            "enabled": False,
+            "method": "scrublet",
+            "scrublet": {
+                "expected_doublet_rate": 0.06,
+                "min_counts": 2,
+                "min_cells": 3,
+            }
+        }
+
+        base_config["celltype_annotation"] = {
+            "enabled": False,
+            "method": "celltypist",
+            "celltypist": {
+                "model": "Immune_All_Low.pkl",
+                "majority_voting": False,
+            }
+        }
+        
+        if output_path is None:
+            output_path = f"test_config_{workflow.lower()}.yaml"
+        
+        # Save main config
+        with open(output_path, 'w') as f:
+            yaml.dump(base_config, f, default_flow_style=False, sort_keys=False, indent=2)
+        
+        u.custom_logger.info(f"✓ Test configuration for {workflow} saved to: {output_path}")
+        
+        # Generate HPC profile configuration (for SLURM cluster execution)
+        output_dir = Path(output_path).parent
+        profile_dir = os.path.join(output_dir, "HPC_profiles")
+        os.makedirs(profile_dir, exist_ok=True)
+        
+        # SLURM profile - cluster-specific settings only
+        # NOTE: Memory and threads are configured in the main YAML config under each workflow section
+        slurm_profile = {
+            "executor": "slurm",
+            "jobs": 10,
+            "default-resources": [
+                "slurm_account=YOUR_ACCOUNT",
+                "slurm_partition=YOUR_PARTITION",
+                "runtime=720"
+            ],
+            "retries": 2,
+            "latency-wait": 60,
+            "printshellcmds": True,
+            "keep-going": True,
+            "rerun-incomplete": True
+        }
+        
+        profile_path = os.path.join(profile_dir, "config.yaml")
+        with open(profile_path, 'w') as f:
+            yaml.dump(slurm_profile, f, default_flow_style=False, sort_keys=False, indent=2)
+        
+        u.custom_logger.info(f"✓ HPC SLURM profile template saved to: {profile_path}")
+        u.custom_logger.info(f"  ⚠️  Edit {profile_path} with your SLURM account and partition before cluster execution")
+        
+        return output_path
