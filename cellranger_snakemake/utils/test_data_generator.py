@@ -1,6 +1,7 @@
 """Test data generation utilities for cellranger workflows."""
 
 import os
+import yaml
 import subprocess
 
 from pathlib import Path
@@ -210,12 +211,10 @@ class TestDataGenerator:
         Returns:
             Path to generated config file
         """
-        import yaml
         
         base_config = {
             "project_name": f"test_{workflow.lower()}",
             "output_dir": f"test_output_{workflow.lower()}",
-            "samples": {},
             "hpc": {
                 "mode": "local",
                 "mempercore": None
