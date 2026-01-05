@@ -11,12 +11,19 @@ to deploy in high-performance computing or cloud environments. By combining Snak
 
 ## 1. Set up conda
 
-You will need [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) to install the package. 
+You will need [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) to install this package. 
+
+> 💡 Conda creates many files in your home directory by default, which can exceed file quota limits on HPC systems. If you have file number restrictions on your home directory, consider installing conda in a directory without such quotas (e.g., a scratch or project directory). These commands tell conda to use specific directories (this is mainly a note to ourselves 🙂): 
+
+```bash
+$ conda config --add pkgs_dirs /path/to/miniconda3/pkgs
+$ conda config --add envs_dirs /path/to/miniconda3/envs
+```
 
 To check if `conda` is installed properly, run this:
 ```bash
 $ conda --version
-conda 23.7.4
+conda 25.11.1
 ```
 
 Once you have confirmed you have conda installed, run this command to make sure you are up-to-date:
