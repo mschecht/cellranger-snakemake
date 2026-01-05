@@ -97,23 +97,22 @@ snakemake-run-cellranger check-versions --workflow ARC
 
 Once installed, link [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest), [Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [Cell Ranger ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) to the conda env:
 ```bash
+ENV_NAME="cellranger-snakemake"
+
 # Link Cell Ranger
 SOURCE="/path/to/cellranger"
-ENV_NAME="cellranger-snakemake"
 TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger"
 
 ln -s "$SOURCE" "$TARGET"
 
 # Link Cell Ranger ATAC
 SOURCE="/path/to/cellranger-atac"
-ENV_NAME="cellranger-snakemake"
 TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger-atac"
 
 ln -s "$SOURCE" "$TARGET"
 
 # Link Cell Ranger ARC
 SOURCE="/path/to/cellranger-arc"
-ENV_NAME="cellranger-snakemake"
 TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger-arc"
 
 ln -s "$SOURCE" "$TARGET"
