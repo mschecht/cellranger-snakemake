@@ -40,9 +40,9 @@ cd cellranger-snakemake
 ## 3. Create and activate the Conda environment:
 ```bash
 # remove any old cellranger-snakemake env you might have previously installed
-conda env remove --name cellranger-snakemake
+conda env remove --name snakemake8
 conda env create -f environment.yaml
-conda activate cellranger-snakemake
+conda activate snakemake8
 ```
 
 ## 4. Install `cellranger-snakemake` into the environment
@@ -104,7 +104,7 @@ snakemake-run-cellranger check-versions --workflow ARC
 
 Once installed, link [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest), [Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [Cell Ranger ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) to the conda env:
 ```bash
-ENV_NAME="cellranger-snakemake"
+ENV_NAME="snakemake8"
 
 # Link Cell Ranger
 SOURCE="/path/to/cellranger"
@@ -129,7 +129,7 @@ ln -s "$SOURCE" "$TARGET"
 
 1. **Activate the environment**
 ```bash
-conda activate cellranger-snakemake
+conda activate snakemake8
 ```
 
 2. **Verify Cell Ranger installation (optional but recommended)**
