@@ -34,7 +34,6 @@ class CellRangerVersionChecker:
                 'external/cellranger_atac_tiny_fastq',
             ],
             'ref_patterns': [
-                'external/arc_testrun_files/reference/fasta',
                 'external/arc_testrun_files/reference',
                 'external/cellranger_atac_tiny_ref',
             ]

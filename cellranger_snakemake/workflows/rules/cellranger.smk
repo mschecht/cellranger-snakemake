@@ -256,13 +256,14 @@ if config.get("cellranger_atac"):
     rule cellranger_atac_aggr:
         """Aggregate multiple ATAC samples."""
         input:
+            reference = ATAC_REFERENCE,
             samples = lambda wc: expand(
                 os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
                 batch=wc.batch,
                 capture=atac_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}", "outs", "count", "filtered_peak_bc_matrix.h5"),
+            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}", "outs", "filtered_peak_bc_matrix.h5"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done"))
         params:
             outdir = ATAC_AGGR_DIR,
@@ -279,13 +280,19 @@ if config.get("cellranger_atac"):
             captures = atac_batch_to_samples[wildcards.batch]
             aggr_data = []
             for capture in captures:
-                fragments = os.path.join(
+                fragments = os.path.abspath(os.path.join(
                     ATAC_COUNT_DIR,
                     f"{wildcards.batch}_{capture}",
                     "outs",
                     "fragments.tsv.gz"
-                )
-                aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "fragments": fragments})
+                ))
+                singlecell = os.path.abspath(os.path.join(
+                    ATAC_COUNT_DIR,
+                    f"{wildcards.batch}_{capture}",
+                    "outs",
+                    "singlecell.csv"
+                ))
+                aggr_data.append({"library_id": f"{wildcards.batch}_{capture}", "fragments": fragments, "cells": singlecell})
             
             pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
             
@@ -296,6 +303,7 @@ if config.get("cellranger_atac"):
                     cellranger-atac aggr \\
                         --id={wildcards.batch} \\
                         --csv={params.csv} \\
+                        --reference={input.reference} \\
                         --normalize={params.normalize} \\
                         2>&1 > {log}
                     """
