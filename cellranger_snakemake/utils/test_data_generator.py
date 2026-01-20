@@ -146,10 +146,14 @@ class TestDataGenerator:
                 f.write("batch\tcapture\tCSV\n")
                 f.write(f"1\tL001\t{csv_file}\n")
                 f.write(f"1\tL002\t{csv_file}\n")
+            elif workflow == 'ATAC':
+                f.write("batch\tcapture\tsample\tfastqs\n")
+                f.write(f"1\tL001\ttestfastq\t{fastq_path}\n")
+                f.write(f"1\tL002\ttestfastq\t{fastq_path}\n")
             else:
                 f.write("batch\tcapture\tsample\tfastqs\n")
-                f.write(f"1\tL001\ttiny{workflow.lower()}\t{fastq_path}\n")
-                f.write(f"1\tL002\ttiny{workflow.lower()}\t{fastq_path}\n")
+                f.write(f"1\tL001\ttinygex\t{fastq_path}\n")
+                f.write(f"1\tL002\ttinygex\t{fastq_path}\n")
         
         u.custom_logger.info(f"Created {workflow} libraries.tsv: {output_path}")
         return output_path

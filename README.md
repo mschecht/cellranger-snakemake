@@ -74,7 +74,7 @@ Check if you have [Cell Ranger](https://www.10xgenomics.com/support/software/cel
 
 ```bash
 $ cellranger --version
-cellranger cellranger-7.0.1
+cellranger cellranger-9.0.1
 
 $ cellranger-atac --version
 cellranger-atac cellranger-atac-2.1.0
@@ -96,7 +96,7 @@ snakemake-run-cellranger check-versions --workflow ARC
 ```
 
 **Minimum supported versions:**
-- Cell Ranger (GEX): 7.0.0 or higher
+- Cell Ranger (GEX): 9.0.0 or higher
 - Cell Ranger ATAC: 2.0.0 or higher
 - Cell Ranger ARC: 2.0.0 or higher
 
