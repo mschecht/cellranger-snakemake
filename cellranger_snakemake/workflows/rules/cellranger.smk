@@ -42,7 +42,7 @@ def parse_cellranger_config(config, modality_key, has_chemistry=True):
         "reference": mod_config["reference"],
         "libraries": mod_config["libraries"],
         "normalize": mod_config.get("normalize", "none"),
-        "create_bam": mod_config.get("create_bam", False),
+        "create_bam": mod_config.get("create-bam", False),
         "logs_dir": os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS")),
         "count_dir": os.path.join(output_dir, dirs.get(f"{prefix}_COUNT_DIR", f"01_{prefix}_COUNT")),
         "aggr_dir": os.path.join(output_dir, dirs.get(f"{prefix}_AGGR_DIR", f"02_{prefix}_AGGR")),
