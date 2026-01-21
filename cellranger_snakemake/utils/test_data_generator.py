@@ -260,11 +260,16 @@ class TestDataGenerator:
             "enabled": True,
             "method": "vireo",
             "vireo": {
-                "minMAF": 0.0,
-                "minCOUNT": 1,
-                "UMItag": "AUTO",
-                "cellTAG": "CB",
-                "gzip": True,
+                "donors": 2,
+                "cellsnp": {
+                    "vcf": "/path/to/vcf/file.vcf.gz",
+                    "threads": 4,
+                    "min_maf": 0.0,
+                    "min_count": 1,
+                    "umi_tag": "Auto",
+                    "cell_tag": "CB",
+                    "gzip": True,
+                },
             }
         }
 
