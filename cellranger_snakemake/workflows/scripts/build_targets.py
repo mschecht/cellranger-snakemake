@@ -188,7 +188,6 @@ def get_demux_outputs(config):
         if method == "vireo":
             for batch in batches:
                 for capture in captures:
-                        outputs.append(os.path.join(logs_dir, f"cellsnp_output_{batch}_{capture}.done"))
                         outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
     
     return outputs
