@@ -12,7 +12,7 @@ from cellranger_snakemake.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
 from cellranger_snakemake.schemas.demultiplexing import (
-    DemuxletConfig, SouporcellConfig, FreemuxletConfig, ViralConfig
+    DemuxletConfig, SouporcellConfig, FreemuxletConfig, VireoConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
     ScrubletConfig, DoubletFinderConfig, ScdsConfig, ScDblFinderConfig
@@ -20,6 +20,81 @@ from cellranger_snakemake.schemas.doublet_detection import (
 from cellranger_snakemake.schemas.annotation import (
     CelltypistConfig, AzimuthConfig, SingleRConfig, ScTypeConfig, CelltypistCustomConfig
 )
+
+
+# Pipeline directory structure - update this when adding new analysis steps
+PIPELINE_DIRECTORIES = [
+    ("logs", "00_LOGS"),
+    ("cellrangergex_count", "01_CELLRANGERGEX_COUNT"),
+    ("cellrangergex_aggr", "02_CELLRANGERGEX_AGGR"),
+    ("cellrangeratac_count", "01_CELLRANGERATAC_COUNT"),
+    ("cellrangeratac_aggr", "02_CELLRANGERATAC_AGGR"),
+    ("cellrangerarc_count", "01_CELLRANGERARC_COUNT"),
+    ("cellrangerarc_aggr", "02_CELLRANGERARC_AGGR"),
+    ("demultiplexing", "03_DEMULTIPLEXING"),
+    ("doublet_detection", "04_DOUBLET_DETECTION"),
+    ("celltype_annotation", "05_CELLTYPE_ANNOTATION"),
+]
+
+
+def parse_output_directories(config: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Parse output directory structure for all pipeline steps.
+    
+    Args:
+        config: Snakemake config dictionary
+        
+    Returns:
+        dict: Directory paths for all steps (keys follow pattern: {step_name}_dir)
+    """
+    output_dir = config.get("output_dir", "output")
+    
+    return {
+        f"{step_name}_dir": os.path.join(output_dir, dir_path)
+        for step_name, dir_path in PIPELINE_DIRECTORIES
+    }
+
+
+def parse_cellranger_config(config: Dict[str, Any], modality_key: str, output_dirs: Dict[str, str], has_chemistry: bool = True) -> Dict[str, Any]:
+    """
+    Parse Cell Ranger configuration for a specific modality.
+    
+    Args:
+        config: Snakemake config dictionary
+        modality_key: Key for the modality (e.g., "cellranger_gex")
+        output_dirs: Pre-computed output directories dict
+        has_chemistry: Whether this modality supports chemistry parameter
+        
+    Returns:
+        dict: Parsed configuration with standardized keys
+    """
+    mod_config = config[modality_key]
+    
+    # Determine directory keys based on modality
+    if "gex" in modality_key:
+        count_key = "cellrangergex_count_dir"
+        aggr_key = "cellrangergex_aggr_dir"
+    elif "atac" in modality_key:
+        count_key = "cellrangeratac_count_dir"
+        aggr_key = "cellrangeratac_aggr_dir"
+    elif "arc" in modality_key:
+        count_key = "cellrangerarc_count_dir"
+        aggr_key = "cellrangerarc_aggr_dir"
+    
+    parsed = {
+        "reference": mod_config["reference"],
+        "libraries": mod_config["libraries"],
+        "normalize": mod_config.get("normalize", "none"),
+        "create_bam": mod_config.get("create-bam", False),
+        "logs_dir": output_dirs["logs_dir"],
+        "count_dir": output_dirs[count_key],
+        "aggr_dir": output_dirs[aggr_key],
+    }
+    
+    if has_chemistry:
+        parsed["chemistry"] = mod_config.get("chemistry", "auto")
+    
+    return parsed
 
 
 class ConfigValidator:
@@ -36,7 +111,7 @@ class ConfigValidator:
             "demuxlet": DemuxletConfig,
             "souporcell": SouporcellConfig,
             "freemuxlet": FreemuxletConfig,
-            "vireo": ViralConfig,
+            "vireo": VireoConfig,
         },
         "doublet_detection": {
             "scrublet": ScrubletConfig,

@@ -73,7 +73,7 @@ from cellranger_snakemake.schemas.cellranger import (
 )
 from cellranger_snakemake.schemas.demultiplexing import (
     DemultiplexingConfig, DemuxletConfig, SouporcellConfig, 
-    FreemuxletConfig, ViralConfig
+    FreemuxletConfig, VireoConfig, CellSNPConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
     DoubletDetectionConfig, ScrubletConfig, DoubletFinderConfig,
@@ -268,7 +268,22 @@ class ConfigGenerator:
         
         elif method == "vireo":
             donors = IntPrompt.ask("    Number of donors")
-            method_config = ViralConfig(donors=donors)
+            vcf = Prompt.ask("    Path to VCF file")
+            threads = IntPrompt.ask("    Number of threads", default=4)
+            min_maf = FloatPrompt.ask("    Minimum MAF", default=0.0)
+            min_count = IntPrompt.ask("    Minimum UMI count", default=1)
+            umi_tag = Prompt.ask("    UMI tag", default="Auto")
+            cell_tag = Prompt.ask("    Cell barcode tag", default="CB")
+            cellsnp = CellSNPConfig(
+                vcf=vcf,
+                threads=threads,
+                min_maf=min_maf,
+                min_count=min_count,
+                umi_tag=umi_tag,
+                cell_tag=cell_tag,
+                gzip=True
+            )
+            method_config = VireoConfig(cellsnp=cellsnp, donors=donors)
         
         return DemultiplexingConfig(method=method, **{method: method_config})
     

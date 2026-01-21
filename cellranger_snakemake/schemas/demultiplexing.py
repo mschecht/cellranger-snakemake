@@ -50,14 +50,26 @@ class FreemuxletConfig(BaseModel):
         extra = "forbid"
 
 
-class ViralConfig(BaseModel):
-    """Viral-SNP-based demultiplexing parameters."""
+class CellSNPConfig(BaseModel):
+    """cellsnp-lite parameters for SNP calling."""
     
-    donors: int = Field(description="Number of donors")
-    vcf: Optional[str] = Field(
-        default=None,
-        description="Path to VCF file with known genotypes (optional)"
-    )
+    vcf: str = Field(description="Path to VCF reference file with known variants")
+    threads: int = Field(default=4, ge=1, description="Number of threads for cellsnp-lite")
+    min_maf: float = Field(default=0.0, ge=0.0, le=1.0, description="Minimum minor allele frequency")
+    min_count: int = Field(default=1, ge=0, description="Minimum UMI count")
+    umi_tag: str = Field(default="Auto", description="UMI tag in BAM file (e.g., 'Auto', 'UB')")
+    cell_tag: str = Field(default="CB", description="Cell barcode tag in BAM file")
+    gzip: bool = Field(default=True, description="Gzip output files")
+    
+    class Config:
+        extra = "forbid"
+
+
+class VireoConfig(BaseModel):
+    """Vireo demultiplexing parameters (requires cellsnp-lite preprocessing)."""
+    
+    cellsnp: CellSNPConfig = Field(description="cellsnp-lite configuration for SNP calling")
+    donors: int = Field(description="Number of donors to demultiplex")
     
     class Config:
         extra = "forbid"
@@ -74,7 +86,7 @@ class DemultiplexingConfig(BaseStepConfig):
     demuxlet: Optional[DemuxletConfig] = None
     souporcell: Optional[SouporcellConfig] = None
     freemuxlet: Optional[FreemuxletConfig] = None
-    vireo: Optional[ViralConfig] = None
+    vireo: Optional[VireoConfig] = None
     
     @model_validator(mode='after')
     def validate_method_params(self):

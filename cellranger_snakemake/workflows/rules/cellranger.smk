@@ -11,55 +11,18 @@ from pathlib import Path
 from tempfile import gettempdir
 from collections import defaultdict
 from cellranger_snakemake import utils as u
-
-def parse_cellranger_config(config, modality_key, has_chemistry=True):
-    """
-    Parse Cell Ranger configuration for a specific modality.
-    
-    Args:
-        config: Snakemake config dictionary
-        modality_key: Key for the modality (e.g., "cellranger_gex")
-        has_chemistry: Whether this modality supports chemistry parameter
-        
-    Returns:
-        dict: Parsed configuration with standardized keys
-    """
-    mod_config = config[modality_key]
-    output_dir = config.get("output_dir", "output")
-    
-    # Get directories with defaults
-    dirs = mod_config.get("directories", {})
-    
-    # Determine directory names based on modality
-    if "gex" in modality_key:
-        prefix = "CELLRANGERGEX"
-    elif "atac" in modality_key:
-        prefix = "CELLRANGERATAC"
-    elif "arc" in modality_key:
-        prefix = "CELLRANGERARC"
-    
-    parsed = {
-        "reference": mod_config["reference"],
-        "libraries": mod_config["libraries"],
-        "normalize": mod_config.get("normalize", "none"),
-        "create_bam": mod_config.get("create-bam", False),
-        "logs_dir": os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS")),
-        "count_dir": os.path.join(output_dir, dirs.get(f"{prefix}_COUNT_DIR", f"01_{prefix}_COUNT")),
-        "aggr_dir": os.path.join(output_dir, dirs.get(f"{prefix}_AGGR_DIR", f"02_{prefix}_AGGR")),
-    }
-    
-    if has_chemistry:
-        parsed["chemistry"] = mod_config.get("chemistry", "auto")
-    
-    return parsed
+from cellranger_snakemake.config_validator import parse_output_directories, parse_cellranger_config
 
 
 # ============================================================================
 # CELL RANGER GEX
 # ============================================================================
 
+# Get centralized output directories
+OUTPUT_DIRS = parse_output_directories(config)
+
 if config.get("cellranger_gex"):
-    gex_cfg = parse_cellranger_config(config, "cellranger_gex", has_chemistry=True)
+    gex_cfg = parse_cellranger_config(config, "cellranger_gex", OUTPUT_DIRS, has_chemistry=True)
     
     GEX_REFERENCE = gex_cfg["reference"]
     GEX_LIBRARIES = gex_cfg["libraries"]
@@ -93,6 +56,8 @@ if config.get("cellranger_gex"):
         output:
             h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
             summary = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
+            bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
+            barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz"),
             done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.done"))
         params:
             outdir = GEX_COUNT_DIR,
@@ -191,7 +156,7 @@ if config.get("cellranger_gex"):
 # ============================================================================
 
 if config.get("cellranger_atac"):
-    atac_cfg = parse_cellranger_config(config, "cellranger_atac", has_chemistry=True)
+    atac_cfg = parse_cellranger_config(config, "cellranger_atac", OUTPUT_DIRS, has_chemistry=True)
     
     ATAC_REFERENCE = atac_cfg["reference"]
     ATAC_LIBRARIES = atac_cfg["libraries"]
@@ -323,7 +288,7 @@ if config.get("cellranger_atac"):
 # ============================================================================
 
 if config.get("cellranger_arc"):
-    arc_cfg = parse_cellranger_config(config, "cellranger_arc", has_chemistry=False)
+    arc_cfg = parse_cellranger_config(config, "cellranger_arc", OUTPUT_DIRS, has_chemistry=False)
     
     ARC_REFERENCE = arc_cfg["reference"]
     ARC_LIBRARIES = arc_cfg["libraries"]

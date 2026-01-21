@@ -1,8 +1,10 @@
 """Build target files for rule all based on pipeline configuration."""
 
+import os
 import pandas as pd
-from pathlib import Path
 
+from pathlib import Path
+from cellranger_snakemake.config_validator import parse_output_directories
 
 def build_all_targets(config, enabled_steps):
     """
@@ -15,6 +17,13 @@ def build_all_targets(config, enabled_steps):
     Returns:
         list: Paths to final output files
     """
+    # Defensive check - ensure enabled_steps is a list
+    if not enabled_steps:
+        return []
+    
+    if not isinstance(enabled_steps, list):
+        enabled_steps = list(enabled_steps)
+    
     targets = []
     
     # Cell Ranger outputs
@@ -71,11 +80,12 @@ def get_cellranger_gex_outputs(config):
     Returns:
         list: Paths to GEX done files
     """
-    import os
+    if not config.get("cellranger_gex"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
     gex_config = config["cellranger_gex"]
-    output_dir = config.get("output_dir", "output")
-    dirs = gex_config.get("directories", {})
-    logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
     # Parse libraries to get batches
     df = pd.read_csv(gex_config["libraries"], sep="\t")
@@ -84,7 +94,7 @@ def get_cellranger_gex_outputs(config):
     # Return done files for each batch
     outputs = []
     for batch in batches:
-        outputs.append(f"{logs_dir}/{batch}_gex_aggr.done")
+        outputs.append(os.path.join(logs_dir, f"{batch}_gex_aggr.done"))
     
     return outputs
 
@@ -99,11 +109,12 @@ def get_cellranger_atac_outputs(config):
     Returns:
         list: Paths to ATAC done files
     """
-    import os
+    if not config.get("cellranger_atac"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
     atac_config = config["cellranger_atac"]
-    output_dir = config.get("output_dir", "output")
-    dirs = atac_config.get("directories", {})
-    logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
     # Parse libraries to get batches
     df = pd.read_csv(atac_config["libraries"], sep="\t")
@@ -112,7 +123,7 @@ def get_cellranger_atac_outputs(config):
     # Return done files for each batch
     outputs = []
     for batch in batches:
-        outputs.append(f"{logs_dir}/{batch}_atac_aggr.done")
+        outputs.append(os.path.join(logs_dir, f"{batch}_atac_aggr.done"))
     
     return outputs
 
@@ -126,11 +137,12 @@ def get_cellranger_arc_outputs(config):
     Returns:
         list: Paths to ARC done files
     """
-    import os
+    if not config.get("cellranger_arc"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
     arc_config = config["cellranger_arc"]
-    output_dir = config.get("output_dir", "output")
-    dirs = arc_config.get("directories", {})
-    logs_dir = os.path.join(output_dir, dirs.get("LOGS_DIR", "00_LOGS"))
     
     # Parse libraries to get batches
     df = pd.read_csv(arc_config["libraries"], sep="\t")
@@ -139,7 +151,7 @@ def get_cellranger_arc_outputs(config):
     # Return done files for each batch
     outputs = []
     for batch in batches:
-        outputs.append(f"{logs_dir}/{batch}_arc_aggr.done")
+        outputs.append(os.path.join(logs_dir, f"{batch}_arc_aggr.done"))
     
     return outputs
 
@@ -154,16 +166,30 @@ def get_demux_outputs(config):
     Returns:
         list: Paths to demux output files
     """
+    if not config.get("demultiplexing"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
     demux_config = config["demultiplexing"]
     method = demux_config["method"]
-    output_dir = config.get("output_dir", "output")
-    
-    # Get sample IDs
-    sample_ids = list(config.get("samples", {}).keys())
     
     outputs = []
-    for sample in sample_ids:
-        outputs.append(f"{output_dir}/demux/{method}/{sample}_demux_results.csv")
+    
+    # Try to get batches from cellranger GEX if available
+    if config.get("cellranger_gex"):
+        gex_config = config["cellranger_gex"]
+        libraries_path = gex_config["libraries"]
+        df = pd.read_csv(libraries_path, sep="\t")
+        batches = df['batch'].unique().tolist()
+        captures = df['capture'].unique().tolist()
+        
+        # For vireo: add cellsnp-lite and vireo outputs per batch-capture
+        if method == "vireo":
+            for batch in batches:
+                for capture in captures:
+                        outputs.append(os.path.join(logs_dir, f"cellsnp_output_{batch}_{capture}.done"))
+                        outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
     
     return outputs
 
@@ -178,17 +204,24 @@ def get_doublet_outputs(config):
     Returns:
         list: Paths to doublet detection output files
     """
+    if not config.get("doublet_detection"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
     doublet_config = config["doublet_detection"]
     method = doublet_config["method"]
-    output_dir = config.get("output_dir", "output")
-    
-    # Get sample IDs
-    sample_ids = list(config.get("samples", {}).keys())
+    doublet_dir = output_dirs["doublet_detection_dir"]
     
     outputs = []
-    for sample in sample_ids:
-        outputs.append(f"{output_dir}/doublets/{method}/{sample}_doublet_scores.csv")
-        outputs.append(f"{output_dir}/doublets/{method}/{sample}_doublet_predictions.csv")
+    
+    # Get sample IDs from cellranger GEX if available
+    if config.get("cellranger_gex"):
+        gex_config = config["cellranger_gex"]
+        df = pd.read_csv(gex_config["libraries"], sep="\t")
+        captures = df['capture'].unique().tolist()
+        
+        for sample in captures:
+            outputs.append(os.path.join(doublet_dir, f"{sample}_doublet_results.csv"))
     
     return outputs
 
@@ -203,16 +236,23 @@ def get_annotation_outputs(config):
     Returns:
         list: Paths to annotation output files
     """
+    if not config.get("celltype_annotation"):
+        return []
+    
+    output_dirs = parse_output_directories(config)
     annot_config = config["celltype_annotation"]
     method = annot_config["method"]
-    output_dir = config.get("output_dir", "output")
-    
-    # Get sample IDs
-    sample_ids = list(config.get("samples", {}).keys())
+    annotation_dir = output_dirs["celltype_annotation_dir"]
     
     outputs = []
-    for sample in sample_ids:
-        outputs.append(f"{output_dir}/annotation/{method}/{sample}_cell_types.csv")
-        outputs.append(f"{output_dir}/annotation/{method}/{sample}_annotated.h5ad")
+    
+    # Get sample IDs from cellranger GEX if available
+    if config.get("cellranger_gex"):
+        gex_config = config["cellranger_gex"]
+        df = pd.read_csv(gex_config["libraries"], sep="\t")
+        captures = df['capture'].unique().tolist()
+        
+        for sample in captures:
+            outputs.append(os.path.join(annotation_dir, f"{sample}_annotations.csv"))
     
     return outputs

@@ -256,6 +256,18 @@ class TestDataGenerator:
             }
 
         # Add optional processing steps for GEX
+        base_config["demultiplexing"] = {
+            "enabled": True,
+            "method": "vireo",
+            "vireo": {
+                "minMAF": 0.0,
+                "minCOUNT": 1,
+                "UMItag": "AUTO",
+                "cellTAG": "CB",
+                "gzip": True,
+            }
+        }
+
         base_config["doublet_detection"] = {
             "enabled": False,
             "method": "scrublet",
