@@ -9,12 +9,7 @@ class DemuxalotConfig(BaseModel):
     """demuxalot demultiplexing parameters."""
     
     vcf: str = Field(description="Path to VCF file with genotypes")
-    field: str = Field(default="GT", description="VCF field to use for genotypes")
-    group_list: Optional[str] = Field(
-        default=None,
-        description="Path to file mapping sample IDs to groups"
-    )
-    alpha: float = Field(default=0.5, description="Grid parameter for demuxalot")
+    genome_names: str = Field(description="Genome names corresponding to samples in VCF")
     
     class Config:
         extra = "forbid"

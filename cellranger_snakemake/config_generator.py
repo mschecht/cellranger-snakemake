@@ -125,7 +125,18 @@ class ConfigGenerator:
             "demultiplexing": DemultiplexingConfig(
                 enabled=False,
                 method="demuxalot",
-                demuxalot=DemuxalotConfig(vcf="/path/to/genotypes.vcf")
+                demuxalot=DemuxalotConfig(
+                    vcf="/path/to/genotypes.vcf",
+                    barcodes="/path/to/barcodes.tsv",
+                    genome_names="sample1,sample2",
+                    bam_file="/path/to/possorted_genome_bam.bam"
+                ),
+                vireo=VireoConfig(
+                    cellsnp=CellSNPConfig(
+                        vcf="/path/to/reference_variants.vcf"
+                    ),
+                    donors=2
+                )
             ),
             
             # Doublet detection config - disabled by default
@@ -252,9 +263,11 @@ class ConfigGenerator:
         method_config = None
         if method == "demuxalot":
             vcf = Prompt.ask("    VCF file path")
-            field = Prompt.ask("    VCF field", default="GT")
-            alpha = FloatPrompt.ask("    Alpha parameter", default=0.5)
-            method_config = DemuxalotConfig(vcf=vcf, field=field, alpha=alpha)
+            genome_names = Prompt.ask("    Genome names (comma-separated)")
+            method_config = DemuxalotConfig(
+                vcf=vcf,
+                genome_names=genome_names,
+            )
         
         elif method == "vireo":
             donors = IntPrompt.ask("    Number of donors")
