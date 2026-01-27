@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field, model_validator
 from .base import BaseStepConfig
 
 
-class DemuxletConfig(BaseModel):
-    """Demuxlet demultiplexing parameters."""
+class DemuxalotConfig(BaseModel):
+    """demuxalot demultiplexing parameters."""
     
     vcf: str = Field(description="Path to VCF file with genotypes")
     field: str = Field(default="GT", description="VCF field to use for genotypes")
@@ -14,37 +14,7 @@ class DemuxletConfig(BaseModel):
         default=None,
         description="Path to file mapping sample IDs to groups"
     )
-    alpha: float = Field(default=0.5, description="Grid parameter for demuxlet")
-    
-    class Config:
-        extra = "forbid"
-
-
-class SouporcellConfig(BaseModel):
-    """Souporcell demultiplexing parameters."""
-    
-    clusters: int = Field(description="Number of genotypes to cluster")
-    known_genotypes: Optional[str] = Field(
-        default=None,
-        description="Path to VCF file with known genotypes (optional)"
-    )
-    ploidy: int = Field(default=2, description="Ploidy of the samples")
-    min_alt: int = Field(default=10, description="Minimum ALT UMIs for clustering")
-    min_ref: int = Field(default=10, description="Minimum REF UMIs for clustering")
-    
-    class Config:
-        extra = "forbid"
-
-
-class FreemuxletConfig(BaseModel):
-    """Freemuxlet demultiplexing parameters."""
-    
-    nsample: int = Field(description="Number of samples multiplexed together")
-    group_list: Optional[str] = Field(
-        default=None,
-        description="Path to file mapping sample IDs to groups"
-    )
-    alpha: float = Field(default=0.5, description="Grid parameter")
+    alpha: float = Field(default=0.5, description="Grid parameter for demuxalot")
     
     class Config:
         extra = "forbid"
@@ -78,23 +48,19 @@ class VireoConfig(BaseModel):
 class DemultiplexingConfig(BaseStepConfig):
     """Demultiplexing step configuration."""
     
-    method: Literal["demuxlet", "souporcell", "freemuxlet", "vireo"] = Field(
+    method: Literal["demuxalot", "vireo"] = Field(
         description="Demultiplexing method to use"
     )
     
     # Method-specific parameters (only one should be populated based on method)
-    demuxlet: Optional[DemuxletConfig] = None
-    souporcell: Optional[SouporcellConfig] = None
-    freemuxlet: Optional[FreemuxletConfig] = None
+    demuxalot: Optional[DemuxalotConfig] = None
     vireo: Optional[VireoConfig] = None
     
     @model_validator(mode='after')
     def validate_method_params(self):
         """Ensure the correct parameters are provided for the selected method."""
         method_configs = {
-            "demuxlet": self.demuxlet,
-            "souporcell": self.souporcell,
-            "freemuxlet": self.freemuxlet,
+            "demuxalot": self.demuxalot,
             "vireo": self.vireo,
         }
         

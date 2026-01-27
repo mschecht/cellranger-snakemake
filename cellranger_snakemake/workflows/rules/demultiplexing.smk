@@ -21,99 +21,34 @@ if config.get("demultiplexing"):
 
 
 # ============================================================================
-# DEMUXLET
+# DEMUXALOT
 # ============================================================================
 
-if config.get("demultiplexing") and DEMUX_METHOD == "demuxlet":
-    
-    rule demuxlet:
-        """Run Demuxlet for genetic demultiplexing."""
+if config.get("demultiplexing") and DEMUX_METHOD == "demuxalot":
+
+    rule demuxalot:
+        """Run Demuxalot for genetic demultiplexing."""
         input:
             bam = "{sample}/outs/possorted_genome_bam.bam",
             vcf = DEMUX_PARAMS.get("vcf_file")
         output:
-            best = "{sample}/demuxlet/{sample}.best",
-            done = touch("{sample}/demuxlet/{sample}_demuxlet.done")
+            best = "{sample}/demuxalot/{sample}.best",
+            done = touch("{sample}/demuxalot/{sample}_demuxalot.done")
         params:
             field = DEMUX_PARAMS.get("field", "GT"),
             group_list = DEMUX_PARAMS.get("group_list", ""),
             alpha = DEMUX_PARAMS.get("alpha", [0.5]),
-            out_prefix = "{sample}/demuxlet/{sample}"
+            out_prefix = "{sample}/demuxalot/{sample}"
         threads: RESOURCES.get("threads", 4)
         log:
-            "{sample}/demuxlet/{sample}_demuxlet.log"
+            "{sample}/demuxalot/{sample}_demuxalot.log"
         shell:
             """
-            popscle demuxlet \\
+            popscle demuxalot \\
                 --sam {input.bam} \\
                 --vcf {input.vcf} \\
                 --field {params.field} \\
                 --out {params.out_prefix} \\
-                2>&1 | tee {log}
-            """
-
-
-# ============================================================================
-# FREEMUXLET
-# ============================================================================
-
-if config.get("demultiplexing") and DEMUX_METHOD == "freemuxlet":
-    
-    rule freemuxlet:
-        """Run Freemuxlet for reference-free genetic demultiplexing."""
-        input:
-            bam = "{sample}/outs/possorted_genome_bam.bam",
-            plp = "{sample}/freemuxlet/{sample}.plp.gz"
-        output:
-            clust = "{sample}/freemuxlet/{sample}.clust1.samples.gz",
-            done = touch("{sample}/freemuxlet/{sample}_freemuxlet.done")
-        params:
-            nsample = DEMUX_PARAMS.get("n_sample"),
-            out_prefix = "{sample}/freemuxlet/{sample}"
-        threads: RESOURCES.get("threads", 4)
-        log:
-            "{sample}/freemuxlet/{sample}_freemuxlet.log"
-        shell:
-            """
-            popscle freemuxlet \\
-                --plp {input.plp} \\
-                --out {params.out_prefix} \\
-                --nsample {params.nsample} \\
-                2>&1 | tee {log}
-            """
-
-
-# ============================================================================
-# SOUPORCELL
-# ============================================================================
-
-if config.get("demultiplexing") and DEMUX_METHOD == "souporcell":
-    
-    rule souporcell:
-        """Run Souporcell for demultiplexing and doublet detection."""
-        input:
-            bam = "{sample}/outs/possorted_genome_bam.bam",
-            barcodes = "{sample}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
-            fasta = DEMUX_PARAMS.get("fasta")
-        output:
-            clusters = "{sample}/souporcell/clusters.tsv",
-            done = touch("{sample}/souporcell/{sample}_souporcell.done")
-        params:
-            clusters = DEMUX_PARAMS.get("n_clusters"),
-            known_genotypes = DEMUX_PARAMS.get("known_genotypes", ""),
-            outdir = "{sample}/souporcell"
-        threads: RESOURCES.get("threads", 8)
-        log:
-            "{sample}/souporcell/{sample}_souporcell.log"
-        shell:
-            """
-            souporcell_pipeline.py \\
-                -i {input.bam} \\
-                -b {input.barcodes} \\
-                -f {input.fasta} \\
-                -t {threads} \\
-                -o {params.outdir} \\
-                -k {params.clusters} \\
                 2>&1 | tee {log}
             """
 

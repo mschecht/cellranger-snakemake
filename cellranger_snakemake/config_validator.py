@@ -12,7 +12,7 @@ from cellranger_snakemake.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
 from cellranger_snakemake.schemas.demultiplexing import (
-    DemuxletConfig, SouporcellConfig, FreemuxletConfig, VireoConfig
+    DemuxalotConfig, VireoConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
     ScrubletConfig, DoubletFinderConfig, ScdsConfig, ScDblFinderConfig
@@ -108,9 +108,7 @@ class ConfigValidator:
             "arc": CellRangerARCConfig,
         },
         "demultiplexing": {
-            "demuxlet": DemuxletConfig,
-            "souporcell": SouporcellConfig,
-            "freemuxlet": FreemuxletConfig,
+            "demuxalot": DemuxalotConfig,
             "vireo": VireoConfig,
         },
         "doublet_detection": {
@@ -187,7 +185,7 @@ class ConfigValidator:
         
         Args:
             step: Pipeline step (e.g., 'cellranger', 'demultiplexing', 'doublet_detection', 'celltype_annotation')
-            method: Method name (e.g., 'gex', 'atac', 'arc', 'scrublet', 'demuxlet', etc.)
+            method: Method name (e.g., 'gex', 'atac', 'arc', 'scrublet', 'demuxalot', etc.)
         """
         if step not in cls.METHOD_SCHEMAS:
             print(f"❌ Unknown step: {step}")

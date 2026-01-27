@@ -72,8 +72,8 @@ from cellranger_snakemake.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
 from cellranger_snakemake.schemas.demultiplexing import (
-    DemultiplexingConfig, DemuxletConfig, SouporcellConfig, 
-    FreemuxletConfig, VireoConfig, CellSNPConfig
+    DemultiplexingConfig, DemuxalotConfig,
+    VireoConfig, CellSNPConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
     DoubletDetectionConfig, ScrubletConfig, DoubletFinderConfig,
@@ -124,8 +124,8 @@ class ConfigGenerator:
             # Demultiplexing config - disabled by default
             "demultiplexing": DemultiplexingConfig(
                 enabled=False,
-                method="demuxlet",
-                demuxlet=DemuxletConfig(vcf="/path/to/genotypes.vcf")
+                method="demuxalot",
+                demuxalot=DemuxalotConfig(vcf="/path/to/genotypes.vcf")
             ),
             
             # Doublet detection config - disabled by default
@@ -245,26 +245,16 @@ class ConfigGenerator:
         """Configure demultiplexing."""
         method = Prompt.ask(
             "  Demultiplexing method",
-            choices=["demuxlet", "souporcell", "freemuxlet", "vireo"],
-            default="demuxlet"
+            choices=["demuxalot", "vireo"],
+            default="demuxalot"
         )
-        
+
         method_config = None
-        if method == "demuxlet":
+        if method == "demuxalot":
             vcf = Prompt.ask("    VCF file path")
             field = Prompt.ask("    VCF field", default="GT")
             alpha = FloatPrompt.ask("    Alpha parameter", default=0.5)
-            method_config = DemuxletConfig(vcf=vcf, field=field, alpha=alpha)
-        
-        elif method == "souporcell":
-            clusters = IntPrompt.ask("    Number of clusters")
-            ploidy = IntPrompt.ask("    Ploidy", default=2)
-            method_config = SouporcellConfig(clusters=clusters, ploidy=ploidy)
-        
-        elif method == "freemuxlet":
-            nsample = IntPrompt.ask("    Number of samples")
-            alpha = FloatPrompt.ask("    Alpha parameter", default=0.5)
-            method_config = FreemuxletConfig(nsample=nsample, alpha=alpha)
+            method_config = DemuxalotConfig(vcf=vcf, field=field, alpha=alpha)
         
         elif method == "vireo":
             donors = IntPrompt.ask("    Number of donors")
