@@ -8,6 +8,7 @@ __pycache__/
 tests/00_TEST_DATA*
 tests/refdata-cellranger-arc-GRCh38-2024-A/
 build/
+docs/build/
 dist/
 .DS_Store
 .snakemake/
