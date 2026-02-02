@@ -35,21 +35,19 @@ snakemake-run-cellranger run --help
 The command `snakemake-run-cellranger generate-test-data` conveniently creates a directory containing all the input files necessary you need to run the test dataset. 
 
 ```bash
-cd cellranger-snakemake/tests
-
 # Read about test data set
 snakemake-run-cellranger generate-test-data -h
 
-snakemake-run-cellranger generate-test-data GEX --output-dir 00_TEST_DATA_GEX
-snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA_ATAC
-snakemake-run-cellranger generate-test-data ARC --output-dir 00_TEST_DATA_ARC
+snakemake-run-cellranger generate-test-data GEX --output-dir tests/00_TEST_DATA_GEX
+snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
+snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
 This should have produced the following file structure:
 
 ```bash
-$ tree 00_TEST_DATA_GEX
-00_TEST_DATA_GEX
+$ tree tests/00_TEST_DATA_GEX
+tests/00_TEST_DATA_GEX
 ├── HPC_profiles
 │   └── config.yaml
 ├── libraries_list_gex.tsv
@@ -81,7 +79,7 @@ snakemake-run-cellranger init-config --get-default-config
 For this tutorial, here is the test config yaml file: 
 
 ```bash
-$ cat 00_TEST_DATA_GEX/test_config_gex.yaml
+$ cat tests/00_TEST_DATA_GEX/test_config_gex.yaml
 project_name: test_gex
 output_dir: test_output_gex
 resources:
@@ -91,7 +89,7 @@ directories_suffix: none
 cellranger_gex:
   enabled: true
   reference: /path/to/cellranger-9.0.1/external/cellranger_tiny_ref
-  libraries: 00_TEST_DATA_GEX/libraries_list_gex.tsv
+  libraries: tests/00_TEST_DATA_GEX/libraries_list_gex.tsv
   chemistry: auto
   normalize: none
   create-bam: false
@@ -163,7 +161,7 @@ The `HPC_profiles/` directory contains another `config.yaml` that configures the
 For this test dataset, we made the default HPC profile config to be compatible with [SLURM](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html). However, you can [install another executor](https://snakemake.github.io/snakemake-plugin-catalog/index.html) to match you local HPC/cloud computing infrastructure. 
 
 ```bash
-$ cat 00_TEST_DATA_GEX/HPC_profiles/config.yaml
+$ cat tests/00_TEST_DATA_GEX/HPC_profiles/config.yaml
 executor: slurm
 jobs: 10
 default-resources:
@@ -186,14 +184,14 @@ Before you run the workflow it's a good idea to see how many jobs will be run to
 snakemake-run-cellranger run -h
 
 # Dry run
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
 ```
 
 You can also visualize this with a [dag file](https://en.wikipedia.org/wiki/Directed_acyclic_graph):
 
 ```bash
 # Generate workflow DAG
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
 ## 6. Run the tool!
@@ -204,14 +202,14 @@ rm -rf 1_L00*
 rm -r test_output_gex
 
 # Local execution
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 ```
 
 The flag `--snakemake-args` passes and arguments after it directly to `snakemake`. Please note that this flag has to be the very last flag in the command:
 
 ```bash
 # Local execution - add more arguments to snakemake
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --jobs 2
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --jobs 2
 ```
 
 (7-launching-on-hpc)=
@@ -227,7 +225,7 @@ The argument we will be passing straight to `snakemake` will be `--profile`. The
 The command `snakemake-run-cellranger generate-test-data` you ran above already produced a boiler plate config yaml file filled out for SLURM here:
 
 ```bash
-$ cat 00_TEST_DATA_GEX/profiles/config.yaml
+$ cat tests/00_TEST_DATA_GEX/profiles/config.yaml
 executor: 'slurm'
 jobs: 1
 default-resources:
@@ -244,10 +242,10 @@ You read about HPC executor functionality [here](https://snakemake.github.io/sna
 What is the difference between `--cores` and `--jobs`? The `--cores` command assigns the number of CPUs per jobs while the `--jobs` argument controls how many parallel jobs can be run at the same time.
 
 ```bash
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --unlock
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --unlock
 
 # HPC execution - `--cores all` tell snakemake to use the `threads` assigned to each rule.
-snakemake-run-cellranger run --config-file 00_TEST_DATA_GEX/test_config_gex.yaml \
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
                              --cores all \
-                             --snakemake-args --profile 00_TEST_DATA_GEX/HPC_profiles
+                             --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
