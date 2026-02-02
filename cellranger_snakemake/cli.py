@@ -76,7 +76,7 @@ IMPORTANT: --snakemake-args must be the LAST argument in your command.
 Common Snakemake arguments:
   --forceall, -F             Force re-run of all rules
   --unlock                   Unlock working directory
-  --cluster "cmd"            Submit jobs to cluster
+  --profile DIR              Use a Snakemake profile for HPC/cloud execution
   --jobs N                   Use at most N CPU cluster/cloud jobs in parallel
   --printshellcmds, -p       Print shell commands that are executed
 
@@ -89,12 +89,15 @@ Examples:
   
   # Use all available cores
   snakemake-run-cellranger run --config-file config.yaml --cores all
-  
-  # Run with cluster execution (note: --snakemake-args is LAST)
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args --cluster 'sbatch -J {rule} --ntasks=1 --cpus-per-task=12 --mem=40G' \\\n    --jobs 10
-  
+
   # Unlock working directory
   snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args --unlock
+
+  # Pass additional arguments to Snakemake (e.g., limit parallel jobs)
+  snakemake-run-cellranger run --config-file config.yaml --cores all --snakemake-args --jobs 10
+
+  # Run with HPC execution via a Snakemake profile (note: --snakemake-args is LAST)
+  snakemake-run-cellranger run --config-file config.yaml --cores all --snakemake-args --profile HPC_profiles
         """
     )
     run_parser.add_argument(
