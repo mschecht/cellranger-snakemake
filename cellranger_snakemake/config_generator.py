@@ -127,9 +127,8 @@ class ConfigGenerator:
                 method="demuxalot",
                 demuxalot=DemuxalotConfig(
                     vcf="/path/to/genotypes.vcf",
-                    barcodes="/path/to/barcodes.tsv",
-                    genome_names="sample1,sample2",
-                    bam_file="/path/to/possorted_genome_bam.bam"
+                    genome_names="/path/to/genome_names.txt",
+                    refine=False,
                 ),
                 vireo=VireoConfig(
                     cellsnp=CellSNPConfig(

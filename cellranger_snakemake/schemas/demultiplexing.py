@@ -9,7 +9,16 @@ class DemuxalotConfig(BaseModel):
     """demuxalot demultiplexing parameters."""
     
     vcf: str = Field(description="Path to VCF file with genotypes")
-    genome_names: str = Field(description="Genome names corresponding to samples in VCF")
+    genome_names: str = Field(description="Path to txt file with genome names")
+    refine: bool = Field(description="Run genotype refinement step. Read more here: https://github.com/arogozhnikov/demuxalot?tab=readme-ov-file#running-complex-scenario")
+    celltag: Literal["CB"] = Field(
+        default="CB",
+        description="Cell barcode tag in BAM file"
+    )
+    umitag: Literal["UB"] = Field(
+        default="UB",
+        description="UMI tag in BAM file"
+    )
     
     class Config:
         extra = "forbid"
