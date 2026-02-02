@@ -130,32 +130,43 @@ class ConfigValidator:
     def validate_config_file(cls, config_path: str) -> PipelineConfig:
         """
         Validate a configuration file.
-        
+
         Note: The 'run' command automatically validates configs before execution.
         This method is useful for:
         - Quick validation during config development
         - CI/CD pipelines that need standalone validation
         - Checking configs without triggering Snakemake setup
-        
+
         Args:
             config_path: Path to YAML configuration file
-            
+
         Returns:
             Validated PipelineConfig object
-            
+
         Raises:
             ValidationError: If configuration is invalid
+            SystemExit: If any configured paths do not exist on disk
         """
         with open(config_path, 'r') as f:
             config_dict = yaml.safe_load(f)
-        
+
         try:
             config = PipelineConfig(**config_dict)
-            return config
         except ValidationError as e:
             print(f"\n❌ Configuration validation failed for: {config_path}\n")
             cls._print_validation_errors(e)
             raise
+
+        # Check that all user-provided paths exist on disk
+        path_errors = cls._validate_paths(config)
+        if path_errors:
+            print(f"\n❌ Path validation failed for: {config_path}\n")
+            for err in path_errors:
+                print(f"  • {err}")
+            print()
+            raise SystemExit(1)
+
+        return config
     
     @classmethod
     def _print_validation_errors(cls, error: ValidationError):
@@ -177,7 +188,69 @@ class ConfigValidator:
                     print(f"  💡 Allowed values: {err['expected']}")
             elif 'extra' in err_type.lower():
                 print(f"  💡 This parameter is not recognized. Check for typos or see available parameters.")
-    
+
+    @classmethod
+    def _validate_paths(cls, config: PipelineConfig) -> list[str]:
+        """
+        Check that all user-provided file/directory paths in the config exist on disk.
+
+        Only checks paths for enabled pipeline steps.
+
+        Args:
+            config: Validated PipelineConfig object
+
+        Returns:
+            List of error messages for paths that do not exist (empty if all valid)
+        """
+        errors = []
+
+        def _check(path_value: str, location: str):
+            if not Path(path_value).exists():
+                errors.append(f"{location}: path does not exist: {path_value}")
+
+        # Cell Ranger GEX
+        if config.cellranger_gex and config.cellranger_gex.enabled:
+            _check(config.cellranger_gex.reference, "cellranger_gex.reference")
+            _check(config.cellranger_gex.libraries, "cellranger_gex.libraries")
+
+        # Cell Ranger ATAC
+        if config.cellranger_atac and config.cellranger_atac.enabled:
+            _check(config.cellranger_atac.reference, "cellranger_atac.reference")
+            _check(config.cellranger_atac.libraries, "cellranger_atac.libraries")
+
+        # Cell Ranger ARC
+        if config.cellranger_arc and config.cellranger_arc.enabled:
+            _check(config.cellranger_arc.reference, "cellranger_arc.reference")
+            _check(config.cellranger_arc.libraries, "cellranger_arc.libraries")
+
+        # Demultiplexing
+        if config.demultiplexing and config.demultiplexing.enabled:
+            if config.demultiplexing.demuxalot:
+                _check(config.demultiplexing.demuxalot.vcf, "demultiplexing.demuxalot.vcf")
+                _check(config.demultiplexing.demuxalot.genome_names, "demultiplexing.demuxalot.genome_names")
+            if config.demultiplexing.vireo:
+                _check(config.demultiplexing.vireo.cellsnp.vcf, "demultiplexing.vireo.cellsnp.vcf")
+
+        # Cell type annotation
+        if config.celltype_annotation and config.celltype_annotation.enabled:
+            if config.celltype_annotation.celltypist_custom:
+                _check(config.celltype_annotation.celltypist_custom.training_data,
+                       "celltype_annotation.celltypist_custom.training_data")
+            if config.celltype_annotation.sctype and config.celltype_annotation.sctype.marker_database:
+                _check(config.celltype_annotation.sctype.marker_database,
+                       "celltype_annotation.sctype.marker_database")
+
+        # Sample-level paths
+        for sample_id, sample in config.samples.items():
+            if sample.gex_fastqs:
+                _check(sample.gex_fastqs, f"samples.{sample_id}.gex_fastqs")
+            if sample.atac_fastqs:
+                _check(sample.atac_fastqs, f"samples.{sample_id}.atac_fastqs")
+            if sample.arc_csv:
+                _check(sample.arc_csv, f"samples.{sample_id}.arc_csv")
+
+        return errors
+
     @classmethod
     def show_method_params(cls, step: str, method: str):
         """
