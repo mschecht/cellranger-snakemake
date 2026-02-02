@@ -29,11 +29,19 @@ cd cellranger-snakemake
 ```
 
 ## 3. Create and activate the Conda environment:
+
+> 💡 If you need to start fresh, first remove the old environment: `conda env remove --name snakemake8`
+
 ```bash
-# remove any old cellranger-snakemake env you might have previously installed
-conda env remove --name snakemake8
 conda env create -f environment.yaml
 conda activate snakemake8
+```
+
+Verify the environment tools are working:
+```bash
+snakemake --version
+bcftools --version
+samtools --version
 ```
 
 ## 4. Install `cellranger-snakemake` into the environment
@@ -46,15 +54,7 @@ pip install .
 
 Verify `snakemake-run-cellranger` installation:
 ```bash
-snakemake-run-cellranger --help  # or your CLI entry point
-```
-
-...and a few other tools while we are at it:
-```bash
-# Check Snakemake
-snakemake --version
-bcftools --version
-samtools --version
+snakemake-run-cellranger --help
 ```
 
 ## 5. Cell Ranger Installation
@@ -73,18 +73,7 @@ cellranger-atac cellranger-atac-2.1.0
 $ cellranger-arc --version
 cellranger-arc cellranger-arc-2.0.2
 ```
-
-If not, please install them. Once installed, you can verify the installation using the built-in version checker:
-
-```bash
-# Check all Cell Ranger tools
-snakemake-run-cellranger check-versions
-
-# Check specific workflow requirements
-snakemake-run-cellranger check-versions --workflow GEX
-snakemake-run-cellranger check-versions --workflow ATAC
-snakemake-run-cellranger check-versions --workflow ARC
-```
+If not, please install them from the [10x Genomics download page](https://www.10xgenomics.com/support/software/cell-ranger/latest).
 
 **Minimum supported versions:**
 - Cell Ranger (GEX): 9.0.0 or higher
@@ -115,3 +104,17 @@ TARGET="$(conda info --base)/envs/${ENV_NAME}/bin/cellranger-arc"
 
 ln -s "$SOURCE" "$TARGET"
 ```
+
+Once installed, you can verify the installation using the built-in version checker:
+
+```bash
+# Check all Cell Ranger tools
+snakemake-run-cellranger check-versions
+
+# Check specific workflow requirements
+snakemake-run-cellranger check-versions --workflow GEX
+snakemake-run-cellranger check-versions --workflow ATAC
+snakemake-run-cellranger check-versions --workflow ARC
+```
+
+You're all set! Head to the [Quick Start](quickstart.md) to run your first workflow.
