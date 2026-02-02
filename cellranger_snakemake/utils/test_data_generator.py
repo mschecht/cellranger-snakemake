@@ -218,7 +218,7 @@ class TestDataGenerator:
         
         base_config = {
             "project_name": f"test_{workflow.lower()}",
-            "output_dir": f"test_output_{workflow.lower()}",
+            "output_dir": os.path.join("tests", f"test_output_{workflow.lower()}"),
             "resources": {
                 "mem_gb": 64,
                 "tmpdir": "",
@@ -234,7 +234,7 @@ class TestDataGenerator:
                 "libraries": os.path.join(test_data_dir, "libraries_list_gex.tsv"),
                 "chemistry": "auto",
                 "normalize": "none",
-                "create-bam": False,
+                "create-bam": True,
                 "threads": 10,
                 "mem_gb": 64,
             }
