@@ -189,6 +189,11 @@ def get_demux_outputs(config):
             for batch in batches:
                 for capture in captures:
                         outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
+
+        if method == "demuxalot":
+            for batch in batches:
+                for capture in captures:
+                        outputs.append(os.path.join(logs_dir, f"demuxalot_output_{batch}_{capture}.done"))
     
     return outputs
 
