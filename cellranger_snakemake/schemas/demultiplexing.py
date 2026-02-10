@@ -1,13 +1,18 @@
 """Demultiplexing configuration schemas."""
 
-from typing import Literal, Optional, Union
+from typing import ClassVar, Literal, Optional, Union
 from pydantic import BaseModel, Field, model_validator
-from .base import BaseStepConfig
+from .base import BaseStepConfig, ToolMeta
 
 
 class DemuxalotConfig(BaseModel):
     """demuxalot demultiplexing parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="demuxalot",
+        url="https://github.com/arogozhnikov/demuxalot",
+    )
+
     vcf: str = Field(description="Path to VCF file with genotypes")
     genome_names: str = Field(description="Path to txt file with genome names")
     refine: bool = Field(description="Run genotype refinement step. Read more here: https://github.com/arogozhnikov/demuxalot?tab=readme-ov-file#running-complex-scenario")
@@ -41,7 +46,12 @@ class CellSNPConfig(BaseModel):
 
 class VireoConfig(BaseModel):
     """Vireo demultiplexing parameters (requires cellsnp-lite preprocessing)."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="vireoSNP",
+        url="https://github.com/single-cell-genetics/vireo",
+    )
+
     cellsnp: CellSNPConfig = Field(description="cellsnp-lite configuration for SNP calling")
     donors: int = Field(description="Number of donors to demultiplex")
     
