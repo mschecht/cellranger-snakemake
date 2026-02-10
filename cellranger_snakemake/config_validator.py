@@ -252,24 +252,50 @@ class ConfigValidator:
         return errors
 
     @classmethod
-    def show_method_params(cls, step: str, method: str):
+    def show_method_params(cls, step: str | None = None, method: str | None = None):
         """
-        Show available parameters for a specific method.
-        
+        Show available parameters for a specific method, or list available steps/methods.
+
         Args:
             step: Pipeline step (e.g., 'cellranger', 'demultiplexing', 'doublet_detection', 'celltype_annotation')
             method: Method name (e.g., 'gex', 'atac', 'arc', 'scrublet', 'demuxalot', etc.)
+
+        Behavior:
+            - No args: List all available steps
+            - --step only: List methods for that step
+            - --step and --method: Show parameters for that method
         """
+        # Case 1: No step provided - list all available steps
+        if step is None:
+            print("\nAvailable steps:")
+            for step_name in cls.METHOD_SCHEMAS.keys():
+                print(f"  - {step_name}")
+            print("\nUsage:")
+            print("  snakemake-run-cellranger show-params --step <STEP>")
+            print("  snakemake-run-cellranger show-params --step <STEP> --method <METHOD>")
+            return
+
+        # Validate step
         if step not in cls.METHOD_SCHEMAS:
-            print(f"❌ Unknown step: {step}")
+            print(f"Unknown step: {step}")
             print(f"Available steps: {', '.join(cls.METHOD_SCHEMAS.keys())}")
             return
-        
+
+        # Case 2: Step provided but no method - list methods for that step
+        if method is None:
+            print(f"\nAvailable methods for '{step}':")
+            for method_name in cls.METHOD_SCHEMAS[step].keys():
+                print(f"  - {method_name}")
+            print("\nUsage:")
+            print(f"  snakemake-run-cellranger show-params --step {step} --method <METHOD>")
+            return
+
+        # Case 3: Both step and method provided - show parameters
         if method not in cls.METHOD_SCHEMAS[step]:
-            print(f"❌ Unknown method '{method}' for step '{step}'")
+            print(f"Unknown method '{method}' for step '{step}'")
             print(f"Available methods: {', '.join(cls.METHOD_SCHEMAS[step].keys())}")
             return
-        
+
         schema_class = cls.METHOD_SCHEMAS[step][method]
         cls._print_schema_params(schema_class, f"{step}.{method}")
     

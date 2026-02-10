@@ -163,17 +163,27 @@ Examples:
     # Show params subcommand
     params_parser = subparsers.add_parser(
         'show-params',
-        help='Show available parameters for a method'
+        help='Show available parameters for a method (or list steps/methods if not specified)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # List all available steps
+  snakemake-run-cellranger show-params
+
+  # List methods for a specific step
+  snakemake-run-cellranger show-params --step demultiplexing
+
+  # Show parameters for a specific method
+  snakemake-run-cellranger show-params --step demultiplexing --method vireo
+        """
     )
     params_parser.add_argument(
         '--step',
-        required=True,
         help='Pipeline step (cellranger, demultiplexing, doublet_detection, celltype_annotation)'
     )
     params_parser.add_argument(
         '--method',
-        required=True,
-        help='Method name'
+        help='Method name (requires --step)'
     )
     
     # List methods subcommand
