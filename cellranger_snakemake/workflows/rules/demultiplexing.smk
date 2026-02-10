@@ -2,11 +2,14 @@
 
 import os
 import sys
-from pathlib import Path
+import gzip
+
 import pandas as pd
 
 # Import utilities
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
+
+from pathlib import Path
 from custom_logger import custom_logger
 from cellranger_snakemake.config_validator import parse_output_directories
 
@@ -71,69 +74,54 @@ if config.get("demultiplexing") and DEMUX_METHOD == "demuxalot":
         log:
             os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_demuxalot.log"),
         run:
-            # Check chromosome nomenclature for BAM and VCF files
-            ## BAM first
-            bam_cmd = f"samtools view {input.bam} | head -n 1 | awk '{{print $3}}'"
-            bam_chr = subprocess.check_output(bam_cmd, shell=True, text=True).strip()
-            bam_genome = "chr" if bam_chr.startswith("chr") else "nonchr"
-
-            ## VCF next
-            if input.vcf.endswith(".gz"):
-                with gzip.open(input.vcf, "rt") as f:
-                    for line in f:
-                        if line.startswith("#"):
-                            continue
-                        vcf_chr_val = line.split("\t")[0]
-                        break
-            else:
-                with open(input.vcf) as f:
-                    for line in f:
-                        if line.startswith("#"):
-                            continue
-                        vcf_chr_val = line.split("\t")[0]
-                        break
-            vcf_genome = "chr" if vcf_chr_val.startswith("chr") else "nonchr"
-
-            if bam_genome != vcf_genome:
-                custom_logger.error(f"Chromosome nomenclature mismatch: {input.bam} vs {input.vcf}")
-                sys.exit(1)
-                
-            # If everything is okay, proceed to demultiplexing
-            # Load individual IDs
-            with open(input.ID_files) as f:
-                names = f.read().splitlines()
+            # below is a simple demuxalot implementation grabbed 
+            # from here: https://github.com/arogozhnikov/demuxalot/blob/master/examples/1-plain_demultiplexing.py
             
-            # Load genotypes
-            genotypes = ProbabilisticGenotypes(genotype_names=names)
-            genotypes.add_vcf(input.vcf)
+            from demuxalot import Demultiplexer, BarcodeHandler, ProbabilisticGenotypes, count_snps
 
-            # Assess SNPs per barcode
-            barcode_handler = BarcodeHandler.from_file(input.barcodes, tag = params.celltag)
-            parse_read_custom = lambda read: parse_read(read, umi_tag = params.umitag)
+            # Load sample names
+            genotypes = ProbabilisticGenotypes(genotype_names=DEMUXALOT_GENOME_NAMES_LIST)
+            genotypes.add_vcf(DEMUXALOT_VCF)
 
-            barcode_snps = count_snps(
-                bamfile_location = input.bam,
-                chromosome2positions = genotypes.get_chromosome2positions(),
-                barcode_handler = barcode_handler, 
-                joblib_n_jobs = threads,
-                parse_read = parse_read_custom,
+            print(f'Loaded genotypes: {genotypes}')
+
+            barcode_handler = BarcodeHandler.from_file(input.barcodes)
+            print(f'Loaded barcodes: {barcode_handler}')
+
+            snps = count_snps(
+                bamfile_location=input.bam,
+                chromosome2positions=genotypes.get_chromosome2positions(),
+                barcode_handler=barcode_handler,
             )
 
-            if str(params.refine).lower() == 'true':
-                # Refine genotypes based on observed data
-                refined_genotypes, pprobabilities = Demultiplexer.learn_genotypes(barcode_snps, genotypes=genotypes, n_iterations=5, barcode_handler=barcode_handler)
+            print('Collected SNPs: ')
+            for chromosome, snps_in_chromosome in snps.items():
+                print(f'Chromosome {chromosome}, {snps_in_chromosome.n_snp_calls} calls in {snps_in_chromosome.n_molecules} mols')
 
-                # Demultiplexing with refined genotypes
-                likelihoods, pprobabilities = Demultiplexer.predict_posteriors(barcode_snps, genotypes=refined_genotypes, barcode_handler=barcode_handler)
-            else:
-                # Demultiplexing with nonrefined genotypes
-                likelihoods, pprobabilities = Demultiplexer.predict_posteriors(barcode_snps, genotypes=genotypes, barcode_handler=barcode_handler)
+            # returns two dataframes with likelihoods and posterior probabilities
+            log_likelihoods, posterior_probabilities = Demultiplexer.learn_genotypes(
+                snps,
+                genotypes=genotypes,
+                barcode_handler=barcode_handler,
+                doublet_prior=0.25,
+            )
 
-            # Write output
-            os.makedirs(params.out_dir, exist_ok=True)
-            pprobabilities.to_csv(f"{params.out_dir}/{wildcards.sample}_posterior_probabilities.tsv.gz", sep = "\t", index = True)
-            pprobabilities.idxmax(axis = 1).to_csv(f"{params.out_dir}/{wildcards.sample}_assignments.tsv.gz", sep = "\t", index = True)
+            # Assign most probable donor or doublet per cell
+            assignments = posterior_probabilities.idxmax(axis=1)
 
+            # Confidence score
+            max_probs = posterior_probabilities.max(axis=1)
+
+            # Make result DataFrame
+            results_df = pd.DataFrame({
+                "assignment": assignments,
+                "max_prob": max_probs,
+            })
+
+            print('Result:')
+            print(results_df)
+            results_df.to_csv(output.assign, sep="\t", index=True)
+            posterior_probabilities.to_csv(output.probs, sep="\t", index=True)
 
 
 # ============================================================================
