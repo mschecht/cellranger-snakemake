@@ -273,11 +273,49 @@ class ConfigValidator:
         schema_class = cls.METHOD_SCHEMAS[step][method]
         cls._print_schema_params(schema_class, f"{step}.{method}")
     
+    @staticmethod
+    def _get_tool_version(tool_meta) -> str:
+        """Get the installed version of a tool from its ToolMeta.
+
+        Tries importlib.metadata first (Python packages), then falls back
+        to a shell command if shell_version_cmd is set.
+
+        Returns:
+            Version string or 'not installed' if lookup fails.
+        """
+        import importlib.metadata
+        import subprocess
+
+        # Try Python package lookup first
+        try:
+            return importlib.metadata.version(tool_meta.package)
+        except importlib.metadata.PackageNotFoundError:
+            pass
+
+        # Fall back to shell command for non-Python tools (e.g., Cell Ranger)
+        if tool_meta.shell_version_cmd:
+            from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+            command = tool_meta.shell_version_cmd.split()[0]
+            version = CellRangerVersionChecker.get_version(command)
+            if version:
+                return version
+
+        return "not installed"
+
     @classmethod
     def _print_schema_params(cls, schema_class: Type, title: str):
         """Print parameters from a pydantic schema."""
         print(f"\n{'='*60}")
         print(f"Parameters for: {title}")
+
+        # Display tool metadata if available
+        tool_meta = getattr(schema_class, 'tool_meta', None)
+        if tool_meta is not None:
+            version = cls._get_tool_version(tool_meta)
+            version_str = f"v{version}" if version != "not installed" else version
+            print(f"Tool: {tool_meta.package} {version_str}")
+            print(f"URL: {tool_meta.url}")
+
         print(f"{'='*60}\n")
         
         schema = schema_class.model_json_schema()

@@ -1,13 +1,19 @@
 """Cell Ranger configuration schemas for all modalities."""
 
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
-from .base import BaseStepConfig, DirectoryConfig
+from .base import BaseStepConfig, DirectoryConfig, ToolMeta
 
 
 class CellRangerGEXConfig(BaseStepConfig):
     """Cell Ranger GEX (Gene Expression) configuration."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="cellranger",
+        url="https://www.10xgenomics.com/support/software/cell-ranger/latest",
+        shell_version_cmd="cellranger --version",
+    )
+
     reference: str = Field(
         description="Path to Cell Ranger GEX reference genome"
     )
@@ -68,7 +74,13 @@ class CellRangerGEXConfig(BaseStepConfig):
 
 class CellRangerATACConfig(BaseStepConfig):
     """Cell Ranger ATAC configuration."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="cellranger-atac",
+        url="https://www.10xgenomics.com/support/software/cell-ranger-atac/latest",
+        shell_version_cmd="cellranger-atac --version",
+    )
+
     reference: str = Field(
         description="Path to Cell Ranger ATAC reference genome"
     )
@@ -124,7 +136,13 @@ class CellRangerATACConfig(BaseStepConfig):
 
 class CellRangerARCConfig(BaseStepConfig):
     """Cell Ranger ARC (multiome: ATAC + RNA) configuration."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="cellranger-arc",
+        url="https://www.10xgenomics.com/support/software/cell-ranger-arc/latest",
+        shell_version_cmd="cellranger-arc --version",
+    )
+
     reference: str = Field(
         description="Path to Cell Ranger ARC reference genome"
     )

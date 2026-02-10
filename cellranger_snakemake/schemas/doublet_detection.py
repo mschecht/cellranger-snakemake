@@ -1,13 +1,18 @@
 """Doublet detection configuration schemas."""
 
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
-from .base import BaseStepConfig
+from .base import BaseStepConfig, ToolMeta
 
 
 class ScrubletConfig(BaseModel):
     """Scrublet doublet detection parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="scrublet",
+        url="https://github.com/swolock/scrublet",
+    )
+
     expected_doublet_rate: float = Field(
         default=0.06,
         ge=0.0,
@@ -42,7 +47,12 @@ class ScrubletConfig(BaseModel):
 
 class DoubletFinderConfig(BaseModel):
     """DoubletFinder doublet detection parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="doubletfinder",
+        url="https://github.com/chris-mcginnis-ucsf/DoubletFinder",
+    )
+
     pN: float = Field(
         default=0.25,
         ge=0.0,
@@ -70,7 +80,12 @@ class DoubletFinderConfig(BaseModel):
 
 class ScdsConfig(BaseModel):
     """scds (cxds/bcds/hybrid) doublet detection parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="scds",
+        url="https://github.com/kostkalab/scds",
+    )
+
     algorithm: Literal["cxds", "bcds", "hybrid"] = Field(
         default="hybrid",
         description="Which scds algorithm to use"
@@ -87,7 +102,12 @@ class ScdsConfig(BaseModel):
 
 class ScDblFinderConfig(BaseModel):
     """scDblFinder doublet detection parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="scDblFinder",
+        url="https://github.com/plger/scDblFinder",
+    )
+
     dbr: Optional[float] = Field(
         default=None,
         ge=0.0,

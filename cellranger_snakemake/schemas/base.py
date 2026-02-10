@@ -1,7 +1,24 @@
 """Base configuration models and shared types."""
 
 from typing import Optional, Literal
+from dataclasses import dataclass
 from pydantic import BaseModel, Field, field_validator
+
+
+@dataclass(frozen=True)
+class ToolMeta:
+    """Metadata for an external tool wrapped by a pipeline method.
+
+    Attributes:
+        package: Python package name for version lookup via importlib.metadata,
+                 or shell command name for subprocess version lookup.
+        url: URL to the tool's source code or documentation.
+        shell_version_cmd: If set, use this shell command instead of importlib
+                          to get the version (e.g., "cellranger count --version").
+    """
+    package: str
+    url: str
+    shell_version_cmd: Optional[str] = None
 
 
 class ResourceConfig(BaseModel):

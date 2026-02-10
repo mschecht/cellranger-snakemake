@@ -1,13 +1,18 @@
 """Cell type annotation configuration schemas."""
 
-from typing import Literal, Optional, List
+from typing import ClassVar, Literal, Optional, List
 from pydantic import BaseModel, Field, model_validator
-from .base import BaseStepConfig
+from .base import BaseStepConfig, ToolMeta
 
 
 class CelltypistConfig(BaseModel):
     """Celltypist annotation parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="celltypist",
+        url="https://github.com/Teichlab/celltypist",
+    )
+
     model: str = Field(
         description="Path to celltypist model file or model name from celltypist models"
     )
@@ -32,7 +37,12 @@ class CelltypistConfig(BaseModel):
 
 class AzimuthConfig(BaseModel):
     """Azimuth reference-based annotation parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="azimuth",
+        url="https://github.com/satijalab/azimuth",
+    )
+
     reference: Literal[
         "pbmc", "bonemarrow", "lung", "kidney", "heart", 
         "adipose", "liver", "pancreas", "motor_cortex", "fetal"
@@ -46,7 +56,12 @@ class AzimuthConfig(BaseModel):
 
 class SingleRConfig(BaseModel):
     """SingleR reference-based annotation parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="SingleR",
+        url="https://github.com/dviraran/SingleR",
+    )
+
     reference: str = Field(
         description="Path to SingleR reference object (RDS file) or built-in reference name"
     )
@@ -65,7 +80,12 @@ class SingleRConfig(BaseModel):
 
 class ScTypeConfig(BaseModel):
     """ScType marker-based annotation parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="sctype",
+        url="https://github.com/IanevskiAleksandr/sc-type",
+    )
+
     tissue: str = Field(
         description="Tissue type (e.g., 'Immune system', 'Liver', 'Brain')"
     )
@@ -80,7 +100,12 @@ class ScTypeConfig(BaseModel):
 
 class CelltypistCustomConfig(BaseModel):
     """Custom celltypist model training parameters."""
-    
+
+    tool_meta: ClassVar[ToolMeta] = ToolMeta(
+        package="celltypist",
+        url="https://github.com/Teichlab/celltypist",
+    )
+
     training_data: str = Field(
         description="Path to training data (h5ad file with cell type labels)"
     )

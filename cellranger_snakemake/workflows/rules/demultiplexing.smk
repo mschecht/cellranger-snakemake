@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+import pandas as pd
 
 # Import utilities
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
@@ -16,7 +17,15 @@ if config.get("demultiplexing"):
     DEMUX_METHOD = DEMUX_CONFIG["method"]
     DEMUX_PARAMS = DEMUX_CONFIG.get("parameters", {})
     DEMUX_SAMPLES = config.get("samples", [])
-    
+
+    # Shared output directories for all demux methods
+    OUTPUT_DIRS = parse_output_directories(config)
+    DEMUX_OUTPUT_DIR = OUTPUT_DIRS["demultiplexing_dir"]
+
+    # GEX count directory - all demux methods need BAM/barcodes from cellranger GEX
+    if config.get("cellranger_gex"):
+        GEX_COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERGEX_COUNT")
+
     custom_logger.info(f"Demultiplexing: Using {DEMUX_METHOD} method")
 
 
@@ -26,31 +35,105 @@ if config.get("demultiplexing"):
 
 if config.get("demultiplexing") and DEMUX_METHOD == "demuxalot":
 
+    DEMUXALOT_CONFIG = DEMUX_CONFIG.get("demuxalot", {})
+    DEMUXALOT_VCF = DEMUXALOT_CONFIG.get("vcf")
+    DEMUXALOT_GENOME_NAMES_FILE = DEMUXALOT_CONFIG.get("genome_names")
+    DEMUXALOT_REFINE = DEMUXALOT_CONFIG.get("refine")
+    DEMUXALOT_CELLTAG = DEMUXALOT_CONFIG.get("celltag")
+    DEMUXALOT_UMITAG = DEMUXALOT_CONFIG.get("umitag")
+
+    # Read genome names from file into a list
+    genome_names_df = pd.read_csv(DEMUXALOT_GENOME_NAMES_FILE, header=None, names=['genome'])
+    DEMUXALOT_GENOME_NAMES_LIST = genome_names_df['genome'].tolist()
+
+    custom_logger.info(f"Demuxalot: Using VCF file: {DEMUXALOT_VCF}")
+    custom_logger.info(f"Demuxalot: Using genome names file: {DEMUXALOT_GENOME_NAMES_FILE}")
+    custom_logger.info(f"Demuxalot: Genome names: {DEMUXALOT_GENOME_NAMES_LIST}")
+
     rule demuxalot:
         """Run Demuxalot for genetic demultiplexing."""
         input:
-            bam = "{sample}/outs/possorted_genome_bam.bam",
-            vcf = DEMUX_PARAMS.get("vcf_file")
+            gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
+            bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
+            barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
         output:
-            best = "{sample}/demuxalot/{sample}.best",
-            done = touch("{sample}/demuxalot/{sample}_demuxalot.done")
+            assign = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_assignments.tsv.gz"),
+            probs = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_posterior_probabilities.tsv.gz"),
+            done = touch(os.path.join(config.get("output_dir", "output"), "00_LOGS", "demuxalot_output_{batch}_{capture}.done"))
         params:
-            field = DEMUX_PARAMS.get("field", "GT"),
-            group_list = DEMUX_PARAMS.get("group_list", ""),
-            alpha = DEMUX_PARAMS.get("alpha", [0.5]),
-            out_prefix = "{sample}/demuxalot/{sample}"
-        threads: RESOURCES.get("threads", 4)
+            vcf_ref = DEMUXALOT_VCF,
+            refine = DEMUXALOT_REFINE or "True",
+            celltag = DEMUXALOT_CELLTAG or "CB",
+            umitag = DEMUXALOT_UMITAG or "UB",
+            out_dir = DEMUX_OUTPUT_DIR,
+            sample_names = DEMUXALOT_GENOME_NAMES_LIST
+        threads: 4
         log:
-            "{sample}/demuxalot/{sample}_demuxalot.log"
-        shell:
-            """
-            popscle demuxalot \\
-                --sam {input.bam} \\
-                --vcf {input.vcf} \\
-                --field {params.field} \\
-                --out {params.out_prefix} \\
-                2>&1 | tee {log}
-            """
+            os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_demuxalot.log"),
+        run:
+            # Check chromosome nomenclature for BAM and VCF files
+            ## BAM first
+            bam_cmd = f"samtools view {input.bam} | head -n 1 | awk '{{print $3}}'"
+            bam_chr = subprocess.check_output(bam_cmd, shell=True, text=True).strip()
+            bam_genome = "chr" if bam_chr.startswith("chr") else "nonchr"
+
+            ## VCF next
+            if input.vcf.endswith(".gz"):
+                with gzip.open(input.vcf, "rt") as f:
+                    for line in f:
+                        if line.startswith("#"):
+                            continue
+                        vcf_chr_val = line.split("\t")[0]
+                        break
+            else:
+                with open(input.vcf) as f:
+                    for line in f:
+                        if line.startswith("#"):
+                            continue
+                        vcf_chr_val = line.split("\t")[0]
+                        break
+            vcf_genome = "chr" if vcf_chr_val.startswith("chr") else "nonchr"
+
+            if bam_genome != vcf_genome:
+                custom_logger.error(f"Chromosome nomenclature mismatch: {input.bam} vs {input.vcf}")
+                sys.exit(1)
+                
+            # If everything is okay, proceed to demultiplexing
+            # Load individual IDs
+            with open(input.ID_files) as f:
+                names = f.read().splitlines()
+            
+            # Load genotypes
+            genotypes = ProbabilisticGenotypes(genotype_names=names)
+            genotypes.add_vcf(input.vcf)
+
+            # Assess SNPs per barcode
+            barcode_handler = BarcodeHandler.from_file(input.barcodes, tag = params.celltag)
+            parse_read_custom = lambda read: parse_read(read, umi_tag = params.umitag)
+
+            barcode_snps = count_snps(
+                bamfile_location = input.bam,
+                chromosome2positions = genotypes.get_chromosome2positions(),
+                barcode_handler = barcode_handler, 
+                joblib_n_jobs = threads,
+                parse_read = parse_read_custom,
+            )
+
+            if str(params.refine).lower() == 'true':
+                # Refine genotypes based on observed data
+                refined_genotypes, pprobabilities = Demultiplexer.learn_genotypes(barcode_snps, genotypes=genotypes, n_iterations=5, barcode_handler=barcode_handler)
+
+                # Demultiplexing with refined genotypes
+                likelihoods, pprobabilities = Demultiplexer.predict_posteriors(barcode_snps, genotypes=refined_genotypes, barcode_handler=barcode_handler)
+            else:
+                # Demultiplexing with nonrefined genotypes
+                likelihoods, pprobabilities = Demultiplexer.predict_posteriors(barcode_snps, genotypes=genotypes, barcode_handler=barcode_handler)
+
+            # Write output
+            os.makedirs(params.out_dir, exist_ok=True)
+            pprobabilities.to_csv(f"{params.out_dir}/{wildcards.sample}_posterior_probabilities.tsv.gz", sep = "\t", index = True)
+            pprobabilities.idxmax(axis = 1).to_csv(f"{params.out_dir}/{wildcards.sample}_assignments.tsv.gz", sep = "\t", index = True)
+
 
 
 # ============================================================================
@@ -75,35 +158,12 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
     
     custom_logger.info(f"Vireo: {VIREO_DONORS} donors, using cellsnp-lite with VCF: {CELLSNP_VCF}")
     
-    # Get paths from cellranger GEX output
-    if config.get("cellranger_gex"):
-        from cellranger_snakemake import utils as u
-        gex_cfg_vireo = {
-            "reference": config["cellranger_gex"]["reference"],
-            "libraries": config["cellranger_gex"]["libraries"],
-            "normalize": config["cellranger_gex"].get("normalize", "none"),
-            "create_bam": config["cellranger_gex"].get("create-bam", False),
-        }
-        GEX_LIBRARIES_VIREO = gex_cfg_vireo["libraries"]
-        GEX_COUNT_DIR_VIREO = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERGEX_COUNT")
-        
-        gex_df_vireo = u.sanity_check_libraries_list_tsv(
-            GEX_LIBRARIES_VIREO,
-            expected_columns={"batch", "capture", "sample", "fastqs"},
-            path_column="fastqs",
-            file_extension=None
-        )
-    
-    # Get output directory from centralized configuration
-    OUTPUT_DIRS = parse_output_directories(config)
-    DEMUX_OUTPUT_DIR = OUTPUT_DIRS["demultiplexing_dir"]
-    
     rule cellsnp_lite:
         """Run cellsnp-lite for SNP calling from BAM."""
         input:
             gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
-            bam = os.path.join(GEX_COUNT_DIR_VIREO, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
-            barcodes = os.path.join(GEX_COUNT_DIR_VIREO, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
+            bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
+            barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
         output:
             base_vcf = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.base.vcf.gz"),
             samples = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.samples.tsv"),
