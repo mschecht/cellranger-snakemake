@@ -1,6 +1,23 @@
 # Development Guide
 
-This guide covers two audiences: **users** who want to modify existing workflow parameters, and **developers** who want to add entirely new pipeline steps or rules.
+This guide walks you through contributing to the cellranger-snakemake pipeline. Whether you're adding a new analysis method or an entirely new pipeline step, this document provides the workflow, patterns, and testing strategies you need.
+
+## Key Concepts
+
+**Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`).
+
+**Method**: A software tool that implements a step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing step.
+
+## Developer Workflow
+
+Follow these steps when making changes:
+
+1. **Orient** - Understand the [project architecture](#project-architecture) and how the pipeline resolves what to run
+2. **Develop** - Choose your task: [add a method](#adding-a-method-to-an-existing-step) or [add a step](#adding-a-new-pipeline-step)
+3. **Test** - Validate with [DAG checks](#dag-validation) and [integration tests](#integration-tests)
+4. **Document** - Update [documentation](#building-and-editing-documentation) as needed
+
+---
 
 ## Project Architecture
 
@@ -31,7 +48,6 @@ tests/
 ├── 00_TEST_DATA_GEX/               # Test configs and library lists
 └── ...
 docs/source/                        # Read the Docs documentation (this file)
-docs/source/development.md          # Dev documentation (this file)
 ```
 
 ### How the pipeline resolves what to run
@@ -46,46 +62,70 @@ If the target filename from `build_targets.py` doesn't match the `done` output i
 
 ---
 
-## For Users: Modifying Existing Steps
+## Development Workflow
 
-### Changing parameters for an existing method
+### Quick Reference Checklists
 
-All parameters are defined in the YAML config. To see what's available:
+**Adding a method to an existing step** (e.g., a new demultiplexing tool):
 
-```bash
-# Show all parameters for a specific method
-snakemake-run-cellranger show-params
+1. Add method config schema in `schemas/<step>.py` with `tool_meta`
+2. Register the method in the parent config class
+3. Add the rule in `workflows/rules/<step>.smk`
+4. Add target generation in `workflows/scripts/build_targets.py`
+5. Add to config generator in `config_generator.py`
+6. [Test](#testing)
+7. [Document](#building-and-editing-documentation)
 
-# Generate a default config with all options
-snakemake-run-cellranger init-config --get-default-config
-```
+**Adding a new pipeline step** (e.g., cell type annotation):
 
-Edit the generated YAML and validate:
+1. Create the Pydantic schema in `schemas/<new_step>.py`
+2. Register the output directory in `config_validator.py`
+3. Register the step in `parse_config.py`
+4. Add target generation in `build_targets.py`
+5. Create the rule file in `workflows/rules/<new_step>.smk`
+6. Include the rule file in `main.smk`
+7. Create a dummy rule and test the DAG
+8. Implement the rule
+9. Add to config generator
+10. [Write tests](#testing)
+11. [Document](#building-and-editing-documentation)
 
-```bash
-snakemake-run-cellranger validate-config --config-file your_config.yaml
-```
+---
 
-### Adding a new method to an existing step
+### Adding a Method to an Existing Step
 
-For example, adding a new demultiplexing method called `souporcell` alongside the existing `vireo` and `demuxalot`:
+This example shows how [Vireo](https://github.com/single-cell-genetics/vireo) was added alongside demuxalot for demultiplexing. Use this as a template for adding new methods.
 
-1. **Add method config schema** in `cellranger_snakemake/schemas/demultiplexing.py`:
+#### Step 1: Add method config schema
+
+In `cellranger_snakemake/schemas/demultiplexing.py`:
 
 ```python
 from typing import ClassVar
 from .base import ToolMeta
 
-class SouporcellConfig(BaseModel):
-    """Souporcell demultiplexing parameters."""
+class CellSNPConfig(BaseModel):
+    """cellsnp-lite parameters for SNP calling."""
+
+    vcf: str = Field(description="Path to VCF reference file with known variants")
+    threads: int = Field(default=4, ge=1, description="Number of threads for cellsnp-lite")
+    min_maf: float = Field(default=0.0, ge=0.0, le=1.0, description="Minimum minor allele frequency")
+    min_count: int = Field(default=1, ge=0, description="Minimum UMI count")
+
+    class Config:
+        extra = "forbid"
+
+
+class VireoConfig(BaseModel):
+    """Vireo demultiplexing parameters (requires cellsnp-lite preprocessing)."""
 
     tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="souporcell",
-        url="https://github.com/wheaton5/souporcell",
+        package="vireoSNP",
+        url="https://github.com/single-cell-genetics/vireo",
     )
 
-    num_clusters: int = Field(description="Expected number of clusters/donors")
-    # ... additional params
+    cellsnp: CellSNPConfig = Field(description="cellsnp-lite configuration for SNP calling")
+    donors: int = Field(description="Number of donors to demultiplex")
 
     class Config:
         extra = "forbid"
@@ -95,108 +135,141 @@ Every method schema must include a `tool_meta` class variable. This enables `sho
 
 ```python
 tool_meta: ClassVar[ToolMeta] = ToolMeta(
-    package="cellranger",
-    url="https://www.10xgenomics.com/support/software/cell-ranger/latest",
+    package="vireo",
+    url="https://github.com/single-cell-genetics/vireo/releases/tag/v0.2.3",
     shell_version_cmd="cellranger --version",
 )
 ```
 
-2. **Register the method** in the parent config class in the same file:
+#### Step 2: Register the method in the parent config class
 
 ```python
 class DemultiplexingConfig(BaseStepConfig):
-    method: Literal["demuxalot", "vireo", "souporcell"] = Field(...)
+    method: Literal["demuxalot", "vireo"] = Field(...)
 
-    souporcell: Optional[SouporcellConfig] = None  # Add this
+    vireo: Optional[VireoConfig] = None  # Add this
 
     @model_validator(mode='after')
     def validate_method_params(self):
         method_configs = {
             "demuxalot": self.demuxalot,
-            "vireo": self.vireo,
-            "souporcell": self.souporcell,  # Add this
+            "vireo": self.vireo,  # Add this
         }
         # ... rest stays the same
 ```
 
-3. **Add the rule** in `cellranger_snakemake/workflows/rules/demultiplexing.smk`:
+#### Step 3: Add the rule
+
+In `cellranger_snakemake/workflows/rules/demultiplexing.smk`:
 
 ```python
-if config.get("demultiplexing") and DEMUX_METHOD == "souporcell":
-    # Method-specific config only
-    SOUPORCELL_CONFIG = DEMUX_CONFIG.get("souporcell", {})
-    # ...
+if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
 
-    rule souporcell:
+    # Parse vireo config
+    VIREO_CONFIG = DEMUX_CONFIG.get("vireo", {})
+    CELLSNP_CONFIG = VIREO_CONFIG.get("cellsnp", {})
+    VIREO_DONORS = VIREO_CONFIG.get("donors")
+
+    # cellsnp-lite parameters
+    CELLSNP_VCF = CELLSNP_CONFIG.get("vcf")
+    CELLSNP_THREADS = CELLSNP_CONFIG.get("threads", 4)
+
+    rule cellsnp_lite:
+        """Run cellsnp-lite for SNP calling from BAM."""
         input:
-            # Use shared GEX_COUNT_DIR for BAM/barcodes
+            gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
             bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
             barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
         output:
-            # .done file MUST match the pattern in build_targets.py
-            done = touch(os.path.join(config.get("output_dir", "output"), "00_LOGS", "souporcell_output_{batch}_{capture}.done"))
+            base_vcf = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.base.vcf.gz"),
+            done = touch(os.path.join(config.get("output_dir", "output"), "00_LOGS", "cellsnp_output_{batch}_{capture}.done"))
+        # ...
+
+    rule vireo:
+        """Run Vireo for donor deconvolution using cellsnp-lite output."""
+        input:
+            cellsnp_done = rules.cellsnp_lite.output.done
+        output:
+            donor_ids = os.path.join(DEMUX_OUTPUT_DIR, "vireo_output_{batch}_{capture}", "donor_ids.tsv"),
+            done = touch(os.path.join(OUTPUT_DIRS["logs_dir"], "vireo_output_{batch}_{capture}.done"))
         # ...
 ```
 
-4. **Add target generation** in `cellranger_snakemake/workflows/scripts/build_targets.py`:
+**Key conventions:**
+- The `.done` filename pattern **must** match what `build_targets.py` generates: `{method}_output_{batch}_{capture}.done`
+- `.done` files always go in `{output_dir}/00_LOGS/`
+- Use `touch()` for `.done` outputs
+- Shared variables (output dirs, GEX count dir) go in the top-level `if config.get(...)` block
+- Method-specific config goes in the method-level `if` block
+
+#### Step 4: Add target generation
+
+In `cellranger_snakemake/workflows/scripts/build_targets.py`:
 
 ```python
-if method == "souporcell":
+if method == "vireo":
     for batch in batches:
         for capture in captures:
-            outputs.append(os.path.join(logs_dir, f"souporcell_output_{batch}_{capture}.done"))
+            outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
 ```
 
-5. **Add to config generator** in `cellranger_snakemake/config_generator.py` so `init-config` can produce the new method's parameters interactively.
+#### Step 5: Add to config generator
 
-6. **Test** (see [Testing](#testing) below).
+Update `cellranger_snakemake/config_generator.py` so `init-config` can produce the new method's parameters interactively.
+
+#### Step 6: Test
+
+See [Testing](#testing) below.
 
 ---
 
-## For Developers: Adding a New Pipeline Step
+### Adding a New Pipeline Step
 
-This is the complete checklist for adding a new step (e.g., `ambient_rna_removal`). Follow these in order.
+This example shows how cell type annotation was added as a pipeline step. Use this as a template for adding new steps.
 
-### Step 1: Create the Pydantic schema
+#### Step 1: Create the Pydantic schema
 
-Create `cellranger_snakemake/schemas/ambient_rna.py`:
+Create `cellranger_snakemake/schemas/annotation.py`:
 
 ```python
-"""Ambient RNA removal configuration schemas."""
+"""Cell type annotation configuration schemas."""
 
 from typing import ClassVar, Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from .base import BaseStepConfig, ToolMeta
 
 
-class CellBenderConfig(BaseModel):
-    """CellBender ambient RNA removal parameters."""
+class CelltypistConfig(BaseModel):
+    """Celltypist annotation parameters."""
 
     tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="cellbender",
-        url="https://github.com/broadinstitute/CellBender",
+        package="celltypist",
+        url="https://github.com/Teichlab/celltypist",
     )
 
-    epochs: int = Field(default=150, description="Number of training epochs")
-    fpr: float = Field(default=0.01, description="False positive rate")
+    model: str = Field(description="Path to celltypist model file or model name")
+    majority_voting: bool = Field(default=False, description="Use majority voting")
 
     class Config:
         extra = "forbid"
 
 
-class AmbientRNAConfig(BaseStepConfig):
-    """Ambient RNA removal step configuration."""
+class CelltypeAnnotationConfig(BaseStepConfig):
+    """Cell type annotation step configuration."""
 
-    method: Literal["cellbender"] = Field(description="Method to use")
-    cellbender: Optional[CellBenderConfig] = None
+    method: Literal["celltypist", "azimuth", "singler", "sctype"] = Field(
+        description="Cell type annotation method to use"
+    )
+    celltypist: Optional[CelltypistConfig] = None
+    # ... other method configs ...
 
     @model_validator(mode='after')
     def validate_method_params(self):
-        # Same validation pattern as other steps
+        # Validate that the selected method has its config block
         ...
 ```
 
-### Step 2: Register the output directory
+#### Step 2: Register the output directory
 
 In `cellranger_snakemake/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
 
@@ -204,41 +277,41 @@ In `cellranger_snakemake/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
 PIPELINE_DIRECTORIES = [
     ("logs", "00_LOGS"),
     # ... existing entries ...
-    ("ambient_rna", "06_AMBIENT_RNA"),  # Add new entry
+    ("celltype_annotation", "05_CELLTYPE_ANNOTATION"),
 ]
 ```
 
-### Step 3: Register the step in parse_config.py
+#### Step 3: Register the step in parse_config.py
 
 In `cellranger_snakemake/workflows/scripts/parse_config.py`, add the step name to the `get_enabled_steps` list:
 
 ```python
 for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc",
-             "demultiplexing", "doublet_detection", "celltype_annotation",
-             "ambient_rna_removal"]:  # Add here
+             "demultiplexing", "doublet_detection", "celltype_annotation"]:
 ```
 
-### Step 4: Add target generation in build_targets.py
+#### Step 4: Add target generation in build_targets.py
 
 In `cellranger_snakemake/workflows/scripts/build_targets.py`:
 
 1. Add a call in `build_all_targets()`:
 
 ```python
-if "ambient_rna_removal" in enabled_steps:
-    targets.extend(get_ambient_rna_outputs(config))
+if "celltype_annotation" in enabled_steps:
+    targets.extend(get_annotation_outputs(config))
 ```
 
 2. Add the target function:
 
 ```python
-def get_ambient_rna_outputs(config):
-    if not config.get("ambient_rna_removal"):
+def get_annotation_outputs(config):
+    if not config.get("celltype_annotation"):
         return []
 
     output_dirs = parse_output_directories(config)
     logs_dir = output_dirs["logs_dir"]
-    method = config["ambient_rna_removal"]["method"]
+    annot_config = config["celltype_annotation"]
+    method = annot_config["method"]
 
     outputs = []
     if config.get("cellranger_gex"):
@@ -253,12 +326,12 @@ def get_ambient_rna_outputs(config):
     return outputs
 ```
 
-### Step 5: Create the rule file
+#### Step 5: Create the rule file
 
-Create `cellranger_snakemake/workflows/rules/ambient_rna.smk`. Follow the existing pattern:
+Create `cellranger_snakemake/workflows/rules/celltype_annotation.smk`:
 
 ```python
-"""Ambient RNA removal workflow rules."""
+"""Cell type annotation workflow rules."""
 
 import os
 import sys
@@ -266,66 +339,50 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from custom_logger import custom_logger
-from cellranger_snakemake.config_validator import parse_output_directories
 
-if config.get("ambient_rna_removal"):
-    AMBIENT_CONFIG = config["ambient_rna_removal"]
-    AMBIENT_METHOD = AMBIENT_CONFIG["method"]
+if config.get("celltype_annotation"):
+    ANNOT_CONFIG = config["celltype_annotation"]
+    ANNOT_METHOD = ANNOT_CONFIG["method"]
 
-    # Shared setup
-    OUTPUT_DIRS = parse_output_directories(config)
-    AMBIENT_OUTPUT_DIR = OUTPUT_DIRS["ambient_rna_dir"]
-
-    if config.get("cellranger_gex"):
-        GEX_COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERGEX_COUNT")
-
-    custom_logger.info(f"Ambient RNA removal: Using {AMBIENT_METHOD} method")
+    custom_logger.info(f"Cell Type Annotation: Using {ANNOT_METHOD} method")
 
 # ============================================================================
-# CELLBENDER
+# CELLTYPIST
 # ============================================================================
 
-if config.get("ambient_rna_removal") and AMBIENT_METHOD == "cellbender":
+if config.get("celltype_annotation") and ANNOT_METHOD == "celltypist":
 
-    CELLBENDER_CONFIG = AMBIENT_CONFIG.get("cellbender", {})
-    # ... method-specific params ...
-
-    rule cellbender:
-        """Run CellBender for ambient RNA removal."""
+    rule celltypist:
+        """Run Celltypist for cell type annotation."""
         input:
-            gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
-            raw_h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "raw_feature_bc_matrix.h5")
+            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
         output:
-            filtered = os.path.join(AMBIENT_OUTPUT_DIR, "{batch}_{capture}", "cellbender_filtered.h5"),
-            done = touch(os.path.join(config.get("output_dir", "output"), "00_LOGS", "cellbender_output_{batch}_{capture}.done"))
-        # ...
+            predictions = "{sample}/celltypist/predicted_labels.csv",
+            done = touch("{sample}/celltypist/{sample}_celltypist.done")
+        params:
+            model = ANNOT_CONFIG.get("celltypist", {}).get("model", "Immune_All_Low.pkl")
+        script:
+            "../scripts/run_celltypist.py"
 ```
 
-**Key conventions:**
-- The `.done` filename pattern **must** match what `build_targets.py` generates: `{method}_output_{batch}_{capture}.done`
-- `.done` files always go in `{output_dir}/00_LOGS/`
-- Use `touch()` for `.done` outputs
-- Shared variables (output dirs, GEX count dir) go in the top-level `if config.get(...)` block
-- Method-specific config goes in the method-level `if` block
-
-### Step 6: Include the rule file in main.smk
+#### Step 6: Include the rule file in main.smk
 
 In `cellranger_snakemake/workflows/main.smk`:
 
 ```python
-if "ambient_rna_removal" in ENABLED_STEPS:
-    include: "rules/ambient_rna.smk"
+if "celltype_annotation" in ENABLED_STEPS:
+    include: "rules/celltype_annotation.smk"
 ```
 
-### Step 7: Create a dummy rule and test the DAG
+#### Step 7: Create a dummy rule and test the DAG
 
 Before implementing the actual tool logic, write a dummy `shell` block:
 
 ```python
 shell:
     """
-    echo "Placeholder for cellbender"
-    touch {output.filtered}
+    echo "Placeholder for celltypist"
+    touch {output.predictions}
     """
 ```
 
@@ -342,19 +399,19 @@ Check that:
 - `rule all` connects to your new rule's `.done` output
 - No `MissingInputException` errors
 
-### Step 8: Implement the rule
+#### Step 8: Implement the rule
 
 Replace the dummy shell with the actual tool invocation. Use either `shell:` for command-line tools or `run:` for Python-based tools.
 
-### Step 9: Add to config generator
+#### Step 9: Add to config generator
 
 Update `cellranger_snakemake/config_generator.py` so that `snakemake-run-cellranger init-config` can interactively generate config for the new step.
 
-### Step 10: Write tests
+#### Step 10: Write tests
 
 See [Testing](#testing) below.
 
-### Step 11: Document
+#### Step 11: Document
 
 Update this file and the tutorial if the new step is relevant to the standard user workflow.
 
@@ -362,9 +419,11 @@ Update this file and the tutorial if the new step is relevant to the standard us
 
 ## Testing
 
-### DAG validation (quick smoke test)
+Validate your changes before merging.
 
-Always verify the DAG before running anything. This catches target/output mismatches without executing any rules:
+### DAG validation
+
+Always verify the DAG first. This catches target/output mismatches without executing any rules:
 
 ```bash
 # Dry run - checks all inputs/outputs resolve
@@ -376,154 +435,20 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_ge
 
 ### Integration tests
 
-Integration tests run the full pipeline on test data. Use the automated script or run manually:
+Integration tests run the full pipeline on test data:
 
 ```bash
-# Run all integration tests
+# Run integration tests
 bash tests/test.sh
 
 # Or run a specific workflow manually
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 ```
 
-### Unit tests with pytest
-
-Unit tests validate individual Python components (schemas, config parsing, target generation) without running Snakemake. Tests live in `tests/` and use pytest.
-
-#### Config validation tests
-
-Test that your Pydantic schema accepts valid config and rejects invalid config:
-
-```python
-# tests/test_schemas.py
-import pytest
-from cellranger_snakemake.schemas.demultiplexing import (
-    DemultiplexingConfig,
-    DemuxalotConfig,
-)
-from pydantic import ValidationError
-
-
-def test_valid_demuxalot_config():
-    """Valid demuxalot config should pass validation."""
-    config = DemultiplexingConfig(
-        enabled=True,
-        method="demuxalot",
-        demuxalot=DemuxalotConfig(
-            vcf="/path/to/file.vcf.gz",
-            genome_names="/path/to/names.txt",
-            refine=True,
-        ),
-    )
-    assert config.method == "demuxalot"
-    assert config.demuxalot.refine is True
-
-
-def test_missing_method_params():
-    """Selecting a method without providing its config block should fail."""
-    with pytest.raises(ValidationError):
-        DemultiplexingConfig(
-            enabled=True,
-            method="demuxalot",
-            # Missing demuxalot config block
-        )
-
-
-def test_extra_fields_rejected():
-    """Unknown parameters should be rejected."""
-    with pytest.raises(ValidationError):
-        DemuxalotConfig(
-            vcf="/path/to/file.vcf.gz",
-            genome_names="/path/to/names.txt",
-            refine=True,
-            unknown_param="bad",
-        )
-```
-
-#### Target generation tests
-
-Test that `build_targets.py` produces the correct `.done` file paths:
-
-```python
-# tests/test_build_targets.py
-import pytest
-from cellranger_snakemake.workflows.scripts.build_targets import get_demux_outputs
-from unittest.mock import patch
-import pandas as pd
-
-
-@pytest.fixture
-def base_config(tmp_path):
-    """Create a minimal config with a libraries file."""
-    libraries = tmp_path / "libraries.tsv"
-    libraries.write_text("batch\tcapture\tsample\tfastqs\n1\tL001\tS1\t/fastqs\n1\tL002\tS2\t/fastqs\n")
-    return {
-        "output_dir": str(tmp_path / "output"),
-        "cellranger_gex": {
-            "enabled": True,
-            "libraries": str(libraries),
-            "reference": "/ref",
-        },
-    }
-
-
-def test_demuxalot_targets(base_config):
-    """Demuxalot should produce one .done per batch-capture combo."""
-    base_config["demultiplexing"] = {"enabled": True, "method": "demuxalot"}
-    outputs = get_demux_outputs(base_config)
-    assert len(outputs) == 2
-    assert any("demuxalot_output_1_L001.done" in o for o in outputs)
-    assert any("demuxalot_output_1_L002.done" in o for o in outputs)
-
-
-def test_vireo_targets(base_config):
-    """Vireo should produce one .done per batch-capture combo."""
-    base_config["demultiplexing"] = {"enabled": True, "method": "vireo"}
-    outputs = get_demux_outputs(base_config)
-    assert len(outputs) == 2
-    assert any("vireo_output_1_L001.done" in o for o in outputs)
-
-
-def test_disabled_demux_returns_empty():
-    """Disabled demultiplexing should return no targets."""
-    assert get_demux_outputs({}) == []
-```
-
-#### Config validator tests
-
-```python
-# tests/test_config_validator.py
-from cellranger_snakemake.config_validator import parse_output_directories
-
-
-def test_output_directories_contain_all_steps():
-    """All pipeline steps should have a directory mapping."""
-    config = {"output_dir": "test_output"}
-    dirs = parse_output_directories(config)
-    assert "logs_dir" in dirs
-    assert "demultiplexing_dir" in dirs
-    assert dirs["logs_dir"] == "test_output/00_LOGS"
-```
-
-#### Running unit tests
-
-```bash
-# Run all unit tests
-pytest tests/ -v
-
-# Run a specific test file
-pytest tests/test_schemas.py -v
-
-# Run with coverage
-pytest tests/ --cov=cellranger_snakemake --cov-report=term-missing
-```
-
 ### Test checklist for a new step
 
 When adding a new step, verify all of the following before merging:
 
-- [ ] **Schema validation**: `pytest tests/test_schemas.py` passes
-- [ ] **Target generation**: `pytest tests/test_build_targets.py` passes
 - [ ] **Config validation**: `snakemake-run-cellranger validate-config --config-file your_config.yaml` succeeds
 - [ ] **Dry run**: `snakemake-run-cellranger run --config-file ... --cores 1 --dry-run` shows your rule
 - [ ] **DAG**: Your rule appears with correct dependencies in the DAG visualization
@@ -547,7 +472,7 @@ When adding a new step, verify all of the following before merging:
 
 ## Building and Editing Documentation
 
-This project uses [Sphinx](https://www.sphinx-doc.org/) with MyST-Parser for markdown support and is deployed on [Read the docs](https://about.readthedocs.com/). Documentation rendered documentation is hosted on here: https://cellranger-snakemake.readthedocs.io/.
+This project uses [Sphinx](https://www.sphinx-doc.org/) with MyST-Parser for markdown support and is deployed on [Read the Docs](https://about.readthedocs.com/). Documentation is hosted at: https://cellranger-snakemake.readthedocs.io/
 
 ### Documentation structure
 
@@ -566,7 +491,7 @@ docs/
 
 ### Building docs locally
 
-This is how you can render the documentation locally on your web browser: 
+Render the documentation locally in your web browser:
 
 ```bash
 cd docs
@@ -580,7 +505,7 @@ python3 -m http.server 8000 -d build/html
 
 Then open http://localhost:8000 in your browser.
 
-If you are using VS Code on a remote sesions, it is super conventient to render the docs in the IDE itself! 
+If you are using VS Code on a remote session, you can render the docs in the IDE itself.
 
 ### Live reload during editing
 
@@ -591,9 +516,21 @@ pip install sphinx-autobuild
 sphinx-autobuild source build/html --port 8000
 ```
 
-This watches `source/` for changes, rebuilds automatically, and refreshes your browser (EXTREMELY CONVENTIENT).
+This watches `source/` for changes, rebuilds automatically, and refreshes your browser.
 
 ### Adding a new page
 
 1. Create a new `.md` file in `docs/source/`
 2. Add it to the `toctree` in `docs/source/index.md`:
+
+```markdown
+```{toctree}
+:maxdepth: 2
+:caption: Contents
+
+installation
+quickstart
+tutorial
+your-new-page
+development
+```
