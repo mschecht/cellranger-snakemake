@@ -15,4 +15,5 @@ Reproducibility and scalability are essential components of contemporary [FAIR](
 installation
 quickstart
 tutorial
+development
 ```
