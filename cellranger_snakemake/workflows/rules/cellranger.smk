@@ -194,7 +194,7 @@ if config.get("cellranger_atac"):
             sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
         threads: 8
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.log")
@@ -236,7 +236,7 @@ if config.get("cellranger_atac"):
             csv = os.path.join(ATAC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.log")
@@ -324,7 +324,7 @@ if config.get("cellranger_arc"):
             outdir = ARC_COUNT_DIR
         threads: 8
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_arc"].get("mem_gb", 64) * 1024,
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.log")
@@ -365,7 +365,7 @@ if config.get("cellranger_arc"):
             reference = ARC_REFERENCE
         threads: 8
         resources:
-            mem_gb = RESOURCES.get("mem_gb", 64),
+            mem_mb = config["cellranger_arc"].get("mem_gb", 64) * 1024,
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.log")
