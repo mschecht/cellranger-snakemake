@@ -25,11 +25,21 @@ if config.get("demultiplexing"):
     OUTPUT_DIRS = parse_output_directories(config)
     DEMUX_OUTPUT_DIR = OUTPUT_DIRS["demultiplexing_dir"]
 
-    # GEX count directory - all demux methods need BAM/barcodes from cellranger GEX
+    # Determine count directory based on enabled modality
+    # Demux works with BAM files from any modality
     if config.get("cellranger_gex"):
-        GEX_COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERGEX_COUNT")
+        COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERGEX_COUNT")
+        MODALITY = "gex"
+    elif config.get("cellranger_atac"):
+        COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERATAC_COUNT")
+        MODALITY = "atac"
+    elif config.get("cellranger_arc"):
+        COUNT_DIR = os.path.join(config.get("output_dir", "output"), "01_CELLRANGERARC_COUNT")
+        MODALITY = "arc"
+    else:
+        raise ValueError("Demultiplexing requires cellranger_gex, cellranger_atac, or cellranger_arc to be enabled")
 
-    custom_logger.info(f"Demultiplexing: Using {DEMUX_METHOD} method")
+    custom_logger.info(f"Demultiplexing: Using {DEMUX_METHOD} method on {MODALITY.upper()} data")
 
 
 # ============================================================================
@@ -56,9 +66,9 @@ if config.get("demultiplexing") and DEMUX_METHOD == "demuxalot":
     rule demuxalot:
         """Run Demuxalot for genetic demultiplexing."""
         input:
-            gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
-            bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
-            barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
+            count_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_" + MODALITY + "_count.done"),
+            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
+            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
         output:
             assign = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_assignments.tsv.gz"),
             probs = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_posterior_probabilities.tsv.gz"),
@@ -149,9 +159,9 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
     rule cellsnp_lite:
         """Run cellsnp-lite for SNP calling from BAM."""
         input:
-            gex_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_gex_count.done"),
-            bam = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
-            barcodes = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
+            count_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_" + MODALITY + "_count.done"),
+            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
+            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
         output:
             base_vcf = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.base.vcf.gz"),
             samples = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.samples.tsv"),

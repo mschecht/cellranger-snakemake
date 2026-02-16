@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellranger-snakemake"
-version = "2.0.0"
+version = "3.0.0"
 authors = [
     {name = "Matthew S. Schechter", email = "mschechter@uchicago.edu"},
 ]
@@ -15,6 +15,16 @@ dependencies = [
     "pyyaml>=5.1",
     "rich>=10.0",  # Optional but recommended for better UX
     "packaging>=20.0",  # For version comparison
+    # Phase 0: AnnData/MuData refactor dependencies
+    "scanpy>=1.10",
+    "anndata>=0.10",
+    "muon>=0.1.6",
+    "snapatac2>=2.6",
+    "scvi-tools>=1.1",
+    "celltypist>=1.6",
+    "decoupler>=1.7",
+    "scrublet>=0.2.3",
+    "leidenalg",
 ]
 
 [project.scripts]

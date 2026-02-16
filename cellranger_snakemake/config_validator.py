@@ -15,10 +15,10 @@ from cellranger_snakemake.schemas.demultiplexing import (
     DemuxalotConfig, VireoConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
-    ScrubletConfig, DoubletFinderConfig, ScdsConfig, ScDblFinderConfig
+    ScrubletConfig, SoloConfig
 )
 from cellranger_snakemake.schemas.annotation import (
-    CelltypistConfig, AzimuthConfig, SingleRConfig, ScTypeConfig, CelltypistCustomConfig
+    CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig, CelltypistCustomConfig
 )
 
 
@@ -31,9 +31,12 @@ PIPELINE_DIRECTORIES = [
     ("cellrangeratac_aggr", "02_CELLRANGERATAC_AGGR"),
     ("cellrangerarc_count", "01_CELLRANGERARC_COUNT"),
     ("cellrangerarc_aggr", "02_CELLRANGERARC_AGGR"),
-    ("demultiplexing", "03_DEMULTIPLEXING"),
-    ("doublet_detection", "04_DOUBLET_DETECTION"),
-    ("celltype_annotation", "05_CELLTYPE_ANNOTATION"),
+    ("anndata", "03_ANNDATA"),  # Phase 1: Per-capture AnnData/MuData objects
+    ("batch_objects", "04_BATCH_OBJECTS"),  # Phase 5: Batch-level aggregated objects
+    ("demultiplexing", "05_DEMULTIPLEXING"),  # Renumbered
+    ("doublet_detection", "06_DOUBLET_DETECTION"),  # Renumbered
+    ("celltype_annotation", "07_CELLTYPE_ANNOTATION"),  # Renumbered
+    ("final", "08_FINAL"),  # Future: Final merged objects with all metadata
 ]
 
 
@@ -113,15 +116,12 @@ class ConfigValidator:
         },
         "doublet_detection": {
             "scrublet": ScrubletConfig,
-            "doubletfinder": DoubletFinderConfig,
-            "scds": ScdsConfig,
-            "scdblfinder": ScDblFinderConfig,
+            "solo": SoloConfig,
         },
         "celltype_annotation": {
             "celltypist": CelltypistConfig,
-            "azimuth": AzimuthConfig,
-            "singler": SingleRConfig,
-            "sctype": ScTypeConfig,
+            "scanvi": ScANVIConfig,
+            "decoupler_markers": DecouplerMarkerConfig,
             "celltypist_custom": CelltypistCustomConfig,
         },
     }

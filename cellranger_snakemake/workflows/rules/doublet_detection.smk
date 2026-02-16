@@ -4,116 +4,70 @@ import os
 import sys
 from pathlib import Path
 
-# Import utilities
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from custom_logger import custom_logger
+from cellranger_snakemake.config_validator import parse_output_directories
 
-
-# Get doublet detection config
-if config.get("doublet_detection"):
-    DOUBLET_CONFIG = config["doublet_detection"]
-    DOUBLET_METHOD = DOUBLET_CONFIG["method"]
-    DOUBLET_PARAMS = DOUBLET_CONFIG.get("parameters", {})
-    DOUBLET_SAMPLES = config.get("samples", [])
-    
-    custom_logger.info(f"Doublet Detection: Using {DOUBLET_METHOD} method")
+# Get centralized output directories
+OUTPUT_DIRS = parse_output_directories(config)
+ANNDATA_DIR = OUTPUT_DIRS["anndata_dir"]
+DOUBLET_DIR = OUTPUT_DIRS["doublet_detection_dir"]
+LOGS_DIR = OUTPUT_DIRS["logs_dir"]
 
 
 # ============================================================================
 # SCRUBLET
 # ============================================================================
 
-if config.get("doublet_detection") and DOUBLET_METHOD == "scrublet":
-    
-    rule scrublet:
-        """Run Scrublet for doublet detection."""
+if config.get("doublet_detection") and config["doublet_detection"]["method"] == "scrublet":
+    SCRUBLET_PARAMS = config["doublet_detection"]["scrublet"]
+
+    custom_logger.info("Doublet Detection: Using scrublet method")
+
+    rule run_scrublet:
+        """Run Scrublet doublet detection on per-capture AnnData object."""
         input:
-            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
+            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}.h5ad"),
+            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_gex_anndata.done")
         output:
-            scores = "{sample}/scrublet/doublet_scores.txt",
-            calls = "{sample}/scrublet/doublet_calls.txt",
-            done = touch("{sample}/scrublet/{sample}_scrublet.done")
+            tsv = os.path.join(DOUBLET_DIR, "{batch}_{capture}_scrublet.tsv.gz"),
+            done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.done"))
         params:
-            expected_rate = DOUBLET_PARAMS.get("expected_doublet_rate", 0.06),
-            sim_doublet_ratio = DOUBLET_PARAMS.get("sim_doublet_ratio", 2.0),
-            n_neighbors = DOUBLET_PARAMS.get("n_neighbors", None),
-            outdir = "{sample}/scrublet"
+            expected_doublet_rate = SCRUBLET_PARAMS.get("expected_doublet_rate", 0.06),
+            min_counts = SCRUBLET_PARAMS.get("min_counts", 2),
+            min_cells = SCRUBLET_PARAMS.get("min_cells", 3),
+            min_gene_variability_pctl = SCRUBLET_PARAMS.get("min_gene_variability_pctl", 85.0),
+            n_prin_comps = SCRUBLET_PARAMS.get("n_prin_comps", 30)
         log:
-            "{sample}/scrublet/{sample}_scrublet.log"
+            os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.log")
         script:
             "../scripts/run_scrublet.py"
 
 
 # ============================================================================
-# DOUBLETFINDER (R)
+# SOLO (scvi-tools)
 # ============================================================================
 
-if config.get("doublet_detection") and DOUBLET_METHOD == "doubletfinder":
-    
-    rule doubletfinder:
-        """Run DoubletFinder for doublet detection."""
+if config.get("doublet_detection") and config["doublet_detection"]["method"] == "solo":
+    SOLO_PARAMS = config["doublet_detection"]["solo"]
+
+    custom_logger.info("Doublet Detection: Using SOLO (scvi-tools) method")
+
+    rule run_solo:
+        """Run SOLO doublet detection on per-capture AnnData object."""
         input:
-            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
+            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}.h5ad"),
+            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_gex_anndata.done")
         output:
-            seurat = "{sample}/doubletfinder/seurat_object.rds",
-            classifications = "{sample}/doubletfinder/classifications.txt",
-            done = touch("{sample}/doubletfinder/{sample}_doubletfinder.done")
+            tsv = os.path.join(DOUBLET_DIR, "{batch}_{capture}_solo.tsv.gz"),
+            done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_solo.done"))
         params:
-            expected_rate = DOUBLET_PARAMS.get("expected_doublet_rate", 0.06),
-            pn = DOUBLET_PARAMS.get("pN", 0.25),
-            pk = DOUBLET_PARAMS.get("pK", None),
-            outdir = "{sample}/doubletfinder"
-        threads: RESOURCES.get("threads", 4)
+            n_hidden = SOLO_PARAMS.get("n_hidden", 128),
+            n_latent = SOLO_PARAMS.get("n_latent", 64),
+            n_layers = SOLO_PARAMS.get("n_layers", 1),
+            learning_rate = SOLO_PARAMS.get("learning_rate", 1e-3),
+            max_epochs = SOLO_PARAMS.get("max_epochs", 400)
         log:
-            "{sample}/doubletfinder/{sample}_doubletfinder.log"
+            os.path.join(LOGS_DIR, "{batch}_{capture}_solo.log")
         script:
-            "../scripts/run_doubletfinder.R"
-
-
-# ============================================================================
-# SCDS (R - Bioconductor)
-# ============================================================================
-
-if config.get("doublet_detection") and DOUBLET_METHOD == "scds":
-    
-    rule scds:
-        """Run scds for doublet detection."""
-        input:
-            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
-        output:
-            scores = "{sample}/scds/doublet_scores.txt",
-            calls = "{sample}/scds/doublet_calls.txt",
-            done = touch("{sample}/scds/{sample}_scds.done")
-        params:
-            outdir = "{sample}/scds"
-        threads: RESOURCES.get("threads", 4)
-        log:
-            "{sample}/scds/{sample}_scds.log"
-        script:
-            "../scripts/run_scds.R"
-
-
-# ============================================================================
-# SCDBLFINDER (R - Bioconductor)
-# ============================================================================
-
-if config.get("doublet_detection") and DOUBLET_METHOD == "scdblfinder":
-    
-    rule scdblfinder:
-        """Run scDblFinder for doublet detection."""
-        input:
-            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
-        output:
-            sce = "{sample}/scdblfinder/sce_object.rds",
-            scores = "{sample}/scdblfinder/doublet_scores.txt",
-            calls = "{sample}/scdblfinder/doublet_calls.txt",
-            done = touch("{sample}/scdblfinder/{sample}_scdblfinder.done")
-        params:
-            clusters = DOUBLET_PARAMS.get("clusters", None),
-            dbr = DOUBLET_PARAMS.get("dbr", None),
-            outdir = "{sample}/scdblfinder"
-        threads: RESOURCES.get("threads", 4)
-        log:
-            "{sample}/scdblfinder/{sample}_scdblfinder.log"
-        script:
-            "../scripts/run_scdblfinder.R"
+            "../scripts/run_solo.py"
