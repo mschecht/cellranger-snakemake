@@ -33,7 +33,15 @@ def build_all_targets(config, enabled_steps):
         targets.extend(get_cellranger_atac_outputs(config))
     if "cellranger_arc" in enabled_steps:
         targets.extend(get_cellranger_arc_outputs(config))
-    
+
+    # Phase 1: Object creation outputs (after cellranger)
+    if any(step in enabled_steps for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc"]):
+        targets.extend(get_object_creation_outputs(config))
+
+    # Phase 5: Batch aggregation outputs (merge per-capture objects)
+    if any(step in enabled_steps for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc"]):
+        targets.extend(get_batch_aggregation_outputs(config))
+
     # Demux outputs
     if "demultiplexing" in enabled_steps:
         targets.extend(get_demux_outputs(config))
@@ -130,29 +138,110 @@ def get_cellranger_atac_outputs(config):
 def get_cellranger_arc_outputs(config):
     """
     Get ARC output file paths.
-    
+
     Args:
         config: Snakemake config dictionary
-        
+
     Returns:
         list: Paths to ARC done files
     """
     if not config.get("cellranger_arc"):
         return []
-    
+
     output_dirs = parse_output_directories(config)
     logs_dir = output_dirs["logs_dir"]
     arc_config = config["cellranger_arc"]
-    
+
     # Parse libraries to get batches
     df = pd.read_csv(arc_config["libraries"], sep="\t")
     batches = df['batch'].unique().tolist()
-    
+
     # Return done files for each batch
     outputs = []
     for batch in batches:
         outputs.append(os.path.join(logs_dir, f"{batch}_arc_aggr.done"))
-    
+
+    return outputs
+
+
+def get_object_creation_outputs(config):
+    """
+    Get AnnData/MuData object creation output file paths.
+    Phase 1: Object creation after cellranger count (per-capture).
+
+    Args:
+        config: Snakemake config dictionary
+
+    Returns:
+        list: Paths to object creation done files
+    """
+    outputs = []
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
+
+    # GEX AnnData creation (per-capture)
+    if config.get("cellranger_gex"):
+        df = pd.read_csv(config["cellranger_gex"]["libraries"], sep="\t")
+        for _, row in df.iterrows():
+            batch = row['batch']
+            capture = row['capture']
+            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_gex_anndata.done"))
+
+    # ATAC AnnData creation (per-capture)
+    if config.get("cellranger_atac"):
+        df = pd.read_csv(config["cellranger_atac"]["libraries"], sep="\t")
+        for _, row in df.iterrows():
+            batch = row['batch']
+            capture = row['capture']
+            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_atac_anndata.done"))
+
+    # ARC MuData creation (per-capture)
+    if config.get("cellranger_arc"):
+        df = pd.read_csv(config["cellranger_arc"]["libraries"], sep="\t")
+        for _, row in df.iterrows():
+            batch = row['batch']
+            capture = row['capture']
+            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_arc_mudata.done"))
+
+    return outputs
+
+
+def get_batch_aggregation_outputs(config):
+    """
+    Get batch aggregation output file paths.
+    Phase 5: Aggregate per-capture objects into batch-level objects.
+
+    Args:
+        config: Snakemake config dictionary
+
+    Returns:
+        list: Paths to batch aggregation done files
+    """
+    outputs = []
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
+
+    # GEX batch aggregation
+    if config.get("cellranger_gex"):
+        df = pd.read_csv(config["cellranger_gex"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_gex_batch_aggregation.done"))
+
+    # ATAC batch aggregation
+    if config.get("cellranger_atac"):
+        df = pd.read_csv(config["cellranger_atac"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_atac_batch_aggregation.done"))
+
+    # ARC batch aggregation
+    if config.get("cellranger_arc"):
+        df = pd.read_csv(config["cellranger_arc"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_arc_batch_aggregation.done"))
+
     return outputs
 
 
@@ -200,63 +289,67 @@ def get_demux_outputs(config):
 
 def get_doublet_outputs(config):
     """
-    Get doublet detection output file paths.
-    
+    Get doublet detection output file paths (per-capture sidecar TSVs).
+
     Args:
         config: Snakemake config dictionary
-        
+
     Returns:
-        list: Paths to doublet detection output files
+        list: Paths to doublet detection .done files
     """
     if not config.get("doublet_detection"):
         return []
-    
+
     output_dirs = parse_output_directories(config)
     doublet_config = config["doublet_detection"]
     method = doublet_config["method"]
-    doublet_dir = output_dirs["doublet_detection_dir"]
-    
+    logs_dir = output_dirs["logs_dir"]
+
     outputs = []
-    
-    # Get sample IDs from cellranger GEX if available
+
+    # Get per-capture outputs from cellranger GEX if available
     if config.get("cellranger_gex"):
         gex_config = config["cellranger_gex"]
         df = pd.read_csv(gex_config["libraries"], sep="\t")
-        captures = df['capture'].unique().tolist()
-        
-        for sample in captures:
-            outputs.append(os.path.join(doublet_dir, f"{sample}_doublet_results.csv"))
-    
+
+        for _, row in df.iterrows():
+            batch = row['batch']
+            capture = row['capture']
+            # Output pattern: {batch}_{capture}_{method}.done
+            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_{method}.done"))
+
     return outputs
 
 
 def get_annotation_outputs(config):
     """
-    Get cell type annotation output file paths.
-    
+    Get cell type annotation output file paths (per-capture sidecar TSVs).
+
     Args:
         config: Snakemake config dictionary
-        
+
     Returns:
-        list: Paths to annotation output files
+        list: Paths to annotation .done files
     """
     if not config.get("celltype_annotation"):
         return []
-    
+
     output_dirs = parse_output_directories(config)
     annot_config = config["celltype_annotation"]
     method = annot_config["method"]
-    annotation_dir = output_dirs["celltype_annotation_dir"]
-    
+    logs_dir = output_dirs["logs_dir"]
+
     outputs = []
-    
-    # Get sample IDs from cellranger GEX if available
+
+    # Get per-capture outputs from cellranger GEX if available
     if config.get("cellranger_gex"):
         gex_config = config["cellranger_gex"]
         df = pd.read_csv(gex_config["libraries"], sep="\t")
-        captures = df['capture'].unique().tolist()
-        
-        for sample in captures:
-            outputs.append(os.path.join(annotation_dir, f"{sample}_annotations.csv"))
-    
+
+        for _, row in df.iterrows():
+            batch = row['batch']
+            capture = row['capture']
+            # Output pattern: {batch}_{capture}_{method}.done
+            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_{method}.done"))
+
     return outputs

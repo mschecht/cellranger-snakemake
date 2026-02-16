@@ -45,117 +45,73 @@ class ScrubletConfig(BaseModel):
         extra = "forbid"
 
 
-class DoubletFinderConfig(BaseModel):
-    """DoubletFinder doublet detection parameters."""
+class SoloConfig(BaseModel):
+    """SOLO (from scvi-tools) doublet detection parameters."""
 
     tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="doubletfinder",
-        url="https://github.com/chris-mcginnis-ucsf/DoubletFinder",
+        package="scvi-tools",
+        url="https://docs.scvi-tools.org/en/stable/user_guide/models/solo.html",
     )
 
-    pN: float = Field(
-        default=0.25,
-        ge=0.0,
-        le=1.0,
-        description="Number of generated artificial doublets"
-    )
-    pK: float = Field(
-        default=0.09,
-        ge=0.0,
-        le=1.0,
-        description="PC neighborhood size"
-    )
-    nExp: Optional[int] = Field(
-        default=None,
-        description="Number of expected doublets (if None, calculated from pN)"
-    )
-    sct: bool = Field(
-        default=False,
-        description="Use SCTransform normalized data"
-    )
-    
-    class Config:
-        extra = "forbid"
-
-
-class ScdsConfig(BaseModel):
-    """scds (cxds/bcds/hybrid) doublet detection parameters."""
-
-    tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="scds",
-        url="https://github.com/kostkalab/scds",
-    )
-
-    algorithm: Literal["cxds", "bcds", "hybrid"] = Field(
-        default="hybrid",
-        description="Which scds algorithm to use"
-    )
-    ntop: int = Field(
-        default=500,
+    n_hidden: int = Field(
+        default=128,
         ge=1,
-        description="Number of top variable genes to use"
+        description="Number of hidden units"
     )
-    
-    class Config:
-        extra = "forbid"
-
-
-class ScDblFinderConfig(BaseModel):
-    """scDblFinder doublet detection parameters."""
-
-    tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="scDblFinder",
-        url="https://github.com/plger/scDblFinder",
+    n_latent: int = Field(
+        default=64,
+        ge=1,
+        description="Latent space dimensionality"
+    )
+    n_layers: int = Field(
+        default=1,
+        ge=1,
+        description="Number of hidden layers"
+    )
+    learning_rate: float = Field(
+        default=1e-3,
+        gt=0.0,
+        description="Learning rate"
+    )
+    max_epochs: int = Field(
+        default=400,
+        ge=1,
+        description="Maximum training epochs"
     )
 
-    dbr: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Expected doublet rate (if None, estimated from data)"
-    )
-    clusters: Optional[str] = Field(
-        default=None,
-        description="Column name for cluster labels (optional)"
-    )
-    
     class Config:
         extra = "forbid"
 
 
 class DoubletDetectionConfig(BaseStepConfig):
-    """Doublet detection step configuration."""
-    
-    method: Literal["scrublet", "doubletfinder", "scds", "scdblfinder"] = Field(
+    """Doublet detection step configuration (Python-only)."""
+
+    method: Literal["scrublet", "solo"] = Field(
         description="Doublet detection method to use"
     )
-    
+
     # Method-specific parameters
     scrublet: Optional[ScrubletConfig] = None
-    doubletfinder: Optional[DoubletFinderConfig] = None
-    scds: Optional[ScdsConfig] = None
-    scdblfinder: Optional[ScDblFinderConfig] = None
-    
+    solo: Optional[SoloConfig] = None
+
     @model_validator(mode='after')
     def validate_method_params(self):
         """Ensure the correct parameters are provided for the selected method."""
         method_configs = {
             "scrublet": self.scrublet,
-            "doubletfinder": self.doubletfinder,
-            "scds": self.scds,
-            "scdblfinder": self.scdblfinder,
+            "solo": self.solo,
         }
-        
+
         selected_config = method_configs.get(self.method)
         if selected_config is None:
             raise ValueError(
                 f"Parameters for method '{self.method}' are required. "
                 f"Please provide a '{self.method}' configuration block."
             )
-        
+
         # Warn if other method configs are present
         other_configs = {k: v for k, v in method_configs.items() if k != self.method and v is not None}
         if other_configs:
             print(f"Warning: Ignoring unused doublet detection configs: {list(other_configs.keys())}")
-        
+
         return self

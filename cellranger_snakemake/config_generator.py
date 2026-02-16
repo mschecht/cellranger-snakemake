@@ -76,12 +76,11 @@ from cellranger_snakemake.schemas.demultiplexing import (
     VireoConfig, CellSNPConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
-    DoubletDetectionConfig, ScrubletConfig, DoubletFinderConfig,
-    ScdsConfig, ScDblFinderConfig
+    DoubletDetectionConfig, ScrubletConfig, SoloConfig
 )
 from cellranger_snakemake.schemas.annotation import (
-    CelltypeAnnotationConfig, CelltypistConfig, AzimuthConfig,
-    SingleRConfig, ScTypeConfig, CelltypistCustomConfig
+    CelltypeAnnotationConfig, CelltypistConfig, ScANVIConfig,
+    DecouplerMarkerConfig, CelltypistCustomConfig
 )
 
 
@@ -290,77 +289,110 @@ class ConfigGenerator:
         return DemultiplexingConfig(method=method, **{method: method_config})
     
     def _configure_doublet_detection(self) -> DoubletDetectionConfig:
-        """Configure doublet detection."""
+        """Configure doublet detection (Python-only)."""
         method = Prompt.ask(
             "  Doublet detection method",
-            choices=["scrublet", "doubletfinder", "scds", "scdblfinder"],
+            choices=["scrublet", "solo"],
             default="scrublet"
         )
-        
+
         method_config = None
         if method == "scrublet":
             rate = FloatPrompt.ask("    Expected doublet rate", default=0.06)
             min_counts = IntPrompt.ask("    Minimum counts", default=2)
             min_cells = IntPrompt.ask("    Minimum cells", default=3)
+            min_gene_variability_pctl = FloatPrompt.ask("    Min gene variability percentile", default=85.0)
+            n_prin_comps = IntPrompt.ask("    Number of principal components", default=30)
             method_config = ScrubletConfig(
                 expected_doublet_rate=rate,
                 min_counts=min_counts,
-                min_cells=min_cells
+                min_cells=min_cells,
+                min_gene_variability_pctl=min_gene_variability_pctl,
+                n_prin_comps=n_prin_comps
             )
-        
-        elif method == "doubletfinder":
-            pN = FloatPrompt.ask("    pN parameter", default=0.25)
-            pK = FloatPrompt.ask("    pK parameter", default=0.09)
-            method_config = DoubletFinderConfig(pN=pN, pK=pK)
-        
-        elif method == "scds":
-            algorithm = Prompt.ask("    Algorithm", choices=["cxds", "bcds", "hybrid"], default="hybrid")
-            method_config = ScdsConfig(algorithm=algorithm)
-        
-        elif method == "scdblfinder":
-            method_config = ScDblFinderConfig()
-        
+
+        elif method == "solo":
+            n_hidden = IntPrompt.ask("    Number of hidden units", default=128)
+            n_latent = IntPrompt.ask("    Latent dimensionality", default=64)
+            n_layers = IntPrompt.ask("    Number of layers", default=1)
+            learning_rate = FloatPrompt.ask("    Learning rate", default=1e-3)
+            max_epochs = IntPrompt.ask("    Maximum epochs", default=400)
+            method_config = SoloConfig(
+                n_hidden=n_hidden,
+                n_latent=n_latent,
+                n_layers=n_layers,
+                learning_rate=learning_rate,
+                max_epochs=max_epochs
+            )
+
         return DoubletDetectionConfig(method=method, **{method: method_config})
     
     def _configure_celltype_annotation(self) -> CelltypeAnnotationConfig:
-        """Configure cell type annotation."""
+        """Configure cell type annotation (Python-only)."""
         method = Prompt.ask(
             "  Annotation method",
-            choices=["celltypist", "azimuth", "singler", "sctype", "celltypist_custom"],
+            choices=["celltypist", "scanvi", "decoupler_markers", "celltypist_custom"],
             default="celltypist"
         )
-        
+
         method_config = None
         if method == "celltypist":
             model = Prompt.ask("    Model name or path")
             majority_voting = Confirm.ask("    Use majority voting?", default=False)
-            method_config = CelltypistConfig(model=model, majority_voting=majority_voting)
-        
-        elif method == "azimuth":
-            reference = Prompt.ask(
-                "    Reference dataset",
-                choices=["pbmc", "bonemarrow", "lung", "kidney", "heart", "adipose", "liver", "pancreas", "motor_cortex", "fetal"],
-                default="pbmc"
+            over_clustering = None
+            min_prop = 0.5
+            if majority_voting:
+                over_clustering = Prompt.ask("    Over-clustering column (optional)", default=None)
+                min_prop = FloatPrompt.ask("    Minimum proportion", default=0.5)
+            method_config = CelltypistConfig(
+                model=model,
+                majority_voting=majority_voting,
+                over_clustering=over_clustering,
+                min_prop=min_prop
             )
-            method_config = AzimuthConfig(reference=reference)
-        
-        elif method == "singler":
-            reference = Prompt.ask("    Reference object path")
-            labels = Prompt.ask("    Label column", default="label.main")
-            method_config = SingleRConfig(reference=reference, labels=labels)
-        
-        elif method == "sctype":
-            tissue = Prompt.ask("    Tissue type")
-            method_config = ScTypeConfig(tissue=tissue)
-        
+
+        elif method == "scanvi":
+            reference_path = Prompt.ask("    Reference AnnData (.h5ad) path")
+            label_key = Prompt.ask("    Label column in reference", default="cell_type")
+            n_hidden = IntPrompt.ask("    Number of hidden units", default=128)
+            n_latent = IntPrompt.ask("    Latent dimensionality", default=30)
+            n_layers = IntPrompt.ask("    Number of layers", default=2)
+            max_epochs = IntPrompt.ask("    Maximum epochs", default=400)
+            method_config = ScANVIConfig(
+                reference_path=reference_path,
+                label_key=label_key,
+                n_hidden=n_hidden,
+                n_latent=n_latent,
+                n_layers=n_layers,
+                max_epochs=max_epochs
+            )
+
+        elif method == "decoupler_markers":
+            marker_database = Prompt.ask("    Marker database path or tissue type")
+            method_choice = Prompt.ask(
+                "    Scoring method",
+                choices=["ulm", "wsum", "ora", "aucell"],
+                default="ulm"
+            )
+            min_score = FloatPrompt.ask("    Minimum score threshold", default=0.5)
+            method_config = DecouplerMarkerConfig(
+                marker_database=marker_database,
+                method=method_choice,
+                min_score=min_score
+            )
+
         elif method == "celltypist_custom":
             training_data = Prompt.ask("    Training data path")
             label_column = Prompt.ask("    Label column")
+            feature_selection = Confirm.ask("    Use feature selection?", default=True)
+            n_jobs = IntPrompt.ask("    Number of parallel jobs", default=1)
             method_config = CelltypistCustomConfig(
                 training_data=training_data,
-                label_column=label_column
+                label_column=label_column,
+                feature_selection=feature_selection,
+                n_jobs=n_jobs
             )
-        
+
         return CelltypeAnnotationConfig(method=method, **{method: method_config})
     
     def save_config(self, config: PipelineConfig, output_path: str):
