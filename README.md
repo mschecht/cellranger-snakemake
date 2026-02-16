@@ -5,7 +5,23 @@ The tool `cellranger-snakemake` is a [Snakemake](https://snakemake.readthedocs.i
 # Description
 
 Reproducibility and scalability are essential components of contemporary [FAIR](https://www.nature.com/articles/sdata201618) (Findable, Accessible, Interoperable, and Reproducible) single-cell ‘omics data analysis, yet preprocessing steps lack workflow infrastructure needed to standardize large-scale and collaborative studies. 10x Genomics’ [Cell Ranger](https://www.10xgenomics.com/support/software/cell-ranger/latest) is critical software for preprocessing raw single-cell ‘omics modalities, but executing it reproducibly across hundreds or thousands of samples remains cumbersome, error-prone, and computationally ineﬃcient. We present `cellranger-snakemake`, a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow wrapper that automates, scales, and standardizes Cell Ranger preprocessing for Gene Expression ([GEX](https://www.10xgenomics.com/support/software/cell-ranger/latest)), Chromatin accessibility ([ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest)), and multiome ([ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest)) data. The workflow supports flexible input specifications, integrated logging, and portable configuration files, making it straightforward
-to deploy in high-performance computing or cloud environments. By combining Snakemake’s reproducible workflow management with Cell Ranger, `cellranger-snakemake` improves reproducibility, reduces user error, and accelerates downstream single-cell ‘omics.
+to deploy in high-performance computing or cloud environments. By combining Snakemake's reproducible workflow management with Cell Ranger, `cellranger-snakemake` improves reproducibility, reduces user error, and accelerates downstream single-cell 'omics.
+
+---
+
+## 🚨 What's New in v3.0.0 (2026-02-16)
+
+**Major refactoring with breaking changes!** This release introduces a Python-only, per-capture object architecture:
+
+- **Per-capture objects**: AnnData/MuData objects now created immediately after Cell Ranger count (one per capture) instead of after aggregation
+- **Batch aggregation**: New phase merges per-capture objects into batch-level objects with full traceability metadata
+- **Python-only tools**: All R-based analysis tools (DoubletFinder, Azimuth, SingleR, ScType) replaced with Python equivalents (SOLO, scANVI, celltypist, decoupler)
+- **New directory structure**: Per-capture objects in `03_ANNDATA/`, batch objects in `04_BATCH_OBJECTS/`, downstream steps renumbered
+- **Required metadata**: All objects include `batch_id`, `capture_id`, and globally unique `cell_id` for traceability
+
+**⚠️ v2.x configs and objects are incompatible with v3.0.0.** See [CHANGELOG.md](CHANGELOG.md) for full migration notes and feature details.
+
+---
 
 ## Documentation
 
@@ -43,6 +59,14 @@ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
 ](https://github.com/mschecht/cellranger-snakemake/wiki)
 
 # Developer notes
+
+## Project Guidelines
+
+See [CLAUDE.md](CLAUDE.md) for project architecture, coding conventions, and development guidelines. Key topics include:
+- Per-capture object creation patterns
+- Traceability metadata requirements
+- Modality-specific rules (GEX, ATAC, ARC)
+- Import ordering conventions
 
 ## Updating the Conda environment
 
