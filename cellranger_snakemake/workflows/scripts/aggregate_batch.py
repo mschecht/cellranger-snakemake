@@ -1,8 +1,11 @@
 """Aggregate per-capture objects into batch-level objects."""
 
-import scanpy as sc
 import sys
 import os
+
+import muon as mu
+import scanpy as sc
+import anndata as ad
 
 # Access snakemake object
 batch_id = snakemake.params.batch
@@ -18,7 +21,6 @@ try:
     print(f"Aggregating batch {batch_id} for {modality.upper()} modality")
 
     if modality == "arc":
-        import muon as mu
         input_files = snakemake.input.h5mus
         print(f"Found {len(input_files)} per-capture MuData files to aggregate:")
     else:
@@ -46,11 +48,14 @@ try:
     print(f"\nConcatenating {len(objects)} objects...")
 
     if modality == "arc":
-        # For MuData, use muon.concat
-        batch_obj = mu.concat(objects, axis=0, join='outer', merge='same')
+        mod_names = list(objects[0].mod.keys())
+        merged_mods = {}
+        for mod_name in mod_names:
+            mod_list = [obj.mod[mod_name] for obj in objects]
+            merged_mods[mod_name] = ad.concat(mod_list, axis=0, join='outer', merge='same')
+        batch_obj = mu.MuData(merged_mods)
+        batch_obj.update()
     else:
-        # For AnnData (GEX/ATAC), use anndata.concat
-        import anndata as ad
         batch_obj = ad.concat(objects, axis=0, join='outer', merge='same')
 
     print(f"✓ Concatenated to {batch_obj.n_obs} cells total")
@@ -81,11 +86,16 @@ try:
     else:
         print(f"Features: {batch_obj.n_vars}")
 
-    print(f"Metadata columns: {batch_obj.obs.columns.tolist()}")
-
-    # Show batch/capture distribution
-    print(f"\nCapture distribution:")
-    print(batch_obj.obs['capture_id'].value_counts())
+    if modality == "arc":
+        # For MuData, metadata lives in modality-level obs
+        first_mod = list(batch_obj.mod.values())[0]
+        print(f"Metadata columns (per-modality): {first_mod.obs.columns.tolist()}")
+        print(f"\nCapture distribution:")
+        print(first_mod.obs['capture_id'].value_counts())
+    else:
+        print(f"Metadata columns: {batch_obj.obs.columns.tolist()}")
+        print(f"\nCapture distribution:")
+        print(batch_obj.obs['capture_id'].value_counts())
 
     print(f"\n{'='*60}")
 
