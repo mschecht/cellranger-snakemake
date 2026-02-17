@@ -5,4 +5,4 @@ recursive-include cellranger_snakemake/workflows *.py
 # Include other important files
 include README.md
 include environment.yaml
-include environment_mini.yaml
+include environment_portable.yaml

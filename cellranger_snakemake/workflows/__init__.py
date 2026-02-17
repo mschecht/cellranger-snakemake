@@ -14,6 +14,6 @@ __all__ = [
     "__description__",
 ]
 
-__version__ = "1.0.0"
+__version__ = "0.1.0-dev"
 __description__ = "Snakemake wrapper for Cell Ranger workflows"
 

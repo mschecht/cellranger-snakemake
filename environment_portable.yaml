@@ -237,8 +237,17 @@ dependencies:
   - yaml-cpp=0.8.0
   - yte=1.9.4
   - zstd=1.5.7
+  # Analysis packages
+  - scanpy>=1.10
+  - anndata>=0.10
+  - muon>=0.1.6
+  - snapatac2>=2.6
+  - scvi-tools>=1.1
+  - celltypist>=1.6
+  - decoupler>=1.7
+  - scrublet>=0.2.3
+  - leidenalg
   - pip:
-      - cellranger-snakemake==2.0.0
       - demuxalot==0.4.3
       - joblib==1.5.3
       - pyarrow==22.0.0
@@ -246,4 +255,4 @@ dependencies:
       - scipy==1.16.3
       - snakemake-executor-plugin-slurm==2.0.3
       - snakemake-executor-plugin-slurm-jobstep==0.3.0
-prefix: /project/lbarreiro/USERS/mschechter/miniconda3/envs/snakemake8
+
