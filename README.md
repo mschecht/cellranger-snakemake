@@ -27,32 +27,6 @@ For full documentation, visit **[cellranger-snakemake.readthedocs.io](https://ce
 - [Quick Start](https://cellranger-snakemake.readthedocs.io/en/latest/quickstart.html)
 - [Tutorial](https://cellranger-snakemake.readthedocs.io/en/latest/tutorial.html)
 
-# Quick Start
-
-1. **Activate the environment**
-```bash
-conda activate snakemake8
-```
-
-2. **Verify Cell Ranger installation (optional but recommended)**
-```bash
-snakemake-run-cellranger check-versions
-```
-
-3. **Create a config file:**
-```bash
-snakemake-run-cellranger init-config --output pipeline_config.yaml
-```
-
-4. **Run a workflow:**
-```bash
-snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
-```
-
-# Tutorial
-
-For an in-depth tutorial, see the [documentation](https://cellranger-snakemake.readthedocs.io/en/latest/tutorial.html).
-
 # Developer notes
 
 ## Project Guidelines
@@ -65,7 +39,13 @@ See [CLAUDE.md](CLAUDE.md) for project architecture, coding conventions, and dev
 
 ## Updating the Conda environment
 
-If you add or update any Conda dependency, re-export the environment and commit the change:
+If you add or update any Conda dependency, re-export the environment files:
 ```bash
-conda env export > environment.yaml
+# Full environment (exact pins, Linux only)
+conda env export | grep -v "^prefix:" > environment.yaml
+
+# Portable environment (no build hashes)
+conda env export --no-builds | grep -v "^prefix:" > environment_portable.yaml
 ```
+
+> **Important:** After exporting, manually remove the `cellranger-snakemake` line from the `pip:` section in both files. The package should be installed separately via `pip install -e .`, not pinned in the environment.

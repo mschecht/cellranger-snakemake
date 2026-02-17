@@ -2,6 +2,31 @@
 
 This guide walks you through contributing to the cellranger-snakemake pipeline. Whether you're adding a new analysis method or an entirely new pipeline step, this document provides the workflow, patterns, and testing strategies you need.
 
+## Getting Started
+
+Follow the [Installation](installation.md) instructions (steps 1-5), using `pip install -e .` for an editable install.
+
+After pulling new changes from the repository:
+```bash
+git pull
+pip install -e .   
+```
+
+### Updating the Conda environment
+
+If you add or update any Conda dependency, re-export the environment files:
+```bash
+# Full environment (exact pins, Linux only)
+conda env export | grep -v "^prefix:" > environment.yaml
+
+# Portable environment (no build hashes)
+conda env export --no-builds | grep -v "^prefix:" > environment_portable.yaml
+```
+
+> **Important:** After exporting, manually remove the `cellranger-snakemake` line from the `pip:` section in both files. The package should be installed separately via `pip install -e .`, not pinned in the environment.
+
+---
+
 ## Key Concepts
 
 **Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + vireo or [demuxalot](https://github.com/arogozhnikov/demuxalot).
