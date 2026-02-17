@@ -1,4 +1,6 @@
-# Tutorial and test case for development for GEX, ATAC, and ARC workflow
+# Tutorial
+
+## Tutorial and test case for development for GEX, ATAC, and ARC workflow
 
 In this section, we will run `cellranger-snakemake` using a test dataset from Cell Ranger (derived from fasta files are used by the internal testing tool for cellranger called [cellranger testrun](https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-in#testrun)) to get new users ready to go as well as developers who need test cases for each of the workflow modes. Follow the steps to set up the test dataset, and run basic commands. 
 
@@ -76,12 +78,12 @@ You can also run this command to generate a default config yaml with every confi
 snakemake-run-cellranger init-config --get-default-config
 ```
 
-For this tutorial, here is the test config yaml file: 
+For this tutorial, here is the GEX test config yaml file:
 
-```bash
-$ cat tests/00_TEST_DATA_GEX/test_config_gex.yaml
+```yaml
+# tests/00_TEST_DATA_GEX/test_config_gex.yaml
 project_name: test_gex
-output_dir: test_output_gex
+output_dir: tests/test_output_gex
 resources:
   mem_gb: 64
   tmpdir: ''
@@ -92,12 +94,12 @@ cellranger_gex:
   libraries: tests/00_TEST_DATA_GEX/libraries_list_gex.tsv
   chemistry: auto
   normalize: none
-  create-bam: false
+  create-bam: true
   threads: 10
   mem_gb: 64
 demultiplexing:
-  enabled: true
-  method: vireo
+  enabled: false
+  method: vireo                          # Options: vireo, demuxalot
   vireo:
     donors: 2
     cellsnp:
@@ -110,17 +112,31 @@ demultiplexing:
       gzip: true
 doublet_detection:
   enabled: false
-  method: scrublet
+  method: scrublet                       # Options: scrublet, solo
   scrublet:
     expected_doublet_rate: 0.06
     min_counts: 2
     min_cells: 3
 celltype_annotation:
   enabled: false
-  method: celltypist
+  method: celltypist                     # Options: celltypist, scanvi, decoupler_markers
   celltypist:
     model: Immune_All_Low.pkl
     majority_voting: false
+```
+
+To see all available methods and their parameters:
+
+```bash
+snakemake-run-cellranger list-methods
+snakemake-run-cellranger show-params --step doublet_detection --method solo
+```
+
+The ATAC and ARC configs follow the same structure, replacing `cellranger_gex` with `cellranger_atac` or `cellranger_arc`. Generate them with:
+
+```bash
+snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
+snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
 ### `libraries_list.tsv`
@@ -156,7 +172,7 @@ Column descriptions:
 
 ### `HPC_profiles/`
 
-The `HPC_profiles/` directory contains another `config.yaml` that configures the cloud computing and HPC infrastructure settings to help `snakemake` launch parallel jobs. This config would be the argument for `snakemake --profile HPC_profiles`. You can read more about it [here](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles). See [section 7](#7-launching-on-hpc) for detailed usage.
+The `HPC_profiles/` directory contains another `config.yaml` that configures the cloud computing and HPC infrastructure settings to help `snakemake` launch parallel jobs. This config would be the argument for `snakemake --profile HPC_profiles`. You can read more about it [here](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles).
 
 For this test dataset, we made the default HPC profile config to be compatible with [SLURM](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html). However, you can [install another executor](https://snakemake.github.io/snakemake-plugin-catalog/index.html) to match you local HPC/cloud computing infrastructure. 
 
@@ -165,8 +181,8 @@ $ cat tests/00_TEST_DATA_GEX/HPC_profiles/config.yaml
 executor: slurm
 jobs: 10
 default-resources:
-- slurm_account=pi-lbarreiro
-- slurm_partition=lbarreiro-hm
+- slurm_account={ACCOUNT}
+- slurm_partition={PARTITION}
 - runtime=720
 retries: 2
 latency-wait: 60
@@ -212,8 +228,52 @@ The flag `--snakemake-args` passes and arguments after it directly to `snakemake
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --jobs 2
 ```
 
-(7-launching-on-hpc)=
-## 7. Launching on HPC
+## 7. Pipeline output structure
+
+After a successful run, the pipeline produces the following directory structure inside `output_dir`:
+
+```
+tests/test_output_gex/
+├── 00_LOGS/                              # Log files and .done flags
+│   ├── 1_L001_gex_count.done
+│   ├── 1_L002_gex_count.done
+│   ├── 1_gex_aggr.done
+│   ├── 1_L001_gex_anndata.done
+│   ├── 1_L002_gex_anndata.done
+│   ├── 1_gex_batch_aggregation.done
+│   └── 1_gex_enrichment.done
+├── 01_CELLRANGERGEX_COUNT/               # Cell Ranger count outputs (per-capture)
+│   ├── 1_L001/outs/
+│   └── 1_L002/outs/
+├── 02_CELLRANGERGEX_AGGR/                # Cell Ranger aggregation (per-batch)
+│   └── 1/outs/
+├── 03_ANNDATA/                           # Per-capture AnnData objects
+│   ├── 1_L001.h5ad
+│   └── 1_L002.h5ad
+├── 04_BATCH_OBJECTS/                     # Batch-level aggregated objects
+│   └── 1_gex.h5ad
+├── 05_DEMULTIPLEXING/                    # Demux results (if enabled)
+├── 06_DOUBLET_DETECTION/                 # Doublet results (if enabled)
+├── 07_CELLTYPE_ANNOTATION/               # Annotation results (if enabled)
+└── 08_FINAL/                             # Enriched objects (analysis metadata merged in)
+    └── 1_gex.h5ad
+```
+
+The pipeline processes data in phases:
+
+1. **Cell Ranger count** (per-capture): Raw FASTQ processing
+2. **Cell Ranger aggregation** (per-batch): Batch-level aggregation by Cell Ranger
+3. **Object creation** (per-capture): Creates AnnData/MuData objects with traceability metadata (`batch_id`, `capture_id`, `cell_id`)
+4. **Batch aggregation**: Merges per-capture objects into batch-level objects, preserving all metadata
+5. **Analysis** (per-capture, if enabled): Demultiplexing, doublet detection, and/or cell type annotation run in parallel
+6. **Metadata enrichment**: Merges analysis results back into batch objects, producing final objects in `08_FINAL/`
+
+Every cell in the final objects has three metadata columns for traceability:
+- `batch_id`: Batch identifier (e.g., `"1"`)
+- `capture_id`: Capture/lane identifier (e.g., `"L001"`)
+- `cell_id`: Globally unique identifier (e.g., `"1_L001_AAACCCAAGGAGAGTA-1"`)
+
+## 8. Launching on HPC
 
 To launch on the HPC, we will use the `--snakemake-args` command to pass additional arguments to snakemake to let it know we are going to use an HPC. The `--snakemake-args` must be the LAST argument and anything after it will be snakemake arguments passed directly to `snakemake`.
 
