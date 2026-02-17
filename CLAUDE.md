@@ -199,7 +199,7 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_a
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dag | dot -Tpng > dag_atac.png
 
 # Local run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_atac.yaml --cores 1
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1
 
 # Run with HPC profile
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml \
