@@ -9,17 +9,13 @@ to deploy in high-performance computing or cloud environments. By combining Snak
 
 ---
 
-## 🚨 What's New in v3.0.0 (2026-02-16)
+## Features
 
-**Major refactoring with breaking changes!** This release introduces a Python-only, per-capture object architecture:
-
-- **Per-capture objects**: AnnData/MuData objects now created immediately after Cell Ranger count (one per capture) instead of after aggregation
-- **Batch aggregation**: New phase merges per-capture objects into batch-level objects with full traceability metadata
-- **Python-only tools**: All R-based analysis tools (DoubletFinder, Azimuth, SingleR, ScType) replaced with Python equivalents (SOLO, scANVI, celltypist, decoupler)
-- **New directory structure**: Per-capture objects in `03_ANNDATA/`, batch objects in `04_BATCH_OBJECTS/`, downstream steps renumbered
-- **Required metadata**: All objects include `batch_id`, `capture_id`, and globally unique `cell_id` for traceability
-
-**⚠️ v2.x configs and objects are incompatible with v3.0.0.** See [CHANGELOG.md](CHANGELOG.md) for full migration notes and feature details.
+- **Per-capture objects**: AnnData/MuData objects created immediately after Cell Ranger count (one per capture), then aggregated into batch-level objects
+- **Traceability**: All objects include `batch_id`, `capture_id`, and globally unique `cell_id` metadata
+- **Python-only tools**: Doublet detection (Scrublet, SOLO), cell type annotation (celltypist, scANVI, decoupler), demultiplexing (Vireo, demuxalot)
+- **Metadata enrichment**: Analysis results automatically merged into final batch objects
+- **Multi-modality**: Supports GEX, ATAC, and ARC (multiome) workflows
 
 ---
 
@@ -55,8 +51,7 @@ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
 
 # Tutorial
 
-[Check out the wiki for an in-depth tutorial with publicly available practice data!
-](https://github.com/mschecht/cellranger-snakemake/wiki)
+For an in-depth tutorial, see the [documentation](https://cellranger-snakemake.readthedocs.io/en/latest/tutorial.html).
 
 # Developer notes
 

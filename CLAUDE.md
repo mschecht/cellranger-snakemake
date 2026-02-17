@@ -4,7 +4,7 @@
 
 This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and multiome (ARC) data from 10X Genomics Cell Ranger outputs. The pipeline creates AnnData/MuData objects with per-capture traceability and supports demultiplexing, doublet detection, and cell type annotation.
 
-**Version:** 3.0.0
+**Version:** 0.1.0-dev (pre-release)
 **Architecture:** Per-capture objects with batch aggregation
 **Language:** Python
 
@@ -21,7 +21,7 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 ### 2. Python-Only Stack
 - **NEVER** use R-based tools (e.g., DoubletFinder, Azimuth, SingleR)
 - Always use Python equivalents: scanpy, snapatac2, muon, scvi-tools, celltypist, decoupler
-- This is a **hard requirement** from v3.0.0 onward
+- This is a **hard requirement**
 
 ### 3. Traceability is Critical
 - **ALWAYS** ensure every cell has: `batch_id`, `capture_id`, `cell_id`

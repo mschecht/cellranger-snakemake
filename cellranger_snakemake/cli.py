@@ -15,7 +15,7 @@ from cellranger_snakemake.utils.custom_logger import custom_logger
 from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
 from cellranger_snakemake.utils.test_data_generator import TestDataGenerator
 
-__version__ = "2.0.0"
+__version__ = "0.1.0-dev"
 __description__ = "Snakemake wrapper for single-cell preprocessing pipelines"
 
 def main():

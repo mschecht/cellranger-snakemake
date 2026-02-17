@@ -10,8 +10,8 @@ project = 'cellranger-snakemake'
 copyright = '2026, Matthew S. Schechter'
 author = 'Matthew S. Schechter'
 
-version = '2.0.0'
-release = '2.0.0'
+version = '0.1.0-dev'
+release = '0.1.0-dev'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
