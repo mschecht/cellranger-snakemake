@@ -171,6 +171,59 @@ snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA
 snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
+### Run Tests
+
+#### GEX
+```bash
+# Dry run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
+
+# DAG visualization
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag_gex.png
+
+# Local run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_gex.yaml --cores 1
+
+# Run with HPC profile
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
+                             --cores all \
+                             --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
+```
+
+#### ATAC
+```bash
+# Dry run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dry-run
+
+# DAG visualization
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dag | dot -Tpng > dag_atac.png
+
+# Local run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_atac.yaml --cores 1
+
+# Run with HPC profile
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml \
+                             --cores all \
+                             --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
+```
+
+#### ARC
+```bash
+# Dry run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dry-run
+
+# DAG visualization
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dag | dot -Tpng > dag_arc.png
+
+# Local run
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1
+
+# Run with HPC profile
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml \
+                             --cores all \
+                             --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
+```
+
 ### Testing Checklist
 Before marking a feature complete:
 - [ ] Dry-run succeeds (`--dry-run`)
