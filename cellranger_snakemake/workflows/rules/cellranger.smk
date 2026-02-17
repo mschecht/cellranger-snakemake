@@ -187,6 +187,7 @@ if config.get("cellranger_atac"):
             fastqs = lambda wc: atac_df[atac_df["capture"] == wc.capture]["fastqs"].iloc[0]
         output:
             h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
+            fragments = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "fragments.tsv.gz"),
             summary = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
@@ -318,6 +319,7 @@ if config.get("cellranger_arc"):
             libraries_csv = lambda wc: arc_df[arc_df["capture"] == wc.capture]["CSV"].iloc[0]
         output:
             h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
+            fragments = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "atac_fragments.tsv.gz"),
             summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
