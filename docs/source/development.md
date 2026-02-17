@@ -4,9 +4,9 @@ This guide walks you through contributing to the cellranger-snakemake pipeline. 
 
 ## Key Concepts
 
-**Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`).
+**Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + vireo or [demuxalot](https://github.com/arogozhnikov/demuxalot).
 
-**Method**: A software tool that implements a step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing step.
+**Method**: A software tool that implements a preprocessing step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing step.
 
 ## Developer Workflow
 
@@ -15,7 +15,7 @@ Follow these steps when making changes:
 1. **Orient** - Understand the [project architecture](#project-architecture) and how the pipeline resolves what to run
 2. **Develop** - Choose your task: [add a method](#adding-a-method-to-an-existing-step) or [add a step](#adding-a-new-pipeline-step)
 3. **Test** - Validate with [DAG checks](#dag-validation) and [integration tests](#integration-tests)
-4. **Document** - Update [documentation](#building-and-editing-documentation) as needed
+4. **Document** - Update [documentation](#building-and-editing-documentation)!
 
 ---
 
@@ -73,6 +73,41 @@ docs/source/                        # Read the Docs documentation (this file)
 5. **Each rule** produces a `.done` marker file in `{output_dir}/00_LOGS/` that matches what `build_targets.py` expects
 
 If the target filename from `build_targets.py` doesn't match the `done` output in the rule, Snakemake will raise a `MissingInputException`.
+
+### Pipeline phases
+
+The pipeline executes in phases, each building on the previous:
+
+```
+Phase 1: Cell Ranger count (per-capture)
+  → 01_CELLRANGER{GEX|ATAC|ARC}_COUNT/{batch}_{capture}/
+
+Phase 2: Cell Ranger aggregation (per-batch)
+  → 02_CELLRANGER{GEX|ATAC|ARC}_AGGR/{batch}/
+
+Phase 3: Per-capture object creation (AnnData/MuData with traceability metadata)
+  → 03_ANNDATA/{batch}_{capture}.h5ad|h5mu
+
+Phase 4: Batch aggregation (merge per-capture objects)
+  → 04_BATCH_OBJECTS/{batch}_{modality}.h5ad|h5mu
+
+Phase 5-7: Per-capture analysis (demux, doublet, annotation — run in parallel)
+  → 05_DEMULTIPLEXING/, 06_DOUBLET_DETECTION/, 07_CELLTYPE_ANNOTATION/
+
+Phase 8: Metadata enrichment (merge analysis results into batch objects)
+  → 08_FINAL/{batch}_{modality}.h5ad|h5mu
+```
+
+**Metadata enrichment** is the final phase. The rules live in `batch_aggregation.smk` (alongside the aggregation rules) and the logic is in `scripts/merge_metadata.py`. For each batch, enrichment:
+
+1. Reads the batch object from `04_BATCH_OBJECTS/`
+2. Searches `05_DEMULTIPLEXING/`, `06_DOUBLET_DETECTION/`, and `07_CELLTYPE_ANNOTATION/` for per-capture result files
+3. Joins analysis metadata onto `adata.obs` using `cell_id` as the key
+4. Writes the enriched object to `08_FINAL/`
+
+Enrichment is always the last step. It runs for every enabled modality regardless of which analysis steps are enabled — if no analysis metadata is found, it copies the batch object as-is.
+
+Target generation for enrichment is handled by `get_enriched_object_outputs()` in `build_targets.py`, producing done files like `{batch}_gex_enrichment.done`.
 
 ---
 
