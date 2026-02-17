@@ -24,7 +24,7 @@ Follow these steps when making changes:
 Understanding the file layout is essential before making changes:
 
 ```
-cellranger_snakemake/
+cellranger_snakemake/   
 ├── cli.py                          # CLI entry points
 ├── config_generator.py             # Interactive config builder
 ├── config_validator.py             # PIPELINE_DIRECTORIES, validation
@@ -207,6 +207,18 @@ class DemultiplexingConfig(BaseStepConfig):
         # ... rest stays the same
 ```
 
+#### Checkpoint: Verify schema registration
+
+After completing Steps 1-2, verify the new method is visible to the CLI:
+
+```bash
+# Confirm the method appears in the registry
+snakemake-run-cellranger list-methods
+
+# Confirm schema fields and tool_meta are correct
+snakemake-run-cellranger show-params --step demultiplexing --method vireo
+```
+
 #### Step 3: Add the rule
 
 In `cellranger_snakemake/workflows/rules/demultiplexing.smk`:
@@ -262,6 +274,23 @@ if method == "vireo":
             outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
 ```
 
+#### Checkpoint: Verify rule and targets
+
+After completing Steps 3-4, create a test config that uses the new method and verify the DAG resolves:
+
+```bash
+# Validate the config parses correctly
+snakemake-run-cellranger validate-config --config-file your_test_config.yaml
+
+# Dry run - confirm the new rule appears and targets match
+snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dry-run
+
+# Visual check - confirm rule dependencies look correct
+snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dag | dot -Tpng > dag.png
+```
+
+If you get a `MissingInputException`, the `.done` filename in `build_targets.py` doesn't match the rule output. See [Common Pitfalls](#common-pitfalls).
+
 #### Step 5: Add to config generator
 
 Update `cellranger_snakemake/config_generator.py` so `init-config` can produce the new method's parameters interactively.
@@ -316,6 +345,18 @@ class CelltypeAnnotationConfig(BaseStepConfig):
     def validate_method_params(self):
         # Validate that the selected method has its config block
         ...
+```
+
+#### Checkpoint: Verify schema registration
+
+After Step 1, verify the new step and its methods are visible:
+
+```bash
+# Confirm the new step appears with its methods
+snakemake-run-cellranger list-methods
+
+# Confirm schema fields are correct
+snakemake-run-cellranger show-params --step celltype_annotation --method celltypist
 ```
 
 #### Step 2: Register the output directory
@@ -374,6 +415,17 @@ def get_annotation_outputs(config):
 
     return outputs
 ```
+
+#### Checkpoint: Verify config validation
+
+After Steps 2-4, create a test config with the new step enabled and verify it validates:
+
+```bash
+# Config should validate without errors
+snakemake-run-cellranger validate-config --config-file your_test_config.yaml
+```
+
+This confirms the schema, output directory, `parse_config.py`, and `build_targets.py` are all wired up correctly. The dry run won't work yet — you need the rule file first.
 
 #### Step 5: Create the rule file
 
