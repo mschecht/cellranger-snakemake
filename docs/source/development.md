@@ -291,7 +291,7 @@ In `cellranger_snakemake/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
 PIPELINE_DIRECTORIES = [
     ("logs", "00_LOGS"),
     # ... existing entries ...
-    ("celltype_annotation", "05_CELLTYPE_ANNOTATION"),
+    ("celltype_annotation", "07_CELLTYPE_ANNOTATION"),
 ]
 ```
 
