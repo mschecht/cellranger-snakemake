@@ -45,15 +45,19 @@ def build_all_targets(config, enabled_steps):
     # Demux outputs
     if "demultiplexing" in enabled_steps:
         targets.extend(get_demux_outputs(config))
-    
+
     # Doublet detection outputs
     if "doublet_detection" in enabled_steps:
         targets.extend(get_doublet_outputs(config))
-    
+
     # Annotation outputs
     if "celltype_annotation" in enabled_steps:
         targets.extend(get_annotation_outputs(config))
-    
+
+    # Final enriched objects (merge all metadata into batch objects)
+    if any(step in enabled_steps for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc"]):
+        targets.extend(get_enriched_object_outputs(config))
+
     return targets
 
 
@@ -241,6 +245,45 @@ def get_batch_aggregation_outputs(config):
         batches = df['batch'].unique().tolist()
         for batch in batches:
             outputs.append(os.path.join(logs_dir, f"{batch}_arc_batch_aggregation.done"))
+
+    return outputs
+
+
+def get_enriched_object_outputs(config):
+    """
+    Get enriched object output file paths.
+    Final step: Merge all analysis metadata into batch objects.
+
+    Args:
+        config: Snakemake config dictionary
+
+    Returns:
+        list: Paths to enriched object done files
+    """
+    outputs = []
+    output_dirs = parse_output_directories(config)
+    logs_dir = output_dirs["logs_dir"]
+
+    # GEX enriched objects
+    if config.get("cellranger_gex"):
+        df = pd.read_csv(config["cellranger_gex"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_gex_enrichment.done"))
+
+    # ATAC enriched objects
+    if config.get("cellranger_atac"):
+        df = pd.read_csv(config["cellranger_atac"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_atac_enrichment.done"))
+
+    # ARC enriched objects
+    if config.get("cellranger_arc"):
+        df = pd.read_csv(config["cellranger_arc"]["libraries"], sep="\t")
+        batches = df['batch'].unique().tolist()
+        for batch in batches:
+            outputs.append(os.path.join(logs_dir, f"{batch}_arc_enrichment.done"))
 
     return outputs
 

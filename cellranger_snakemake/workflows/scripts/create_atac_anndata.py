@@ -1,10 +1,11 @@
 """Create AnnData object from ATAC Cell Ranger count output using SnapATAC2."""
 
-import snapatac2 as snap
+import gzip
 import subprocess
 import sys
 import os
-import tempfile
+
+import snapatac2 as snap
 
 # Access snakemake object
 fragments_path = snakemake.input.fragments
@@ -17,6 +18,47 @@ log_file = snakemake.log[0]
 # Redirect output to log
 sys.stdout = open(log_file, 'w')
 sys.stderr = sys.stdout
+
+
+def get_chrom_sizes_from_reference(fragments_path):
+    """Extract chromosome sizes from reference path in fragments file header."""
+    print("Extracting reference path from fragments file...")
+
+    # Read fragments file header to get reference path
+    reference_path = None
+    with gzip.open(fragments_path, 'rt') as f:
+        for line in f:
+            if not line.startswith('#'):
+                break
+            if line.startswith('# reference_path='):
+                reference_path = line.strip().split('=', 1)[1]
+                break
+
+    if not reference_path:
+        raise ValueError("Could not find reference_path in fragments file header")
+
+    print(f"Reference path: {reference_path}")
+
+    # Read chromosome sizes from reference .fai file
+    fai_file = os.path.join(reference_path, "fasta", "genome.fa.fai")
+
+    if not os.path.exists(fai_file):
+        raise FileNotFoundError(f"Reference .fai file not found: {fai_file}")
+
+    print(f"Reading chromosome sizes from: {fai_file}")
+
+    chrom_sizes = {}
+    with open(fai_file, 'r') as f:
+        for line in f:
+            fields = line.strip().split('\t')
+            chrom_name = fields[0]
+            chrom_length = int(fields[1])
+            chrom_sizes[chrom_name] = chrom_length
+
+    print(f"✓ Found {len(chrom_sizes)} chromosomes: {list(chrom_sizes.keys())}")
+
+    return chrom_sizes
+
 
 try:
     print(f"Importing ATAC fragments from: {fragments_path}")
@@ -44,12 +86,14 @@ try:
     else:
         print(f"Using existing sorted fragments: {sorted_fragments}")
 
+    # Get chromosome sizes from reference
+    chrom_sizes = get_chrom_sizes_from_reference(fragments_path)
+
     # Import fragments using SnapATAC2 (computes QC metrics)
-    # Using memory mode to allow metadata additions
     adata = snap.pp.import_fragments(
         sorted_fragments,
-        chrom_sizes=snap.genome.hg38,  # Default to hg38, can be parameterized later
-        sorted_by_barcode=True,  # Now we can use sorted mode for efficiency
+        chrom_sizes=chrom_sizes,
+        sorted_by_barcode=True,  # Use sorted mode for efficiency
         min_num_fragments=1  # Relaxed for testing; default is 200
     )
     print(f"Loaded {adata.n_obs} cells with fragment-level data")

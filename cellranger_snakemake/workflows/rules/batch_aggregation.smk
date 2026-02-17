@@ -134,7 +134,7 @@ if config.get("cellranger_arc"):
     def get_arc_percapture_done(wildcards):
         """Get all per-capture done flags for a batch."""
         captures = get_captures_for_batch(wildcards.batch, "arc")
-        return [os.path.join(LOGS_DIR, f"{wildcards.batch}_{cap}_arc_anndata.done") for cap in captures]
+        return [os.path.join(LOGS_DIR, f"{wildcards.batch}_{cap}_arc_mudata.done") for cap in captures]
 
     rule aggregate_arc_batch:
         """Aggregate per-capture ARC objects into batch-level object."""
@@ -151,3 +151,82 @@ if config.get("cellranger_arc"):
             os.path.join(LOGS_DIR, "{batch}_arc_batch_aggregation.log")
         script:
             "../scripts/aggregate_batch.py"
+
+
+# ============================================================================
+# Metadata Enrichment (Final Objects)
+# ============================================================================
+
+# Final output directory
+FINAL_DIR = os.path.join(config.get("output_dir", "output"), "08_FINAL")
+
+# Directories for metadata sources
+DEMUX_DIR = OUTPUT_DIRS.get("demultiplexing_dir")
+DOUBLET_DIR = OUTPUT_DIRS.get("doublet_detection_dir")
+ANNOTATION_DIR = OUTPUT_DIRS.get("celltype_annotation_dir")
+
+
+if config.get("cellranger_gex"):
+
+    rule enrich_gex_metadata:
+        """Enrich GEX batch object with analysis metadata (demux, doublet, annotation)."""
+        input:
+            batch_object = os.path.join(BATCH_DIR, "{batch}_gex.h5ad"),
+            done_flag = os.path.join(LOGS_DIR, "{batch}_gex_batch_aggregation.done")
+        output:
+            enriched_object = os.path.join(FINAL_DIR, "{batch}_gex.h5ad"),
+            done = touch(os.path.join(LOGS_DIR, "{batch}_gex_enrichment.done"))
+        params:
+            batch = "{batch}",
+            modality = "gex",
+            demux_dir = DEMUX_DIR,
+            doublet_dir = DOUBLET_DIR,
+            annotation_dir = ANNOTATION_DIR
+        log:
+            os.path.join(LOGS_DIR, "{batch}_gex_enrichment.log")
+        script:
+            "../scripts/merge_metadata.py"
+
+
+if config.get("cellranger_atac"):
+
+    rule enrich_atac_metadata:
+        """Enrich ATAC batch object with analysis metadata (demux, doublet, annotation)."""
+        input:
+            batch_object = os.path.join(BATCH_DIR, "{batch}_atac.h5ad"),
+            done_flag = os.path.join(LOGS_DIR, "{batch}_atac_batch_aggregation.done")
+        output:
+            enriched_object = os.path.join(FINAL_DIR, "{batch}_atac.h5ad"),
+            done = touch(os.path.join(LOGS_DIR, "{batch}_atac_enrichment.done"))
+        params:
+            batch = "{batch}",
+            modality = "atac",
+            demux_dir = DEMUX_DIR,
+            doublet_dir = DOUBLET_DIR,
+            annotation_dir = ANNOTATION_DIR
+        log:
+            os.path.join(LOGS_DIR, "{batch}_atac_enrichment.log")
+        script:
+            "../scripts/merge_metadata.py"
+
+
+if config.get("cellranger_arc"):
+
+    rule enrich_arc_metadata:
+        """Enrich ARC batch object with analysis metadata (demux, doublet, annotation)."""
+        input:
+            batch_object = os.path.join(BATCH_DIR, "{batch}_arc.h5mu"),
+            done_flag = os.path.join(LOGS_DIR, "{batch}_arc_batch_aggregation.done")
+        output:
+            enriched_object = os.path.join(FINAL_DIR, "{batch}_arc.h5mu"),
+            done = touch(os.path.join(LOGS_DIR, "{batch}_arc_enrichment.done"))
+        params:
+            batch = "{batch}",
+            modality = "arc",
+            demux_dir = DEMUX_DIR,
+            doublet_dir = DOUBLET_DIR,
+            annotation_dir = ANNOTATION_DIR
+        log:
+            os.path.join(LOGS_DIR, "{batch}_arc_enrichment.log")
+        script:
+            "../scripts/merge_metadata.py"
