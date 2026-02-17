@@ -46,11 +46,11 @@ samtools --version
 
 ## 4. Install `cellranger-snakemake` into the environment
 
-> 💡 If you're developing the package, use `pip install -e .` instead for an editable install.
-
 ```bash
-pip install .
+pip install -e .
 ```
+
+> 💡 The `-e` (editable) flag means code changes take effect immediately without reinstalling. You still need to re-run `pip install -e .` after pulling changes that modify `pyproject.toml` (new dependencies or CLI commands).
 
 Verify `snakemake-run-cellranger` installation:
 ```bash
