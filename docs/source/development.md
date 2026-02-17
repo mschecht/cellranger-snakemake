@@ -4,9 +4,9 @@ This guide walks you through contributing to the cellranger-snakemake pipeline. 
 
 ## Key Concepts
 
-**Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + vireo or [demuxalot](https://github.com/arogozhnikov/demuxalot).
+**Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + vireo or [demuxalot](https://github.com/arogozhnikov/demuxalot).
 
-**Method**: A software tool that implements a preprocessing step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing step.
+**Method**: A software tool that implements a preprocessing step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing prepcrocessing step.
 
 ## Developer Workflow
 
@@ -115,7 +115,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 
 ### Quick Reference Checklists
 
-**Adding a method to an existing step** (e.g., a new demultiplexing tool):
+**Adding a method to an existing preprocessing step** (e.g., a new demultiplexing tool):
 
 1. Add method config schema in `schemas/<step>.py` with `tool_meta`
 2. Register the method in the parent config class
@@ -141,7 +141,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 
 ---
 
-### Adding a Method to an Existing Step
+### Adding a Method to an Existing Preprocessing Step
 
 This example shows how [Vireo](https://github.com/single-cell-genetics/vireo) was added alongside demuxalot for demultiplexing. Use this as a template for adding new methods.
 
