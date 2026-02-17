@@ -30,19 +30,33 @@ cellranger_snakemake/
 ├── config_validator.py             # PIPELINE_DIRECTORIES, validation
 ├── schemas/                        # Pydantic models for config validation
 │   ├── base.py                     # BaseStepConfig (all steps inherit this)
-│   ├── demultiplexing.py           # Example: DemuxalotConfig, VireoConfig
-│   ├── doublet_detection.py
-│   └── annotation.py
+│   ├── config.py                   # PipelineConfig (unified schema)
+│   ├── cellranger.py               # GEX/ATAC/ARC Cell Ranger configs
+│   ├── demultiplexing.py           # DemuxalotConfig, VireoConfig
+│   ├── doublet_detection.py        # ScrubletConfig, SoloConfig
+│   └── annotation.py               # CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig
 ├── workflows/
 │   ├── main.smk                    # Master workflow, rule all, includes
 │   ├── rules/                      # One .smk file per pipeline step
-│   │   ├── cellranger.smk
-│   │   ├── demultiplexing.smk
-│   │   ├── doublet_detection.smk
-│   │   └── celltype_annotation.smk
+│   │   ├── cellranger.smk          # Cell Ranger count/aggregation
+│   │   ├── object_creation.smk     # Per-capture AnnData/MuData creation
+│   │   ├── batch_aggregation.smk   # Batch-level aggregation + metadata enrichment
+│   │   ├── demultiplexing.smk      # Demuxalot/Vireo
+│   │   ├── doublet_detection.smk   # Scrublet/SOLO
+│   │   └── celltype_annotation.smk # Celltypist/scANVI/Decoupler
 │   └── scripts/
 │       ├── build_targets.py        # Generates target files for rule all
-│       └── parse_config.py         # Extracts enabled steps, methods, etc.
+│       ├── parse_config.py         # Extracts enabled steps, methods, etc.
+│       ├── create_gex_anndata.py   # GEX per-capture object creation
+│       ├── create_atac_anndata.py  # ATAC per-capture object creation
+│       ├── create_arc_mudata.py    # ARC per-capture MuData creation
+│       ├── aggregate_batch.py      # Batch aggregation (per-capture → batch)
+│       ├── merge_metadata.py       # Merge analysis metadata into batch objects
+│       ├── run_scrublet.py         # Scrublet doublet detection
+│       ├── run_solo.py             # SOLO doublet detection
+│       ├── run_celltypist.py       # Celltypist annotation
+│       ├── run_scanvi.py           # scANVI annotation
+│       └── run_decoupler_markers.py # Decoupler marker-based annotation
 tests/
 ├── test.sh                         # Integration test script
 ├── 00_TEST_DATA_GEX/               # Test configs and library lists
