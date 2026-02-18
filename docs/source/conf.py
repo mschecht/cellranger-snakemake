@@ -20,6 +20,7 @@ extensions = [
     "sphinx.ext.autodoc",       # pull docstrings from code
     "sphinx.ext.napoleon",      # support Google/NumPy docstring style
     "myst_parser",              # write docs in Markdown
+    "sphinx_copybutton",        # add "copy" button to code blocks
 ]
 
 # Markdown file support
