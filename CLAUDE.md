@@ -182,7 +182,7 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_ge
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag_gex.png
 
 # Local run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_gex.yaml --cores 1
+snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 
 # Run with HPC profile
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
