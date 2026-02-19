@@ -69,6 +69,8 @@ if config.get("celltype_annotation") and config["celltype_annotation"]["method"]
             max_epochs = SCANVI_PARAMS.get("max_epochs", 400)
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_scanvi.log")
+        conda:
+            "../envs/scvi-tools.yaml"
         script:
             "../scripts/run_scanvi.py"
 

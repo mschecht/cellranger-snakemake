@@ -59,6 +59,8 @@ if config.get("cellranger_atac"):
             capture = "{capture}"
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_atac_anndata.log")
+        conda:
+            "../envs/snapatac2.yaml"
         script:
             "../scripts/create_atac_anndata.py"
 

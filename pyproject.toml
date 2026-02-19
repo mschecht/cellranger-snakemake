@@ -9,22 +9,12 @@ authors = [
     {name = "Matthew S. Schechter", email = "mschechter@uchicago.edu"},
 ]
 description = "Snakemake wrapper for single-cell preprocessing workflows"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0",
     "pyyaml>=5.1",
-    "rich>=10.0",  # Optional but recommended for better UX
-    "packaging>=20.0",  # For version comparison
-    # Phase 0: AnnData/MuData refactor dependencies
-    "scanpy>=1.10",
-    "anndata>=0.10",
-    "muon>=0.1.6",
-    "snapatac2>=2.6",
-    "scvi-tools>=1.1",
-    "celltypist>=1.6",
-    "decoupler>=1.7",
-    "scrublet>=0.2.3",
-    "leidenalg",
+    "rich>=10.0",
+    "packaging>=20.0",
 ]
 
 [project.scripts]
@@ -37,7 +27,8 @@ sc-config-validate = "cellranger_snakemake.config_validator:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-# This is equivalent to find_packages() with no arguments
+where = ["."]
+include = ["cellranger_snakemake*"]
 
 [tool.setuptools.package-data]
 "cellranger_snakemake" = ["workflows/**/*.smk", "workflows/**/*.py"]

@@ -287,7 +287,8 @@ Examples:
             "snakemake",
             "--snakefile", str(snakefile),
             "--configfile", args.config_file,
-            "--cores", args.cores
+            "--cores", args.cores,
+            "--use-conda"
         ]
         
         # Add dry-run flag if specified

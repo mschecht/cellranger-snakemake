@@ -188,6 +188,8 @@ if config.get("cellranger_atac"):
         output:
             h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
             fragments = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "fragments.tsv.gz"),
+            bam = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "possorted_bam.bam"),
+            barcodes = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix", "barcodes.tsv.gz"),
             summary = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
@@ -320,6 +322,8 @@ if config.get("cellranger_arc"):
         output:
             h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
             fragments = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "atac_fragments.tsv.gz"),
+            gex_bam = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "gex_possorted_bam.bam"),
+            barcodes = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz"),
             summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:

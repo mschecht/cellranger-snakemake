@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide walks you through contributing to the cellranger-snakemake pipeline. Whether you're adding a new analysis method or an entirely new pipeline step, this document provides the workflow, patterns, and testing strategies you need.
+This guide walks you through contributing to the cellranger-snakemake pipeline. Whether you're adding a new analysis method or an entirely new single-cell preprocessing step, this document provides the workflow, patterns, and testing strategies you need.
 
 ## Getting Started
 
@@ -12,26 +12,39 @@ git pull
 pip install -e .   
 ```
 
-### Updating the Conda environment
+### Updating dependencies
 
-If you add or update any Conda dependency, re-export the environment files:
-```bash
-# Full environment (exact pins, Linux only)
-conda env export | grep -v "^prefix:" > environment.yaml
+The project uses three types of environment files:
 
-# Portable environment (no build hashes)
-conda env export --no-builds | grep -v "^prefix:" > environment_portable.yaml
-```
+| File | Purpose | Editable? |
+|------|---------|-----------|
+| `environment.yaml` | Minimal install spec (hand-maintained) | Yes — edit this when adding/changing deps |
+| `environment_lock_linux.yaml` | Exact pins for Linux reproducibility | No — regenerate with `conda env export` |
+| `environment_lock_portable.yaml` | Exact pins without build hashes | No — regenerate with `conda env export --no-builds` |
+| `workflows/envs/snapatac2.yaml` | Per-rule env for ATAC rules (snapatac2) | Yes |
+| `workflows/envs/scvi-tools.yaml` | Per-rule env for SOLO/scANVI rules (scvi-tools) | Yes |
 
-> **Important:** After exporting, manually remove the `cellranger-snakemake` line from the `pip:` section in both files. The package should be installed separately via `pip install -e .`, not pinned in the environment.
+**To add a new dependency:**
+
+1. Add it to `environment.yaml` (conda section or pip section)
+2. Recreate your environment: `conda env remove -n snakemake8 && conda env create -f environment.yaml`
+3. Optionally regenerate lock files:
+   ```bash
+   conda env export | grep -v "^prefix:" > environment_lock_linux.yaml
+   conda env export --no-builds | grep -v "^prefix:" > environment_lock_portable.yaml
+   ```
+
+**Per-rule conda environments:** Rules that use snapatac2 or scvi-tools run in isolated Snakemake-managed conda environments (via `conda:` directive + `--use-conda`). This avoids dependency conflicts between packages with incompatible version pins (e.g., snapatac2 needs `numpy<2` while the main env uses `numpy>=2`). If you add a new tool with conflicting deps, create a new env file in `workflows/envs/` and add `conda:` to the rule.
+
+> **Do NOT** run `conda env export > environment.yaml` — this overwrites the minimal spec with a 240+ line platform-specific dump.
 
 ---
 
 ## Key Concepts
 
-**Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + vireo or [demuxalot](https://github.com/arogozhnikov/demuxalot).
+**Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + [vireo](https://github.com/single-cell-genetics/vireo) or [demuxalot](https://github.com/arogozhnikov/demuxalot).
 
-**Method**: A software tool that implements a preprocessing step. For example, the demultiplexing step supports two methods: `vireo` and `demuxalot`. Adding a new method means integrating another tool into an existing prepcrocessing step.
+**Method**: A software tool that implements a **preprocessing step**. For example, the demultiplexing step supports two methods: [vireo](https://github.com/single-cell-genetics/vireo) and [demuxalot](https://github.com/arogozhnikov/demuxalot). Adding a new method means integrating another tool into an existing prepcrocessing step.
 
 ## Developer Workflow
 
@@ -62,6 +75,9 @@ cellranger_snakemake/
 │   └── annotation.py               # CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig
 ├── workflows/
 │   ├── main.smk                    # Master workflow, rule all, includes
+│   ├── envs/                       # Per-rule conda environments
+│   │   ├── snapatac2.yaml          # Isolated env for ATAC rules (numpy<2, anndata<0.11)
+│   │   └── scvi-tools.yaml         # Isolated env for SOLO/scANVI rules (anndata>=0.11)
 │   ├── rules/                      # One .smk file per pipeline step
 │   │   ├── cellranger.smk          # Cell Ranger count/aggregation
 │   │   ├── object_creation.smk     # Per-capture AnnData/MuData creation
@@ -92,9 +108,9 @@ docs/source/                        # Read the Docs documentation (this file)
 ### How the pipeline resolves what to run
 
 1. **Config** (`pipeline_config.yaml`) declares which steps are `enabled: true`
-2. **`parse_config.py`** → `get_enabled_steps()` reads the config and returns a list of enabled step names
-3. **`main.smk`** conditionally includes `.smk` rule files based on enabled steps
-4. **`build_targets.py`** → `build_all_targets()` generates the list of expected `.done` files for `rule all`
+2. `parse_config.py` → `get_enabled_steps()` reads the config and returns a list of enabled step names
+3. `main.smk` conditionally includes `.smk` rule files based on enabled steps
+4. `build_targets.py` → `build_all_targets()` generates the list of expected `.done` files for `rule all`
 5. **Each rule** produces a `.done` marker file in `{output_dir}/00_LOGS/` that matches what `build_targets.py` expects
 
 If the target filename from `build_targets.py` doesn't match the `done` output in the rule, Snakemake will raise a `MissingInputException`.
@@ -168,7 +184,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 
 ### Adding a Method to an Existing Preprocessing Step
 
-This example shows how [Vireo](https://github.com/single-cell-genetics/vireo) was added alongside demuxalot for demultiplexing. Use this as a template for adding new methods.
+This example shows how [Vireo](https://github.com/single-cell-genetics/vireo) was added alongside [demuxalot](https://github.com/arogozhnikov/demuxalot) for demultiplexing. Use this as a template for adding new methods.
 
 #### Step 1: Add method config schema
 

@@ -39,6 +39,17 @@ if config.get("demultiplexing"):
     else:
         raise ValueError("Demultiplexing requires cellranger_gex, cellranger_atac, or cellranger_arc to be enabled")
 
+    # Set modality-specific file paths for BAM and barcodes
+    if MODALITY == "gex":
+        BAM_FILE = "possorted_genome_bam.bam"
+        BARCODES_FILE = os.path.join("filtered_feature_bc_matrix", "barcodes.tsv.gz")
+    elif MODALITY == "atac":
+        BAM_FILE = "possorted_bam.bam"
+        BARCODES_FILE = os.path.join("filtered_peak_bc_matrix", "barcodes.tsv.gz")
+    elif MODALITY == "arc":
+        BAM_FILE = "gex_possorted_bam.bam"
+        BARCODES_FILE = os.path.join("filtered_feature_bc_matrix", "barcodes.tsv.gz")
+
     custom_logger.info(f"Demultiplexing: Using {DEMUX_METHOD} method on {MODALITY.upper()} data")
 
 
@@ -67,8 +78,8 @@ if config.get("demultiplexing") and DEMUX_METHOD == "demuxalot":
         """Run Demuxalot for genetic demultiplexing."""
         input:
             count_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_" + MODALITY + "_count.done"),
-            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
-            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
+            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", BAM_FILE),
+            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", BARCODES_FILE)
         output:
             assign = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_assignments.tsv.gz"),
             probs = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}", "demuxalot", "{batch}_{capture}_posterior_probabilities.tsv.gz"),
@@ -160,8 +171,8 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
         """Run cellsnp-lite for SNP calling from BAM."""
         input:
             count_done = os.path.join(config.get("output_dir", "output"), "00_LOGS", "{batch}_{capture}_" + MODALITY + "_count.done"),
-            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "possorted_genome_bam.bam"),
-            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz")
+            bam = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", BAM_FILE),
+            barcodes = os.path.join(COUNT_DIR, "{batch}_{capture}", "outs", BARCODES_FILE)
         output:
             base_vcf = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.base.vcf.gz"),
             samples = os.path.join(DEMUX_OUTPUT_DIR, "cellsnp_output_{batch}_{capture}", "cellSNP.samples.tsv"),

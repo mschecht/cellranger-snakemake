@@ -308,25 +308,30 @@ def get_demux_outputs(config):
     
     outputs = []
     
-    # Try to get batches from cellranger GEX if available
+    # Get libraries from whichever modality is enabled
+    libraries_path = None
     if config.get("cellranger_gex"):
-        gex_config = config["cellranger_gex"]
-        libraries_path = gex_config["libraries"]
+        libraries_path = config["cellranger_gex"]["libraries"]
+    elif config.get("cellranger_atac"):
+        libraries_path = config["cellranger_atac"]["libraries"]
+    elif config.get("cellranger_arc"):
+        libraries_path = config["cellranger_arc"]["libraries"]
+
+    if libraries_path:
         df = pd.read_csv(libraries_path, sep="\t")
         batches = df['batch'].unique().tolist()
         captures = df['capture'].unique().tolist()
-        
-        # For vireo: add cellsnp-lite and vireo outputs per batch-capture
+
         if method == "vireo":
             for batch in batches:
                 for capture in captures:
-                        outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
+                    outputs.append(os.path.join(logs_dir, f"vireo_output_{batch}_{capture}.done"))
 
         if method == "demuxalot":
             for batch in batches:
                 for capture in captures:
-                        outputs.append(os.path.join(logs_dir, f"demuxalot_output_{batch}_{capture}.done"))
-    
+                    outputs.append(os.path.join(logs_dir, f"demuxalot_output_{batch}_{capture}.done"))
+
     return outputs
 
 

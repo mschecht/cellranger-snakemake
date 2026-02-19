@@ -2,7 +2,7 @@
 
 ## TLDR
 
-The tool `cellranger-snakemake` is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) wrapper for [10x Cell Ranger workflows](https://www.10xgenomics.com/software) supporting [GEX](https://www.10xgenomics.com/support/software/cell-ranger/latest), [ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), and [ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest) single-cell data processing.
+`cellranger-snakemake` is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) pipeline for single-cell preprocessing: [Cell Ranger](https://www.10xgenomics.com/software) ([GEX](https://www.10xgenomics.com/support/software/cell-ranger/latest), [ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest), [ARC](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest)), per-capture object creation (AnnData/MuData), demultiplexing, doublet detection, and cell type annotation — all from a single config file.
 
 ## Description
 

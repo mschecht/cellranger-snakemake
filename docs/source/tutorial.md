@@ -8,7 +8,7 @@ In this section, we will run `cellranger-snakemake` using a test dataset from Ce
 
 ## 1. Launch the conda environment
 
-If you haven't installed `cellranger-snakemake` already, please refer to the [installation instructions](https://github.com/mschecht/cellranger-snakemake?tab=readme-ov-file#installation-instructions) on the main page or see our [installation instructions](installation.md).
+If you haven't installed `cellranger-snakemake` already, see the [Installation](installation.md) page. Installation is a single command: `conda env create -f environment.yaml`.
 
 Activate the `cellranger-snakemake` conda environment with the following command:
 
