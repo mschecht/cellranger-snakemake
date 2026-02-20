@@ -5,6 +5,16 @@
 - [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) or [Mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) (recommended for faster solves)
 - Git
 
+Confirm conda is installed:
+```bash
+conda --version   # should print conda 24.x or higher
+```
+
+Always update conda to speed up solving:
+```bash
+conda update --name base conda
+```
+
 ## 1. Clone the repository
 
 ```bash
