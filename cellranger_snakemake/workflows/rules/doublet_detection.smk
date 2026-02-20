@@ -33,9 +33,9 @@ if config.get("doublet_detection") and config["doublet_detection"]["method"] == 
             tsv = os.path.join(DOUBLET_DIR, "{batch}_{capture}_scrublet.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.done"))
         params:
+            filter_cells_min_genes = SCRUBLET_PARAMS.get("filter_cells_min_genes", 1),
+            filter_genes_min_cells = SCRUBLET_PARAMS.get("filter_genes_min_cells", 3),
             expected_doublet_rate = SCRUBLET_PARAMS.get("expected_doublet_rate", 0.06),
-            min_counts = SCRUBLET_PARAMS.get("min_counts", 2),
-            min_cells = SCRUBLET_PARAMS.get("min_cells", 3),
             min_gene_variability_pctl = SCRUBLET_PARAMS.get("min_gene_variability_pctl", 85.0),
             n_prin_comps = SCRUBLET_PARAMS.get("n_prin_comps", 30)
         log:

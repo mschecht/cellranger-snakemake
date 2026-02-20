@@ -13,32 +13,32 @@ class ScrubletConfig(BaseModel):
         url="https://github.com/swolock/scrublet",
     )
 
+    filter_cells_min_genes: int = Field(
+        default=100,
+        ge=1,
+        description="sc.pp.filter_cells(min_genes=): remove cells with fewer than this many genes detected"
+    )
+    filter_genes_min_cells: int = Field(
+        default=3,
+        ge=1,
+        description="sc.pp.filter_genes(min_cells=): remove genes detected in fewer than this many cells"
+    )
     expected_doublet_rate: float = Field(
         default=0.06,
         ge=0.0,
         le=1.0,
-        description="Expected doublet rate (typically 0.05-0.10)"
-    )
-    min_counts: int = Field(
-        default=2,
-        ge=1,
-        description="Minimum UMI counts per cell"
-    )
-    min_cells: int = Field(
-        default=3,
-        ge=1,
-        description="Minimum cells expressing a gene"
+        description="sc.pp.scrublet(expected_doublet_rate=): expected fraction of doublets (typically 0.05-0.10)"
     )
     min_gene_variability_pctl: float = Field(
         default=85.0,
         ge=0.0,
         le=100.0,
-        description="Percentile for gene variability filtering"
+        description="sc.pp.scrublet(min_gene_variability_pctl=): percentile threshold for highly variable gene selection"
     )
     n_prin_comps: int = Field(
         default=30,
         ge=1,
-        description="Number of principal components"
+        description="sc.pp.scrublet(n_prin_comps=): number of principal components for doublet detection"
     )
     
     class Config:

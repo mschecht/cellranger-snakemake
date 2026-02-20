@@ -11,10 +11,12 @@ h5ad_path = snakemake.input.h5ad
 output_tsv = snakemake.output.tsv
 log_file = snakemake.log[0]
 
-# Scrublet parameters
+# QC filter parameters (sc.pp.filter_cells / sc.pp.filter_genes)
+filter_cells_min_genes = snakemake.params.filter_cells_min_genes
+filter_genes_min_cells = snakemake.params.filter_genes_min_cells
+
+# Scrublet parameters (sc.pp.scrublet)
 expected_doublet_rate = snakemake.params.expected_doublet_rate
-min_counts = snakemake.params.min_counts
-min_cells = snakemake.params.min_cells
 min_gene_variability_pctl = snakemake.params.min_gene_variability_pctl
 n_prin_comps = snakemake.params.n_prin_comps
 
@@ -27,10 +29,15 @@ try:
     adata = sc.read_h5ad(h5ad_path)
     print(f"Loaded {adata.n_obs} cells and {adata.n_vars} genes")
 
+    print(f"\nQC filtering:")
+    print(f"  sc.pp.filter_cells(min_genes={filter_cells_min_genes})")
+    print(f"  sc.pp.filter_genes(min_cells={filter_genes_min_cells})")
+    sc.pp.filter_cells(adata, min_genes=filter_cells_min_genes)
+    sc.pp.filter_genes(adata, min_cells=filter_genes_min_cells)
+    print(f"After filtering: {adata.n_obs} cells and {adata.n_vars} genes")
+
     print(f"\nRunning Scrublet doublet detection with parameters:")
     print(f"  expected_doublet_rate: {expected_doublet_rate}")
-    print(f"  min_counts: {min_counts}")
-    print(f"  min_cells: {min_cells}")
     print(f"  min_gene_variability_pctl: {min_gene_variability_pctl}")
     print(f"  n_prin_comps: {n_prin_comps}")
 
