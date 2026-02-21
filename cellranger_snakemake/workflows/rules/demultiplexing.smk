@@ -211,6 +211,7 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
         output:
             donor_ids = os.path.join(DEMUX_OUTPUT_DIR, "vireo_output_{batch}_{capture}", "donor_ids.tsv"),
             summary = os.path.join(DEMUX_OUTPUT_DIR, "vireo_output_{batch}_{capture}", "summary.tsv"),
+            assignments = os.path.join(DEMUX_OUTPUT_DIR, "{batch}_{capture}_vireo.tsv.gz"),
             done = touch(os.path.join(OUTPUT_DIRS["logs_dir"], "vireo_output_{batch}_{capture}.done"))
         params:
             n_donor = VIREO_DONORS,
@@ -226,4 +227,5 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
                 -N {params.n_donor} \\
                 -o {params.outdir} \\
                 2>&1 | tee {log}
+            python3 -c "import pandas as pd; pd.read_csv('{params.outdir}/donor_ids.tsv', sep='\\t', index_col=0).to_csv('{output.assignments}', sep='\\t', index=True, compression='gzip')"
             """

@@ -11,6 +11,7 @@ batch_id = snakemake.params.batch
 modality = snakemake.params.modality
 input_object = snakemake.input.batch_object
 output_object = snakemake.output.enriched_object
+obs_table_path = snakemake.output.obs_table
 log_file = snakemake.log[0]
 
 # Directories for metadata files
@@ -21,6 +22,62 @@ annotation_dir = snakemake.params.get("annotation_dir")
 # Redirect output to log
 sys.stdout = open(log_file, 'w')
 sys.stderr = sys.stdout
+
+
+def _join_by_cell_id(obs_df, metadata_df):
+    """Left-join metadata onto obs using cell_id column, preserving obs index."""
+    return obs_df.join(metadata_df, on='cell_id', how='left')
+
+
+def _parse_capture_and_method(basename, batch_id, suffix=".tsv.gz"):
+    """
+    Extract capture_id and method from a flat per-capture result filename.
+    Expected format: {batch}_{capture}_{method}.tsv.gz
+    e.g. '1_L001_scrublet.tsv.gz' -> ('L001', 'scrublet')
+    Assumes capture IDs contain no underscores (L001, L002, etc.).
+    """
+    stem = basename[len(f"{batch_id}_"):].replace(suffix, "")  # "L001_scrublet"
+    parts = stem.split("_")
+    capture_id = parts[0]
+    method = "_".join(parts[1:])
+    return capture_id, method
+
+
+def _build_cell_id_index(df, batch_id, capture_id):
+    """Replace df index (barcodes) with cell_id = {batch}_{capture}_{barcode}."""
+    df.index = df.index.map(lambda b: f"{batch_id}_{capture_id}_{b}")
+    df.index.name = "cell_id"
+    return df
+
+
+def collect_step_metadata(step_dir, batch_id, col_prefix):
+    """
+    Collect all per-capture result files from a step directory.
+
+    Convention: {step_dir}/{batch}_{capture}_{method}.tsv.gz
+      - col 0 = plain barcodes (index)
+      - remaining cols = method-specific results
+
+    Returns a DataFrame indexed by cell_id, or None if no files found.
+    """
+    if not step_dir or not os.path.exists(step_dir):
+        return None
+
+    files = glob.glob(os.path.join(step_dir, f"{batch_id}_*.tsv.gz"))
+    if not files:
+        return None
+
+    all_dfs = []
+    for f in files:
+        print(f"  - {os.path.basename(f)}")
+        capture_id, method = _parse_capture_and_method(os.path.basename(f), batch_id)
+        df = pd.read_csv(f, sep="\t", index_col=0)
+        df = _build_cell_id_index(df, batch_id, capture_id)
+        df.columns = [f"{col_prefix}_{method}_{col}" for col in df.columns]
+        all_dfs.append(df)
+
+    return pd.concat(all_dfs, axis=0)
+
 
 try:
     print(f"{'='*70}")
@@ -42,162 +99,36 @@ try:
     metadata_added = []
 
     # ========================================================================
-    # Merge Demultiplexing Metadata
+    # Merge per-step metadata
+    # Convention for all steps: {step_dir}/{batch}_{capture}_{method}.tsv.gz
+    #   col 0 = plain barcodes, joined to obs via cell_id
     # ========================================================================
-    if demux_dir and os.path.exists(demux_dir):
-        print("Searching for demultiplexing metadata...")
+    steps = [
+        (demux_dir,      "demux",    "demultiplexing"),
+        (doublet_dir,    "doublet",  "doublet_detection"),
+        (annotation_dir, "celltype", "celltype_annotation"),
+    ]
 
-        # Find all per-capture demux results
-        # Pattern: {demux_dir}/{batch}_{capture}/{method}/{batch}_{capture}_assignments.tsv.gz
-        demux_files = glob.glob(os.path.join(demux_dir, f"{batch_id}_*", "*", f"{batch_id}_*_assignments.tsv.gz"))
+    for step_dir, col_prefix, label in steps:
+        print(f"Searching for {label} metadata...")
+        metadata = collect_step_metadata(step_dir, batch_id, col_prefix)
 
-        if demux_files:
-            print(f"Found {len(demux_files)} demux file(s)")
-            all_demux = []
-
-            for demux_file in demux_files:
-                print(f"  - {os.path.basename(demux_file)}")
-
-                # Extract capture ID from filename: {batch}_{capture}_assignments.tsv.gz
-                basename = os.path.basename(demux_file)
-                # Remove prefix and suffix more carefully to avoid multiple replacements
-                if basename.startswith(f"{batch_id}_"):
-                    capture_id = basename[len(f"{batch_id}_"):]  # Remove prefix
-                    capture_id = capture_id.replace("_assignments.tsv.gz", "")  # Remove suffix
-                else:
-                    raise ValueError(f"Unexpected demux filename format: {basename}")
-
-                # Read demux results
-                df = pd.read_csv(demux_file, sep="\t", index_col=0)
-
-                # Create cell_id column for matching: {batch}_{capture}_{barcode}
-                df['cell_id'] = df.index.map(lambda barcode: f"{batch_id}_{capture_id}_{barcode}")
-
-                # Add method name from directory
-                method = os.path.basename(os.path.dirname(demux_file))
-                df.columns = [f"demux_{method}_{col}" if col != 'cell_id' else col for col in df.columns]
-
-                all_demux.append(df)
-
-            # Merge all demux results (concatenate vertically - different captures)
-            demux_metadata = pd.concat(all_demux, axis=0)
-
-            # Set cell_id as index for joining
-            demux_metadata = demux_metadata.set_index('cell_id')
-
-            # Join with object on cell_id
-            if is_mudata:
-                # For MuData, add to each modality
-                for mod_name, mod_data in adata.mod.items():
-                    temp_df = mod_data.obs.set_index('cell_id')
-                    temp_df = temp_df.join(demux_metadata, how='left')
-                    temp_df = temp_df.reset_index(drop=False)
-                    mod_data.obs = temp_df
-                    matched = temp_df[demux_metadata.columns].notna().any(axis=1).sum()
-                    print(f"✓ Added demux metadata to {mod_name} ({matched} cells matched)")
-            else:
-                # Create temporary df with cell_id as index
-                temp_df = adata.obs.set_index('cell_id')
-                temp_df = temp_df.join(demux_metadata, how='left')
-                temp_df = temp_df.reset_index(drop=False)
-                adata.obs = temp_df
-                matched = temp_df[demux_metadata.columns].notna().any(axis=1).sum()
-                print(f"✓ Added demux metadata ({matched} cells matched)")
-
-            metadata_added.append("demultiplexing")
-        else:
-            print("  No demux files found")
-
-    print()
-
-    # ========================================================================
-    # Merge Doublet Detection Metadata
-    # ========================================================================
-    if doublet_dir and os.path.exists(doublet_dir):
-        print("Searching for doublet detection metadata...")
-
-        # Find all doublet results for this batch
-        # Pattern: {doublet_dir}/{batch}/{method}/{batch}_scores.tsv.gz or similar
-        doublet_files = glob.glob(os.path.join(doublet_dir, f"{batch_id}", "*", "*.tsv.gz"))
-
-        if doublet_files:
-            print(f"Found {len(doublet_files)} doublet file(s)")
-            all_doublet = []
-
-            for doublet_file in doublet_files:
-                print(f"  - {os.path.basename(doublet_file)}")
-                df = pd.read_csv(doublet_file, sep="\t", index_col=0)
-
-                # Add method name from directory
-                method = os.path.basename(os.path.dirname(doublet_file))
-                df.columns = [f"doublet_{method}_{col}" for col in df.columns]
-                all_doublet.append(df)
-
-            # Merge all doublet results (concatenate vertically if per-capture, horizontally if per-method)
-            doublet_metadata = pd.concat(all_doublet, axis=0)
-
-            # Join with object
+        if metadata is not None:
+            print(f"  Found {len(metadata.columns)} column(s) across {len(metadata)} cells")
             if is_mudata:
                 for mod_name, mod_data in adata.mod.items():
-                    common_barcodes = mod_data.obs.index.intersection(doublet_metadata.index)
-                    if len(common_barcodes) > 0:
-                        mod_data.obs = mod_data.obs.join(doublet_metadata, how='left')
-                        print(f"✓ Added doublet metadata to {mod_name} ({len(common_barcodes)} cells matched)")
+                    mod_data.obs = _join_by_cell_id(mod_data.obs, metadata)
+                    matched = mod_data.obs[metadata.columns].notna().any(axis=1).sum()
+                    print(f"✓ Added {label} metadata to {mod_name} ({matched} cells matched)")
             else:
-                common_barcodes = adata.obs.index.intersection(doublet_metadata.index)
-                if len(common_barcodes) > 0:
-                    adata.obs = adata.obs.join(doublet_metadata, how='left')
-                    print(f"✓ Added doublet metadata ({len(common_barcodes)} cells matched)")
-
-            metadata_added.append("doublet_detection")
+                adata.obs = _join_by_cell_id(adata.obs, metadata)
+                matched = adata.obs[metadata.columns].notna().any(axis=1).sum()
+                print(f"✓ Added {label} metadata ({matched} cells matched)")
+            metadata_added.append(label)
         else:
-            print("  No doublet files found")
+            print(f"  No {label} files found")
 
-    print()
-
-    # ========================================================================
-    # Merge Cell Type Annotation Metadata
-    # ========================================================================
-    if annotation_dir and os.path.exists(annotation_dir):
-        print("Searching for cell type annotation metadata...")
-
-        # Find all annotation results for this batch
-        annotation_files = glob.glob(os.path.join(annotation_dir, f"{batch_id}", "*", "*.tsv.gz"))
-
-        if annotation_files:
-            print(f"Found {len(annotation_files)} annotation file(s)")
-            all_annotation = []
-
-            for annotation_file in annotation_files:
-                print(f"  - {os.path.basename(annotation_file)}")
-                df = pd.read_csv(annotation_file, sep="\t", index_col=0)
-
-                # Add method name from directory
-                method = os.path.basename(os.path.dirname(annotation_file))
-                df.columns = [f"celltype_{method}_{col}" for col in df.columns]
-                all_annotation.append(df)
-
-            # Merge all annotation results (concatenate vertically if per-capture, horizontally if per-method)
-            annotation_metadata = pd.concat(all_annotation, axis=0)
-
-            # Join with object
-            if is_mudata:
-                for mod_name, mod_data in adata.mod.items():
-                    common_barcodes = mod_data.obs.index.intersection(annotation_metadata.index)
-                    if len(common_barcodes) > 0:
-                        mod_data.obs = mod_data.obs.join(annotation_metadata, how='left')
-                        print(f"✓ Added annotation metadata to {mod_name} ({len(common_barcodes)} cells matched)")
-            else:
-                common_barcodes = adata.obs.index.intersection(annotation_metadata.index)
-                if len(common_barcodes) > 0:
-                    adata.obs = adata.obs.join(annotation_metadata, how='left')
-                    print(f"✓ Added annotation metadata ({len(common_barcodes)} cells matched)")
-
-            metadata_added.append("celltype_annotation")
-        else:
-            print("  No annotation files found")
-
-    print()
+        print()
 
     # ========================================================================
     # Summary
@@ -225,6 +156,19 @@ try:
         adata.write(output_object)
     else:
         adata.write_h5ad(output_object)
+
+    # Export obs table
+    print(f"Writing obs table to: {obs_table_path}")
+    if is_mudata:
+        obs_frames = []
+        for mod_name, mod_data in adata.mod.items():
+            df = mod_data.obs.copy()
+            df.insert(0, "modality", mod_name)
+            obs_frames.append(df)
+        obs_df = pd.concat(obs_frames, axis=0)
+    else:
+        obs_df = adata.obs.copy()
+    obs_df.to_csv(obs_table_path, sep="\t", index=True, compression="gzip")
 
     print("✓ Metadata enrichment complete!\n")
 
