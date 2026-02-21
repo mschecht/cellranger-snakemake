@@ -175,6 +175,7 @@ if config.get("cellranger_gex"):
             done_flag = os.path.join(LOGS_DIR, "{batch}_gex_batch_aggregation.done")
         output:
             enriched_object = os.path.join(FINAL_DIR, "{batch}_gex.h5ad"),
+            obs_table = os.path.join(FINAL_DIR, "{batch}_gex_obs.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_gex_enrichment.done"))
         params:
             batch = "{batch}",
@@ -197,6 +198,7 @@ if config.get("cellranger_atac"):
             done_flag = os.path.join(LOGS_DIR, "{batch}_atac_batch_aggregation.done")
         output:
             enriched_object = os.path.join(FINAL_DIR, "{batch}_atac.h5ad"),
+            obs_table = os.path.join(FINAL_DIR, "{batch}_atac_obs.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_atac_enrichment.done"))
         params:
             batch = "{batch}",
@@ -219,6 +221,7 @@ if config.get("cellranger_arc"):
             done_flag = os.path.join(LOGS_DIR, "{batch}_arc_batch_aggregation.done")
         output:
             enriched_object = os.path.join(FINAL_DIR, "{batch}_arc.h5mu"),
+            obs_table = os.path.join(FINAL_DIR, "{batch}_arc_obs.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_arc_enrichment.done"))
         params:
             batch = "{batch}",
