@@ -19,6 +19,10 @@ filter_genes_min_cells = snakemake.params.filter_genes_min_cells
 expected_doublet_rate = snakemake.params.expected_doublet_rate
 min_gene_variability_pctl = snakemake.params.min_gene_variability_pctl
 n_prin_comps = snakemake.params.n_prin_comps
+sim_doublet_ratio = snakemake.params.sim_doublet_ratio
+threshold = snakemake.params.threshold
+n_neighbors = snakemake.params.n_neighbors
+random_state = snakemake.params.random_state
 
 # Redirect output to log
 sys.stdout = open(log_file, 'w')
@@ -38,14 +42,22 @@ try:
 
     print(f"\nRunning Scrublet doublet detection with parameters:")
     print(f"  expected_doublet_rate: {expected_doublet_rate}")
+    print(f"  sim_doublet_ratio: {sim_doublet_ratio}")
     print(f"  min_gene_variability_pctl: {min_gene_variability_pctl}")
     print(f"  n_prin_comps: {n_prin_comps}")
+    print(f"  n_neighbors: {n_neighbors}")
+    print(f"  threshold: {threshold}")
+    print(f"  random_state: {random_state}")
 
     try:
         sc.pp.scrublet(
             adata,
             expected_doublet_rate=expected_doublet_rate,
+            sim_doublet_ratio=sim_doublet_ratio,
             n_prin_comps=n_prin_comps,
+            n_neighbors=n_neighbors,
+            threshold=threshold,
+            random_state=random_state,
         )
     except ValueError as e:
         # Scrublet filters to highly variable genes internally, so the effective
@@ -59,7 +71,11 @@ try:
         sc.pp.scrublet(
             adata,
             expected_doublet_rate=expected_doublet_rate,
+            sim_doublet_ratio=sim_doublet_ratio,
             n_prin_comps=max_comps,
+            n_neighbors=n_neighbors,
+            threshold=threshold,
+            random_state=random_state,
         )
 
     n_doublets = adata.obs['predicted_doublet'].sum()

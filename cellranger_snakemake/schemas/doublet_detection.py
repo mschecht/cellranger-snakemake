@@ -40,7 +40,28 @@ class ScrubletConfig(BaseModel):
         ge=1,
         description="sc.pp.scrublet(n_prin_comps=): number of principal components for doublet detection"
     )
-    
+    sim_doublet_ratio: float = Field(
+        default=2.0,
+        gt=0.0,
+        description="sc.pp.scrublet(sim_doublet_ratio=): ratio of simulated doublets to observed transcriptomes"
+    )
+    threshold: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="sc.pp.scrublet(threshold=): doublet score cutoff; auto-determined if None"
+    )
+    n_neighbors: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="sc.pp.scrublet(n_neighbors=): KNN neighbors; auto-set to 0.5*sqrt(n_obs) if None"
+    )
+    random_state: int = Field(
+        default=0,
+        ge=0,
+        description="sc.pp.scrublet(random_state=): random seed for reproducibility"
+    )
+
     class Config:
         extra = "forbid"
 

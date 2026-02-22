@@ -37,7 +37,11 @@ if config.get("doublet_detection") and config["doublet_detection"]["method"] == 
             filter_genes_min_cells = SCRUBLET_PARAMS.get("filter_genes_min_cells", 3),
             expected_doublet_rate = SCRUBLET_PARAMS.get("expected_doublet_rate", 0.06),
             min_gene_variability_pctl = SCRUBLET_PARAMS.get("min_gene_variability_pctl", 85.0),
-            n_prin_comps = SCRUBLET_PARAMS.get("n_prin_comps", 30)
+            n_prin_comps = SCRUBLET_PARAMS.get("n_prin_comps", 30),
+            sim_doublet_ratio = SCRUBLET_PARAMS.get("sim_doublet_ratio", 2.0),
+            threshold = SCRUBLET_PARAMS.get("threshold", None),
+            n_neighbors = SCRUBLET_PARAMS.get("n_neighbors", None),
+            random_state = SCRUBLET_PARAMS.get("random_state", 0)
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.log")
         script:

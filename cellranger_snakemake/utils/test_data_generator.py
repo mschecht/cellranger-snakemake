@@ -277,9 +277,11 @@ class TestDataGenerator:
             "enabled": False,
             "method": "scrublet",
             "scrublet": {
+                "filter_cells_min_genes": 1,
+                "filter_genes_min_cells": 3,
                 "expected_doublet_rate": 0.06,
-                "min_counts": 2,
-                "min_cells": 3,
+                "min_gene_variability_pctl": 85.0,
+                "n_prin_comps": 30,
             }
         }
 
