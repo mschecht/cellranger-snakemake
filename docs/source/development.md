@@ -638,6 +638,11 @@ Render the documentation locally in your web browser:
 ```bash
 cd docs
 
+# install html rendering software
+pip install sphinx
+pip install sphinx-copybutton
+pip install myst-parser
+
 # Build HTML
 make html
 
