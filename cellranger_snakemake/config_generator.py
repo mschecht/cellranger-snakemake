@@ -129,12 +129,6 @@ class ConfigGenerator:
                     genome_names="/path/to/genome_names.txt",
                     refine=False,
                 ),
-                vireo=VireoConfig(
-                    cellsnp=CellSNPConfig(
-                        vcf="/path/to/reference_variants.vcf"
-                    ),
-                    donors=2
-                )
             ),
             
             # Doublet detection config - disabled by default
