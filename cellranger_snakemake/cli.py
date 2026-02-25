@@ -329,10 +329,20 @@ Examples:
             snakemake_cmd.extend(args.snakemake_args)
 
         custom_logger.info(f"Running Snakemake with command: {' '.join(snakemake_cmd)}")
-        
+
+        # Ensure conda is in PATH for snakemake's --use-conda integration.
+        # When a conda env is active but the base conda dir is not in PATH,
+        # snakemake fails to run `conda info`. Fix by adding the base conda bin.
+        run_env = os.environ.copy()
+        if not shutil.which("conda"):
+            # Standard conda structure: CONDA_BASE/envs/ENV_NAME/bin/python -> CONDA_BASE/bin
+            conda_base_bin = Path(sys.executable).parent.parent.parent.parent / "bin"
+            if (conda_base_bin / "conda").exists():
+                run_env["PATH"] = f"{conda_base_bin}:{run_env['PATH']}"
+
         # Run snakemake
         try:
-            result = subprocess.run(snakemake_cmd)
+            result = subprocess.run(snakemake_cmd, env=run_env)
             sys.exit(result.returncode)
         except FileNotFoundError:
             custom_logger.error("Snakemake not found. Please install snakemake: pip install snakemake")
