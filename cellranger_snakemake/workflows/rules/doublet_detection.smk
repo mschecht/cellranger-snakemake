@@ -24,11 +24,26 @@ if config.get("doublet_detection") and config["doublet_detection"]["method"] == 
 
     custom_logger.info("Doublet Detection: Using scrublet method")
 
+    # Determine which modality's anndata done flag and file extension to use
+    if config.get("cellranger_gex"):
+        ANNDATA_DONE_SUFFIX = "gex_anndata"
+        ANNDATA_EXT = "h5ad"
+    elif config.get("cellranger_atac"):
+        ANNDATA_DONE_SUFFIX = "atac_anndata"
+        ANNDATA_EXT = "h5ad"
+    elif config.get("cellranger_arc"):
+        ANNDATA_DONE_SUFFIX = "arc_mudata"
+        ANNDATA_EXT = "h5mu"
+    else:
+        ANNDATA_DONE_SUFFIX = "gex_anndata"
+        ANNDATA_EXT = "h5ad"
+
     rule run_scrublet:
-        """Run Scrublet doublet detection on per-capture AnnData object."""
+        """Run Scrublet doublet detection on per-capture AnnData object.
+        For ARC (MuData), scrublet is run on the GEX (rna) modality."""
         input:
-            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}.h5ad"),
-            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_gex_anndata.done")
+            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}." + ANNDATA_EXT),
+            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_" + ANNDATA_DONE_SUFFIX + ".done")
         output:
             tsv = os.path.join(DOUBLET_DIR, "{batch}_{capture}_scrublet.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.done"))
@@ -57,11 +72,26 @@ if config.get("doublet_detection") and config["doublet_detection"]["method"] == 
 
     custom_logger.info("Doublet Detection: Using SOLO (scvi-tools) method")
 
+    # Determine which modality's anndata done flag and file extension to use
+    if config.get("cellranger_gex"):
+        ANNDATA_DONE_SUFFIX = "gex_anndata"
+        ANNDATA_EXT = "h5ad"
+    elif config.get("cellranger_atac"):
+        ANNDATA_DONE_SUFFIX = "atac_anndata"
+        ANNDATA_EXT = "h5ad"
+    elif config.get("cellranger_arc"):
+        ANNDATA_DONE_SUFFIX = "arc_mudata"
+        ANNDATA_EXT = "h5mu"
+    else:
+        ANNDATA_DONE_SUFFIX = "gex_anndata"
+        ANNDATA_EXT = "h5ad"
+
     rule run_solo:
-        """Run SOLO doublet detection on per-capture AnnData object."""
+        """Run SOLO doublet detection on per-capture AnnData object.
+        For ARC (MuData), SOLO is run on the GEX (rna) modality."""
         input:
-            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}.h5ad"),
-            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_gex_anndata.done")
+            h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}." + ANNDATA_EXT),
+            anndata_done = os.path.join(LOGS_DIR, "{batch}_{capture}_" + ANNDATA_DONE_SUFFIX + ".done")
         output:
             tsv = os.path.join(DOUBLET_DIR, "{batch}_{capture}_solo.tsv.gz"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_solo.done"))

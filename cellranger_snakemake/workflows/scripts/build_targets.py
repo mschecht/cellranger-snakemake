@@ -355,11 +355,17 @@ def get_doublet_outputs(config):
 
     outputs = []
 
-    # Get per-capture outputs from cellranger GEX if available
+    # Get per-capture outputs from whichever modality is enabled
+    libraries_path = None
     if config.get("cellranger_gex"):
-        gex_config = config["cellranger_gex"]
-        df = pd.read_csv(gex_config["libraries"], sep="\t")
+        libraries_path = config["cellranger_gex"]["libraries"]
+    elif config.get("cellranger_atac"):
+        libraries_path = config["cellranger_atac"]["libraries"]
+    elif config.get("cellranger_arc"):
+        libraries_path = config["cellranger_arc"]["libraries"]
 
+    if libraries_path:
+        df = pd.read_csv(libraries_path, sep="\t")
         for _, row in df.iterrows():
             batch = row['batch']
             capture = row['capture']
