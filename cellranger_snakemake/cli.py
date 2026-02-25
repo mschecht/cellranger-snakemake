@@ -3,6 +3,7 @@
 import sys
 import os
 import shlex
+import shutil
 import argparse
 import subprocess
 
@@ -54,6 +55,9 @@ Examples:
 
   # Generate example test data files e.g. for ATAC workflow
   snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA
+
+  # Build and serve documentation locally
+  snakemake-run-cellranger render-docs --port 8000
         """
     )
 
@@ -243,6 +247,27 @@ Examples:
              'Creates the directory if it does not exist.'
     )
 
+    # Render docs subcommand
+    render_docs_parser = subparsers.add_parser(
+        'render-docs',
+        help='Build and serve the documentation locally with live reload',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Build docs and serve on default port 8000
+  snakemake-run-cellranger render-docs
+
+  # Use a custom port
+  snakemake-run-cellranger render-docs --port 9000
+        """
+    )
+    render_docs_parser.add_argument(
+        '--port',
+        type=int,
+        default=8000,
+        help='Port to serve documentation on (default: 8000)'
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -415,6 +440,26 @@ Examples:
                 custom_logger.warning("\n⚠ Some Cell Ranger tools are not installed")
                 sys.exit(0)  # Don't exit with error if just checking all
     
+    elif args.subcommand == 'render-docs':
+        docs_dir = Path(__file__).parent.parent / "docs"
+
+        if not docs_dir.exists():
+            custom_logger.error(f"Docs directory not found: {docs_dir}")
+            sys.exit(1)
+
+        if not shutil.which("sphinx-autobuild"):
+            custom_logger.error("sphinx-autobuild not found. Install it with: pip install sphinx-autobuild")
+            sys.exit(1)
+
+        custom_logger.info(f"Serving docs at http://localhost:{args.port} (Ctrl+C to stop)")
+        try:
+            subprocess.run(
+                ["sphinx-autobuild", "source", "build/html", "--port", str(args.port)],
+                cwd=docs_dir
+            )
+        except KeyboardInterrupt:
+            custom_logger.info("Docs server stopped.")
+
     else:
         parser.print_help()
         sys.exit(0)

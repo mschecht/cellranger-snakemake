@@ -633,7 +633,13 @@ docs/
 
 ### Building docs locally
 
-Render the documentation locally in your web browser:
+Here is how you can render the documentation locally in your web browser:
+
+```bash
+snakemake-run-cellranger render-docs
+```
+
+If you would like to do it manually, here you go: 
 
 ```bash
 cd docs
