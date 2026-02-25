@@ -45,7 +45,7 @@ if config.get("demultiplexing"):
         BARCODES_FILE = os.path.join("filtered_feature_bc_matrix", "barcodes.tsv.gz")
     elif MODALITY == "atac":
         BAM_FILE = "possorted_bam.bam"
-        BARCODES_FILE = os.path.join("filtered_peak_bc_matrix", "barcodes.tsv.gz")
+        BARCODES_FILE = os.path.join("filtered_peak_bc_matrix", "barcodes.tsv")
     elif MODALITY == "arc":
         BAM_FILE = "gex_possorted_bam.bam"
         BARCODES_FILE = os.path.join("filtered_feature_bc_matrix", "barcodes.tsv.gz")
@@ -227,5 +227,5 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
                 -N {params.n_donor} \\
                 -o {params.outdir} \\
                 2>&1 | tee {log}
-            python3 -c "import pandas as pd; pd.read_csv('{params.outdir}/donor_ids.tsv', sep='\\t', index_col=0).to_csv('{output.assignments}', sep='\\t', index=True, compression='gzip')"
+            gzip -c {params.outdir}/donor_ids.tsv > {output.assignments}
             """
