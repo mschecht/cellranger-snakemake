@@ -1,10 +1,11 @@
 """Create AnnData object from ATAC Cell Ranger count output using SnapATAC2."""
 
+import os
+import sys
 import gzip
 import subprocess
-import sys
-import os
 
+import scanpy as sc
 import snapatac2 as snap
 
 # Access snakemake object
@@ -61,67 +62,77 @@ def get_chrom_sizes_from_reference(fragments_path):
 
 
 try:
-    print(f"Importing ATAC fragments from: {fragments_path}")
+    # ---- Step 1: Read peak matrix (Cell Ranger filtered cells x peaks) ----
+    print(f"Reading Cell Ranger peak matrix from: {peak_matrix_path}")
+    adata = sc.read_10x_h5(peak_matrix_path)
+    # Cell Ranger ATAC h5 stores peaks in var; rename for clarity
+    adata.var_names_make_unique()
+    print(f"✓ Loaded peak matrix: {adata.n_obs} cells × {adata.n_vars} peaks")
+
+    # Keep filtered barcodes for SnapATAC2 import
+    filtered_barcodes = set(adata.obs.index)
+
+    # ---- Step 2: Compute QC metrics via SnapATAC2 import_fragments ----
+    print(f"\nImporting ATAC fragments from: {fragments_path}")
 
     # Sort fragments by barcode for efficient import
-    # SnapATAC2 is much faster with sorted fragments
     sorted_fragments = fragments_path.replace('.tsv.gz', '.sorted_by_barcode.tsv.gz')
 
     if not os.path.exists(sorted_fragments):
         print(f"Sorting fragments by barcode for efficient import...")
-
-        # Create temp directory for sorting
         temp_dir = os.path.dirname(fragments_path)
-
-        # Decompress, sort by barcode (col 4), then chromosome and position, recompress
         sort_cmd = f"""
         zcat {fragments_path} | \
         awk 'NR==1 {{print; next}} {{print | "sort -k4,4V -k1,1V -k2,2n -T {temp_dir}"}}' | \
         bgzip > {sorted_fragments}
         """
-
-        print(f"Running sort command...")
         subprocess.run(sort_cmd, shell=True, check=True, executable='/bin/bash')
         print(f"✓ Fragments sorted and saved to: {sorted_fragments}")
     else:
         print(f"Using existing sorted fragments: {sorted_fragments}")
 
-    # Get chromosome sizes from reference
     chrom_sizes = get_chrom_sizes_from_reference(fragments_path)
 
-    # Import fragments using SnapATAC2 (computes QC metrics)
-    adata = snap.pp.import_fragments(
+    # Import only Cell Ranger-filtered barcodes to get QC metrics
+    snap_adata = snap.pp.import_fragments(
         sorted_fragments,
         chrom_sizes=chrom_sizes,
-        sorted_by_barcode=True,  # Use sorted mode for efficiency
-        min_num_fragments=1  # Relaxed for testing; default is 200
+        sorted_by_barcode=True,
+        whitelist=filtered_barcodes,
+        min_num_fragments=1,
     )
-    print(f"Loaded {adata.n_obs} cells with fragment-level data")
+    print(f"✓ SnapATAC2 QC computed for {snap_adata.n_obs} cells")
 
-    # Add traceability metadata
+    # ---- Step 3: Transfer SnapATAC2 QC metrics to peak-matrix AnnData ----
+    qc_cols = [c for c in snap_adata.obs.columns if c.startswith(('n_', 'frac_'))]
+    print(f"Transferring QC metrics: {qc_cols}")
+
+    # Align by barcode index (both use Cell Ranger barcodes)
+    snap_obs = snap_adata.obs[qc_cols].reindex(adata.obs.index)
+    for col in qc_cols:
+        adata.obs[col] = snap_obs[col].values
+
+    # ---- Step 4: Add traceability metadata ----
     adata.obs['batch_id'] = str(batch_id)
     adata.obs['capture_id'] = str(capture_id)
-
-    # Create unique cell ID
     adata.obs['cell_id'] = (
         adata.obs['batch_id'].astype(str) + '_' +
         adata.obs['capture_id'].astype(str) + '_' +
         adata.obs.index.astype(str)
     )
 
-    # Verify uniqueness
     if not adata.obs['cell_id'].is_unique:
         raise ValueError("cell_id is not unique!")
 
-    print(f"\nATAC QC metrics: {[col for col in adata.obs.columns if col.startswith(('n_', 'frac_'))]}")
+    print(f"\nATAC QC metrics: {qc_cols}")
     print(f"Cell metadata columns: {adata.obs.columns.tolist()}")
     print(f"Batch: {batch_id}, Capture: {capture_id}")
     print(f"First few cells:\n{adata.obs.head()}")
 
-    # Write to disk
+    # ---- Step 5: Write to disk ----
     print(f"\nWriting ATAC AnnData to: {output_h5ad}")
-    adata.write(output_h5ad)
-    print(f"✓ ATAC AnnData creation complete: {adata.n_obs} cells")
+    adata.write_h5ad(output_h5ad)
+    print(f"✓ ATAC AnnData creation complete: {adata.n_obs} cells × {adata.n_vars} peaks")
 
 except Exception as e:
     print(f"ERROR creating ATAC AnnData: {e}", file=sys.stderr)
