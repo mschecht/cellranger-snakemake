@@ -293,14 +293,14 @@ class ConfigGenerator:
         method_config = None
         if method == "scrublet":
             rate = FloatPrompt.ask("    Expected doublet rate", default=0.06)
-            min_counts = IntPrompt.ask("    Minimum counts", default=2)
-            min_cells = IntPrompt.ask("    Minimum cells", default=3)
+            filter_cells_min_genes = IntPrompt.ask("    Min genes per cell (filter_cells_min_genes)", default=100)
+            filter_genes_min_cells = IntPrompt.ask("    Min cells per gene (filter_genes_min_cells)", default=3)
             min_gene_variability_pctl = FloatPrompt.ask("    Min gene variability percentile", default=85.0)
             n_prin_comps = IntPrompt.ask("    Number of principal components", default=30)
             method_config = ScrubletConfig(
                 expected_doublet_rate=rate,
-                min_counts=min_counts,
-                min_cells=min_cells,
+                filter_cells_min_genes=filter_cells_min_genes,
+                filter_genes_min_cells=filter_genes_min_cells,
                 min_gene_variability_pctl=min_gene_variability_pctl,
                 n_prin_comps=n_prin_comps
             )
