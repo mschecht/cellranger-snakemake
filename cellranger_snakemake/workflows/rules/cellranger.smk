@@ -103,7 +103,6 @@ if config.get("cellranger_gex"):
                 capture=gex_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(GEX_AGGR_DIR, "{batch}", "outs", "count", "filtered_feature_bc_matrix.h5"),
             done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.done"))
         params:
             outdir = GEX_AGGR_DIR,
@@ -231,7 +230,6 @@ if config.get("cellranger_atac"):
                 capture=atac_batch_to_samples[wc.batch]
             )
         output:
-            h5 = os.path.join(ATAC_AGGR_DIR, "{batch}", "outs", "filtered_peak_bc_matrix.h5"),
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done"))
         params:
             outdir = ATAC_AGGR_DIR,
@@ -362,7 +360,6 @@ if config.get("cellranger_arc"):
                 capture=arc_batch_to_captures[wc.batch]
             )
         output:
-            h5 = os.path.join(ARC_AGGR_DIR, "{batch}", "outs", "filtered_feature_bc_matrix.h5"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.done"))
         params:
             outdir = ARC_AGGR_DIR,
