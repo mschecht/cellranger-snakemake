@@ -125,6 +125,10 @@ from cellranger_snakemake.config_validator import parse_output_directories
 - Include descriptive docstrings for each rule
 - Always use `.done` files for checkpoints
 - Log files: `{batch}_{capture}_{step}.log`
+- **Always include `threads:` and `resources:` blocks** — without them SLURM defaults to 1 GB and jobs will be OOM-killed on real data
+  - Add `threads` and `mem_gb` to the step's top-level Pydantic config class
+  - Use `from tempfile import gettempdir` (must be explicitly imported in each `.smk` file)
+  - `RESOURCES` is a global from `main.smk` available in all rule files
 
 ### File Naming
 - Per-capture objects: `{batch}_{capture}.h5ad` or `.h5mu`

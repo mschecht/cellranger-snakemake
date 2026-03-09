@@ -111,6 +111,9 @@ class DoubletDetectionConfig(BaseStepConfig):
         description="Doublet detection method to use"
     )
 
+    threads: int = Field(default=1, ge=1, description="Number of threads")
+    mem_gb: int = Field(default=16, ge=1, description="Memory in GB")
+
     # Method-specific parameters
     scrublet: Optional[ScrubletConfig] = None
     solo: Optional[SoloConfig] = None

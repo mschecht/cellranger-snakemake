@@ -160,7 +160,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 
 1. Add method config schema in `schemas/<step>.py` with `tool_meta`
 2. Register the method in the parent config class
-3. Add the rule in `workflows/rules/<step>.smk`
+3. Add the rule in `workflows/rules/<step>.smk` — **include a `threads:` and `resources:` block** (see [Resource parameters](#resource-parameters))
 4. Add target generation in `workflows/scripts/build_targets.py`
 5. Add to config generator in `config_generator.py`
 6. [Test](#testing)
@@ -172,7 +172,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 2. Register the output directory in `config_validator.py`
 3. Register the step in `parse_config.py`
 4. Add target generation in `build_targets.py`
-5. Create the rule file in `workflows/rules/<new_step>.smk`
+5. Create the rule file in `workflows/rules/<new_step>.smk` — **include a `threads:` and `resources:` block** (see [Resource parameters](#resource-parameters))
 6. Include the rule file in `main.smk`
 7. Create a dummy rule and test the DAG
 8. Implement the rule
@@ -302,6 +302,25 @@ if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
 - `.done` files always go in `{output_dir}/00_LOGS/`
 - Use `touch()` for `.done` outputs
 - Shared variables (output dirs, GEX count dir) go in the top-level `if config.get(...)` block
+- **Always include `threads:` and `resources:` blocks** — without them SLURM defaults to 1 GB and jobs will OOM on real data:
+
+```python
+from tempfile import gettempdir  # must be imported explicitly in each .smk file
+
+rule my_rule:
+    ...
+    threads: config["my_step"].get("threads", 1)
+    resources:
+        mem_mb = config["my_step"].get("mem_gb", 16) * 1024,  # SLURM uses MB
+        tmpdir = RESOURCES.get("tmpdir") or gettempdir()
+```
+
+Add `threads` and `mem_gb` to the **parent config class** (not the method sub-config) in `schemas/<step>.py`:
+
+```python
+threads: int = Field(default=1, ge=1, description="Number of threads")
+mem_gb: int = Field(default=16, ge=1, description="Memory in GB")
+```
 - Method-specific config goes in the method-level `if` block
 
 #### Step 4: Add target generation
@@ -503,8 +522,25 @@ if config.get("celltype_annotation") and ANNOT_METHOD == "celltypist":
             done = touch("{sample}/celltypist/{sample}_celltypist.done")
         params:
             model = ANNOT_CONFIG.get("celltypist", {}).get("model", "Immune_All_Low.pkl")
+        threads: config["celltype_annotation"].get("threads", 1)
+        resources:
+            mem_mb = config["celltype_annotation"].get("mem_gb", 16) * 1024,
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         script:
             "../scripts/run_celltypist.py"
+```
+
+Always include `threads:` and `resources:` — without them SLURM defaults to 1 GB and jobs will OOM on real data. Add `threads` and `mem_gb` to the top-level config class in `schemas/<new_step>.py`:
+
+```python
+threads: int = Field(default=1, ge=1, description="Number of threads")
+mem_gb: int = Field(default=16, ge=1, description="Memory in GB")
+```
+
+Import `gettempdir` at the top of the `.smk` file — it is not inherited from other rule files:
+
+```python
+from tempfile import gettempdir
 ```
 
 #### Step 6: Include the rule file in main.smk

@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from tempfile import gettempdir
 
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from custom_logger import custom_logger
@@ -57,6 +58,10 @@ if config.get("doublet_detection") and config["doublet_detection"]["method"] == 
             threshold = SCRUBLET_PARAMS.get("threshold", None),
             n_neighbors = SCRUBLET_PARAMS.get("n_neighbors", None),
             random_state = SCRUBLET_PARAMS.get("random_state", 0)
+        threads: config["doublet_detection"].get("threads", 10)
+        resources:
+            mem_mb = config["doublet_detection"].get("mem_gb", 64) * 1024, # NOTE: SLURM resources uses M  B
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_scrublet.log")
         script:
