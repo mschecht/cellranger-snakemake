@@ -129,7 +129,10 @@ try:
     print(f"Batch: {batch_id}, Capture: {capture_id}")
     print(f"First few cells:\n{adata.obs.head()}")
 
-    # ---- Step 5: Write to disk ----
+    # ---- Step 5: Compute QC metrics ----
+    sc.pp.calculate_qc_metrics(adata, percent_top=None, inplace=True)
+
+    # ---- Step 6: Write to disk ----
     print(f"\nWriting ATAC AnnData to: {output_h5ad}")
     adata.write_h5ad(output_h5ad)
     print(f"✓ ATAC AnnData creation complete: {adata.n_obs} cells × {adata.n_vars} peaks")
