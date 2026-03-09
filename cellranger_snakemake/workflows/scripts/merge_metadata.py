@@ -172,6 +172,39 @@ try:
 
     print("✓ Metadata enrichment complete!\n")
 
+    # QC summary per batch
+    qc_summary_path = obs_table_path.replace('.tsv.gz', '_summary.tsv.gz')
+    print(f'Writing QC summary to: {qc_summary_path}')
+    summary_frames = []
+
+    if is_mudata:
+        for mod_name, mod_data in adata.mod.items():
+            is_gex = mod_name in ('rna', 'gex')
+            agg_dict = {
+                'n_cells': ('total_counts', 'count'),
+                'median_umi' if is_gex else 'median_fragments': ('total_counts', 'median'),
+                'median_genes' if is_gex else 'median_peaks': ('n_genes_by_counts', 'median'),
+            }
+            df = mod_data.obs.groupby('batch_id').agg(**agg_dict).reset_index()
+            df.insert(0, 'modality', mod_name)
+            summary_frames.append(df)
+        summary_df = pd.concat(summary_frames, axis=0)
+    elif modality == 'gex':
+        summary_df = adata.obs.groupby('batch_id').agg(
+            n_cells=('total_counts', 'count'),
+            median_umi=('total_counts', 'median'),
+            median_genes=('n_genes_by_counts', 'median'),
+        ).reset_index()
+    else:
+        summary_df = adata.obs.groupby('batch_id').agg(
+            n_cells=('total_counts', 'count'),
+            median_fragments=('total_counts', 'median'),
+            median_peaks=('n_genes_by_counts', 'median'),
+        ).reset_index()
+
+    summary_df.to_csv(qc_summary_path, sep='\t', index=False, compression='gzip')
+    print(summary_df)
+
 except Exception as e:
     print(f"ERROR in metadata enrichment: {e}", file=sys.stderr)
     import traceback

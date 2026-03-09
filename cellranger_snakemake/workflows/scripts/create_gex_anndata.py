@@ -41,6 +41,16 @@ try:
     # Store raw counts
     adata.raw = adata
 
+    # Compute QC metrics
+    qc_vars = []
+    if adata.var_names.str.startswith(('MT-', 'MT.')).any():
+        adata.var['mt'] = adata.var_names.str.startswith(('MT-', 'MT.'))
+        qc_vars.append('mt')
+    if adata.var_names.str.startswith(('RPS', 'RPL')).any():
+        adata.var['ribo'] = adata.var_names.str.startswith(('RPS', 'RPL'))
+        qc_vars.append('ribo')
+    sc.pp.calculate_qc_metrics(adata, qc_vars=qc_vars, percent_top=None, inplace=True)
+
     # Write to disk
     print(f"\nWriting AnnData to: {output_h5ad}")
     adata.write_h5ad(output_h5ad)

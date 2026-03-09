@@ -60,6 +60,19 @@ try:
     mdata = mu.MuData({'gex': adata_gex, 'atac': adata_atac})
     print(f"\nCreated MuData with modalities: {list(mdata.mod.keys())}")
 
+    # Compute QC metrics
+    adatas = {'gex': mdata['gex'], 'atac': mdata['atac']}
+    for modality, adata in adatas.items():
+        qc_vars = []
+        if modality == 'gex':
+            if adata.var_names.str.startswith(('MT-', 'MT.')).any():
+                adata.var['mt'] = adata.var_names.str.startswith(('MT-', 'MT.'))
+                qc_vars.append('mt')
+            if adata.var_names.str.startswith(('RPS', 'RPL')).any():
+                adata.var['ribo'] = adata.var_names.str.startswith(('RPS', 'RPL'))
+                qc_vars.append('ribo')
+        sc.pp.calculate_qc_metrics(adata, qc_vars=qc_vars, percent_top=None, inplace=True)
+ 
     # Write to disk
     print(f"\nWriting MuData to: {output_h5mu}")
     mdata.write(output_h5mu)

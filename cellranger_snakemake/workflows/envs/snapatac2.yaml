@@ -14,3 +14,4 @@ dependencies:
   - htslib>=1.18
   - pip:
       - snapatac2==2.8.0
+      - scanpy==1.10.3
