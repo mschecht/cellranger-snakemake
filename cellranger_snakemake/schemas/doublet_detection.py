@@ -105,7 +105,7 @@ class SoloConfig(BaseModel):
 
 
 class DoubletDetectionConfig(BaseStepConfig):
-    """Doublet detection step configuration (Python-only)."""
+    """Doublet detection step configuration"""
 
     method: Literal["scrublet", "solo"] = Field(
         description="Doublet detection method to use"
