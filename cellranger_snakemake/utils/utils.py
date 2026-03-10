@@ -76,6 +76,16 @@ def sanity_check_libraries_list_tsv(filepath, log_file=None, expected_columns=No
         custom_logger.error(f"Expected columns {expected_columns}, found {actual_columns}")
         sys.exit(1)
 
+    # Check for duplicate batch+capture combinations
+    dup_cols = [c for c in ["batch", "capture"] if c in df.columns]
+    if len(dup_cols) == 2:
+        duplicates = df[df.duplicated(subset=dup_cols, keep=False)]
+        if not duplicates.empty:
+            for _, dup_row in duplicates.iterrows():
+                custom_logger.error(f"Duplicate batch+capture combination found: batch='{dup_row['batch']}', capture='{dup_row['capture']}'. "
+                                    f"Each batch+capture pair must appear only once.")
+            sys.exit(1)
+
     valid = True
     for idx, row in df.iterrows():
         if has_underscore(str(row["batch"])):
@@ -141,6 +151,32 @@ def sanity_check_libraries_list_tsv(filepath, log_file=None, expected_columns=No
             if not os.path.exists(file_path):
                 custom_logger.error(f"{error_location}: File does not exist: {file_path}")
                 valid = False
+            elif file_extension == ".csv":
+                # For ARC per-capture CSVs: validate fastqs paths inside the CSV
+                try:
+                    lib_csv = pd.read_csv(file_path)
+                    if "fastqs" not in lib_csv.columns:
+                        custom_logger.error(f"{error_location}: '{file_path}' is missing a 'fastqs' column.")
+                        valid = False
+                    else:
+                        csv_modified = False
+                        for csv_idx, csv_row in lib_csv.iterrows():
+                            fastqs_path = str(csv_row["fastqs"]).strip()
+                            csv_loc = f"Row {csv_idx + 2} in '{file_path}'"
+                            if not os.path.isabs(fastqs_path):
+                                abs_fastqs = os.path.abspath(fastqs_path)
+                                custom_logger.warning(f"{csv_loc}: Converting relative path '{fastqs_path}' to absolute path '{abs_fastqs}'")
+                                lib_csv.at[csv_idx, "fastqs"] = abs_fastqs
+                                fastqs_path = abs_fastqs
+                                csv_modified = True
+                            if not os.path.exists(fastqs_path):
+                                custom_logger.error(f"{csv_loc}: Path does not exist: {fastqs_path}")
+                                valid = False
+                        if csv_modified:
+                            lib_csv.to_csv(file_path, index=False)
+                except Exception as e:
+                    custom_logger.error(f"{error_location}: Could not read '{file_path}': {e}")
+                    valid = False
 
     if valid:
         custom_logger.info(f"{filepath} file format is valid.")
