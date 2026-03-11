@@ -18,6 +18,7 @@ try:
     print(f"Reading h5 file from: {h5_path}")
     adata = sc.read_10x_h5(h5_path)
     print(f"Loaded {adata.n_obs} cells and {adata.n_vars} genes")
+    adata.var_names_make_unique()
 
     # Add traceability metadata
     adata.obs['batch_id'] = str(batch_id)
@@ -33,7 +34,9 @@ try:
     # Verify cell_id uniqueness
     if not adata.obs['cell_id'].is_unique:
         raise ValueError("cell_id is not unique! This should never happen.")
-
+    adata.obs['barcode'] = adata.obs_names
+    adata.obs_names = adata.obs['cell_id']
+    
     print(f"\nCell metadata columns: {adata.obs.columns.tolist()}")
     print(f"Batch: {batch_id}, Capture: {capture_id}")
     print(f"First few cells:\n{adata.obs.head()}")
