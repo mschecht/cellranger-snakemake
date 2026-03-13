@@ -123,6 +123,8 @@ try:
 
     if not adata.obs['cell_id'].is_unique:
         raise ValueError("cell_id is not unique!")
+    adata.obs['barcode'] = adata.obs_names
+    adata.obs_names = adata.obs['cell_id']
 
     print(f"\nATAC QC metrics: {qc_cols}")
     print(f"Cell metadata columns: {adata.obs.columns.tolist()}")

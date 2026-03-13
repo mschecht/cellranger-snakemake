@@ -51,6 +51,10 @@ try:
         # Verify uniqueness
         if not adata_mod.obs['cell_id'].is_unique:
             raise ValueError("cell_id is not unique!")
+        
+        adata_mod.obs['barcode'] = adata_mod.obs_names
+        adata_mod.obs_names = adata_mod.obs['cell_id']
+        adata_mod.var_names_make_unique()
 
     print(f"\nGEX metadata columns: {adata_gex.obs.columns.tolist()}")
     print(f"Batch: {batch_id}, Capture: {capture_id}")
