@@ -262,7 +262,7 @@ class TestDataGenerator:
             "vireo": {
                 "donors": 2,
                 "cellsnp": {
-                    "vcf": "/path/to/vcf/file.vcf.gz",
+                    "vcf": str(Path(__file__).parents[2] / "tests" / "L001.vcf.gz"),
                     "threads": 4,
                     "min_maf": 0.0,
                     "min_count": 1,
