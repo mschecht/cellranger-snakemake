@@ -25,8 +25,8 @@ sys.stderr = sys.stdout
 
 
 def _join_by_cell_id(obs_df, metadata_df):
-    """Left-join metadata onto obs using cell_id column, preserving obs index."""
-    return obs_df.join(metadata_df, on='cell_id', how='left')
+    """Left-join metadata onto obs using cell_id index, preserving obs index."""
+    return obs_df.join(metadata_df, how='left')
 
 
 def _parse_capture_and_method(basename, batch_id, suffix=".tsv.gz"):
