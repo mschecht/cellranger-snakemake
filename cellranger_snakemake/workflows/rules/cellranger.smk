@@ -103,11 +103,11 @@ if config.get("cellranger_gex"):
                 capture=gex_batch_to_samples[wc.batch]
             )
         output:
-            done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.done"))
+            done = touch(os.path.join(GEX_LOGS_DIR, "{batch}_gex_aggr.done")),
+            csv = os.path.join(GEX_AGGR_DIR, "{batch}_aggregation.csv")
         params:
             outdir = GEX_AGGR_DIR,
             normalize = GEX_NORMALIZE,
-            csv = os.path.join(GEX_AGGR_DIR, "{batch}_aggregation.csv")
         threads: config["cellranger_gex"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024, # NOTE: SLURM resources uses M  B
@@ -127,15 +127,15 @@ if config.get("cellranger_gex"):
                 )
                 aggr_data.append({"sample_id": f"{wildcards.batch}_{capture}", "molecule_h5": molecule_h5})
             
-            pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
-            
+            pd.DataFrame(aggr_data).to_csv(output.csv, index=False)
+
             # Only run aggregation if more than one capture
             if len(captures) > 1:
                 shell(
                     f"""
                     cellranger aggr \\
                         --id={wildcards.batch} \\
-                        --csv={params.csv} \\
+                        --csv={output.csv} \\
                         --normalize={params.normalize} \\
                         2>&1 > {log}
                     """
@@ -230,11 +230,11 @@ if config.get("cellranger_atac"):
                 capture=atac_batch_to_samples[wc.batch]
             )
         output:
-            done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done"))
+            done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_atac_aggr.done")),
+            csv = os.path.join(ATAC_AGGR_DIR, "{batch}_aggregation.csv")
         params:
             outdir = ATAC_AGGR_DIR,
             normalize = ATAC_NORMALIZE,
-            csv = os.path.join(ATAC_AGGR_DIR, "{batch}_aggregation.csv")
         threads: 8
         resources:
             mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
@@ -260,15 +260,15 @@ if config.get("cellranger_atac"):
                 ))
                 aggr_data.append({"library_id": f"{wildcards.batch}_{capture}", "fragments": fragments, "cells": singlecell})
             
-            pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
-            
+            pd.DataFrame(aggr_data).to_csv(output.csv, index=False)
+
             # Only run aggregation if more than one capture
             if len(captures) > 1:
                 shell(
                     f"""
                     cellranger-atac aggr \\
                         --id={wildcards.batch} \\
-                        --csv={params.csv} \\
+                        --csv={output.csv} \\
                         --reference={input.reference} \\
                         --normalize={params.normalize} \\
                         2>&1 > {log}
@@ -360,11 +360,11 @@ if config.get("cellranger_arc"):
                 capture=arc_batch_to_captures[wc.batch]
             )
         output:
-            done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.done"))
+            done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_arc_aggr.done")),
+            csv = os.path.join(ARC_AGGR_DIR, "{batch}_aggregation.csv")
         params:
             outdir = ARC_AGGR_DIR,
             normalize = ARC_NORMALIZE,
-            csv = os.path.join(ARC_AGGR_DIR, "{batch}_aggregation.csv"),
             reference = ARC_REFERENCE
         threads: 8
         resources:
@@ -403,15 +403,15 @@ if config.get("cellranger_arc"):
                     "gex_molecule_info": gex_molecule_info
                 })
             
-            pd.DataFrame(aggr_data).to_csv(params.csv, index=False)
-            
+            pd.DataFrame(aggr_data).to_csv(output.csv, index=False)
+
             # Only run aggregation if more than one capture
             if len(captures) > 1:
                 shell(
                     f"""
                     cellranger-arc aggr \\
                         --id={wildcards.batch} \\
-                        --csv={params.csv} \\
+                        --csv={output.csv} \\
                         --reference={params.reference} \\
                         --normalize={params.normalize} \\
                         2>&1 > {log}
