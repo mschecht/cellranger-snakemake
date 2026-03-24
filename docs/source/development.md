@@ -21,10 +21,10 @@ The project uses three types of environment files:
 | `environment.yaml` | Minimal install spec (hand-maintained) | Yes — edit this when adding/changing deps |
 | `environment_lock_linux.yaml` | Exact pins for Linux reproducibility | No — regenerate with `conda env export` |
 | `environment_lock_portable.yaml` | Exact pins without build hashes | No — regenerate with `conda env export --no-builds` |
-| `workflows/envs/snapatac2.yaml` | Per-rule env for ATAC rules (snapatac2) | Yes |
-| `workflows/envs/scvi-tools.yaml` | Per-rule env for SOLO/scANVI rules (scvi-tools) | Yes |
 
 **To add a new dependency:**
+
+> **Do NOT** run `conda env export > environment.yaml` — this overwrites the minimal spec with a 240+ line platform-specific dump.
 
 1. Add it to `environment.yaml` (conda section or pip section)
 2. Recreate your environment: `conda env remove -n snakemake8 && conda env create -f environment.yaml`
@@ -34,11 +34,18 @@ The project uses three types of environment files:
    conda env export --no-builds | grep -v "^prefix:" > environment_lock_portable.yaml
    ```
 
-**Per-rule conda environments:** Rules that use snapatac2 or scvi-tools run in isolated Snakemake-managed conda environments (via `conda:` directive + `--use-conda`). This avoids dependency conflicts between packages with incompatible version pins (e.g., snapatac2 needs `numpy<2` while the main env uses `numpy>=2`). If you add a new tool with conflicting deps, create a new env file in `workflows/envs/` and add `conda:` to the rule.
+**Per-rule conda environments:** If you add a tool with dependency conflicts that cannot be resolved in the main environment, Snakemake supports isolated per-rule conda environments via the `conda:` directive. Place a `.yaml` file in `workflows/envs/` and reference it in the rule:
 
-> **Do NOT** run `conda env export > environment.yaml` — this overwrites the minimal spec with a 240+ line platform-specific dump.
+```python
+rule my_rule:
+    ...
+    conda:
+        "../envs/my_tool.yaml"
+    script:
+        "../scripts/my_script.py"
+```
 
----
+> **Note for RHEL8/HPC users:** Snakemake's `conda:` directive activates isolated environments in a subprocess that does not inherit `LD_LIBRARY_PATH`. On systems where the system `libstdc++` is older than GLIBCXX_3.4.29 (e.g., RHEL8), this causes import failures for any modern conda-forge package. In that case, add the tool to `environment.yaml` instead.
 
 ## Key Concepts
 
@@ -75,9 +82,6 @@ cellranger_snakemake/
 │   └── annotation.py               # CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig
 ├── workflows/
 │   ├── main.smk                    # Master workflow, rule all, includes
-│   ├── envs/                       # Per-rule conda environments
-│   │   ├── snapatac2.yaml          # Isolated env for ATAC rules (numpy<2, anndata<0.11)
-│   │   └── scvi-tools.yaml         # Isolated env for SOLO/scANVI rules (anndata>=0.11)
 │   ├── rules/                      # One .smk file per pipeline step
 │   │   ├── cellranger.smk          # Cell Ranger count/aggregation
 │   │   ├── object_creation.smk     # Per-capture AnnData/MuData creation

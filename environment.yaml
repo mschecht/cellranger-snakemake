@@ -5,7 +5,7 @@ channels:
   - defaults
 dependencies:
   # Core framework
-  - python>=3.10,<3.13
+  - python>=3.12,<3.13
   - pip
   - snakemake>=9.0
   # Bioinformatics tools
@@ -19,6 +19,7 @@ dependencies:
   - scanpy>=1.10
   - anndata>=0.10
   - leidenalg
+  - scvi-tools>=1.4
   # Visualization
   - graphviz
   # Testing
@@ -36,5 +37,7 @@ dependencies:
       # HPC execution
       - snakemake-executor-plugin-slurm==2.0.3
       - snakemake-executor-plugin-slurm-jobstep==0.3.0
+      # ATAC processing (pip-only, numpy>=2.0 compatible since 2.6+)
+      - snapatac2>=2.9
       # Install this package itself
       - -e .

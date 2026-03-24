@@ -55,14 +55,8 @@ samtools --version      # should print 1.22+
 Check that Python packages import correctly:
 
 ```bash
-python -c "import scanpy; import anndata; import muon; import celltypist; import decoupler; import scrublet; print('All imports OK')"
+python -c "import scanpy; import anndata; import muon; import snapatac2; import scvi; import celltypist; import decoupler; import scrublet; print('All imports OK')"
 ```
-
-### Per-rule conda environments
-
-Notes for developers: Rules that use **snapatac2** (ATAC analysis) and **scvi-tools** (SOLO, scANVI) run in their own isolated conda environments, created automatically by Snakemake. These environments are built once on first use and cached for subsequent runs.
-
-No extra installation steps are needed — the CLI passes `--use-conda` to Snakemake automatically.
 
 ## 4. Cell Ranger installation
 
