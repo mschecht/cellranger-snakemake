@@ -64,6 +64,11 @@ try:
     mdata = mu.MuData({'gex': adata_gex, 'atac': adata_atac})
     print(f"\nCreated MuData with modalities: {list(mdata.mod.keys())}")
 
+    # Promote traceability metadata to top-level obs (muon prefixes these with modality name by default)
+    mdata.obs['batch_id'] = adata_gex.obs['batch_id']
+    mdata.obs['capture_id'] = adata_gex.obs['capture_id']
+    mdata.obs['cell_id'] = adata_gex.obs['cell_id']
+
     # Compute QC metrics
     adatas = {'gex': mdata['gex'], 'atac': mdata['atac']}
     for modality, adata in adatas.items():

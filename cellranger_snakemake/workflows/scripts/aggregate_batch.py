@@ -55,6 +55,11 @@ try:
             merged_mods[mod_name] = ad.concat(mod_list, axis=0, join='outer', merge='same')
         batch_obj = mu.MuData(merged_mods)
         batch_obj.update()
+        # Promote traceability metadata to top-level obs (muon prefixes these with modality name by default)
+        first_mod = list(batch_obj.mod.values())[0]
+        batch_obj.obs['batch_id'] = first_mod.obs['batch_id']
+        batch_obj.obs['capture_id'] = first_mod.obs['capture_id']
+        batch_obj.obs['cell_id'] = first_mod.obs['cell_id']
     else:
         batch_obj = ad.concat(objects, axis=0, join='outer', merge='same')
 
@@ -62,10 +67,12 @@ try:
 
     # Verify cell_id uniqueness
     if modality == "arc":
-        # For MuData, check each modality
+        # For MuData, check each modality and top-level obs
         for mod_name, mod_data in batch_obj.mod.items():
             if not mod_data.obs['cell_id'].is_unique:
                 raise ValueError(f"cell_id is not unique in {mod_name} modality after aggregation!")
+        if not batch_obj.obs['cell_id'].is_unique:
+            raise ValueError("cell_id is not unique at MuData level after aggregation!")
         print(f"✓ cell_id is unique in all modalities")
     else:
         # For AnnData
