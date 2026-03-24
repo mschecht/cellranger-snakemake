@@ -88,6 +88,18 @@ ln -s /path/to/cellranger-arc  "$CONDA_BIN/cellranger-arc"
 
 > **Note:** You only need to link the Cell Ranger tools for the modalities you plan to use (e.g., GEX only needs `cellranger`).
 
+> **Note:** The actual executable may be inside a `bin/` subdirectory of the installation, not at the top level. For example, `cellranger-arc` is typically at `cellranger-arc-2.0.2/bin/cellranger-arc`, not `cellranger-arc-2.0.2/cellranger-arc`. Check the installation directory with `ls /path/to/cellranger-arc-2.0.2/` and `ls /path/to/cellranger-arc-2.0.2/bin/` before symlinking.
+
+After symlinking, verify that each link resolves to a file (not a directory or itself):
+
+```bash
+ls -la "$CONDA_BIN/cellranger"
+ls -la "$CONDA_BIN/cellranger-atac"
+ls -la "$CONDA_BIN/cellranger-arc"
+```
+
+The output should show an arrow (`->`) pointing to an **executable file**, not a directory. A symlink pointing to a directory will cause a `Permission denied` error at runtime.
+
 Verify with the built-in version checker:
 
 ```bash

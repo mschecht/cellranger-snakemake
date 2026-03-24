@@ -23,6 +23,10 @@ extensions = [
     "sphinx_copybutton",        # add "copy" button to code blocks
 ]
 
+myst_enable_extensions = [
+    "colon_fence",              # enables :::{ } directive syntax
+]
+
 # Markdown file support
 source_suffix = {
     ".rst": "restructuredtext",

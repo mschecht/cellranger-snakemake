@@ -210,6 +210,8 @@ You can also visualize this with a [dag file](https://en.wikipedia.org/wiki/Dire
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
+FIXME: add picture of DAG file and explain the rules for the user!
+
 ## 6. Run the tool!
 
 ```bash
