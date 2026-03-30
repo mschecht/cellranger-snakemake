@@ -107,6 +107,21 @@ snakemake-run-cellranger check-versions
 snakemake-run-cellranger check-versions --workflow GEX   # check specific workflow
 ```
 
+## 5. Building the documentation (optional)
+
+To build or serve the docs locally, install the documentation dependencies:
+
+```bash
+conda activate snakemake8
+pip install -e ".[docs]"
+```
+
+Then serve with auto-reload:
+
+```bash
+sphinx-autobuild docs/source docs/build/html
+```
+
 ## Troubleshooting
 
 ### Conda is slow
