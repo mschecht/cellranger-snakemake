@@ -145,10 +145,10 @@ from cellranger_snakemake.config_validator import parse_output_directories
 - `python>=3.10`
 
 ### Single-Cell Analysis
-- `scanpy>=1.10` (GEX)
-- `anndata>=0.10`
-- `muon>=0.1.6` (ARC)
-- `snapatac2>=2.6` (ATAC)
+- `scanpy>=1.10` (GEX) — installed: 1.12
+- `anndata>=0.10` — installed: 0.12.10
+- `muon>=0.1.6` (ARC) — installed: 0.1.7
+- `snapatac2>=2.6` (ATAC) — installed: 2.9.0
 
 ### Analysis Tools
 - `scvi-tools>=1.1` (SOLO, scANVI)
@@ -271,6 +271,165 @@ print("✓ Verification passed")
 ### Batch Aggregation: Duplicate Warnings
 - Warning about duplicate `obs_names` is expected (same barcodes in different captures)
 - **Important:** `cell_id` MUST be unique (verify this!)
+
+---
+
+## Package API Reference
+
+Exact API signatures for the versions pinned in this project. Use these to avoid confusing function names, argument names, or behaviors across packages.
+
+---
+
+### muon 0.1.7
+
+**Import:** `import muon as mu`
+
+#### I/O
+
+```python
+mu.read_10x_h5(filename: PathLike, extended: bool = True, *args, **kwargs) -> MuData
+```
+Reads a 10X HDF5 file (`.h5`). With `extended=True` (default) auto-locates peak annotations and fragment files. Use `extended=False` to skip — required when mixed feature types would cause write errors or when setting `fragments_file` manually.
+
+```python
+mu.read_10x_mtx(path: PathLike, extended: bool = True, *args, **kwargs) -> MuData
+```
+Reads a 10X MTX directory (`filtered_feature_bc_matrix/`). Wraps `sc.read_10x_mtx()`.
+**CRITICAL — default modality names created by this function:**
+| Cell Ranger `feature_types` value | Modality key in MuData |
+|------------------------------------|------------------------|
+| `"Gene Expression"`                | `"rna"` ← NOT `"gex"` |
+| `"Peaks"`                          | `"atac"`               |
+| `"Antibody Capture"`               | `"prot"`               |
+
+This pipeline renames `"rna"` → `"gex"` immediately after reading:
+```python
+mdata.mod["gex"] = mdata.mod.pop("rna")
+```
+
+```python
+mu.read(filename: PathLike) -> MuData
+```
+Reads a saved `.h5mu` file.
+
+#### MuData Class
+
+```python
+mu.MuData(
+    data: AnnData | Mapping[str, AnnData] | MuData | None = None,
+    feature_types_names: Mapping[str, str] | None = {"Gene Expression": "rna", "Peaks": "atac", "Antibody Capture": "prot"},
+    **kwargs,
+)
+```
+Constructor. When passing a `dict[str, AnnData]`, the dict keys become modality names.
+
+**Key attributes:**
+- `mdata.mod` — `Mapping[str, AnnData]`, read-only dict of modalities
+- `mdata["gex"]` — shorthand for `mdata.mod["gex"]`, returns the AnnData for that modality
+- `mdata.obs` — top-level `pd.DataFrame` (shared observation metadata across modalities)
+- `mdata.var` — top-level `pd.DataFrame` (all features concatenated across modalities)
+- `mdata.n_obs` / `mdata.n_vars` — cell/feature counts at MuData level
+- `mdata.uns` — unstructured metadata dict
+
+**Key methods:**
+```python
+mdata.update()          # Sync global obs/var from modality-level data; call after modifying modalities
+mdata.write(filename)   # Write to .h5mu (alias: mdata.write_h5mu(filename))
+mdata.copy()            # Return an independent copy
+mdata.pull_obs(key)     # Pull a column from modality obs into top-level mdata.obs
+mdata.push_obs(key)     # Push a column from top-level mdata.obs into modality obs
+```
+
+**After `mu.MuData(dict)` or modality rename, always call `mdata.update()`** to re-sync the global obs index.
+
+**Top-level obs after `mdata.update()`:** muon prefixes per-modality obs columns with the modality name (e.g., `"gex:batch_id"`). To expose columns without prefix, set them directly:
+```python
+mdata.obs["batch_id"] = mdata["gex"].obs["batch_id"]
+```
+
+#### Concatenation (ARC batch aggregation pattern)
+
+muon does not have a top-level `mu.concat()`. For ARC, concatenate each modality separately with `anndata.concat()`, then reconstruct MuData:
+```python
+merged_mods = {
+    mod_name: ad.concat([obj.mod[mod_name] for obj in objects], axis=0, join="outer", merge="same")
+    for mod_name in objects[0].mod.keys()
+}
+batch_obj = mu.MuData(merged_mods)
+batch_obj.update()
+```
+
+---
+
+### scanpy ≥1.10 (GEX)
+
+**Import:** `import scanpy as sc`
+
+```python
+sc.read_10x_h5(filename, genome=None, gex_only=True, backup_url=None) -> AnnData
+```
+- `gex_only=True` (default): returns only Gene Expression features
+- `gex_only=False`: returns all feature types (used internally by muon)
+
+```python
+sc.read_h5ad(filename, backed=None) -> AnnData
+```
+Reads a saved `.h5ad` file.
+
+```python
+sc.pp.calculate_qc_metrics(adata, qc_vars=[], percent_top=(50,), log1p=True, inplace=False)
+```
+Computes per-cell (`obs`) and per-gene (`var`) QC metrics. Common `qc_vars`: `["mt", "ribo"]`.
+
+---
+
+### snapatac2 2.9.0 (ATAC)
+
+**Import:** `import snapatac2 as snap`
+
+```python
+snap.pp.import_fragments(
+    fragment_file: Path | list[Path],  # path to fragments.tsv.gz
+    chrom_sizes: Genome | dict[str, int],  # chromosome sizes; or snap.genome.* presets
+    *,
+    is_paired: bool = True,            # True for paired-end (10X default)
+    file: Path | list[Path] | None = None,  # output .h5ad path (None = in-memory)
+    min_num_fragments: int = 200,      # REDUCE TO 1 FOR TEST DATA
+    sorted_by_barcode: bool = True,    # True after pre-sorting (2.9.0 default is True)
+    whitelist: Path | list[str] | None = None,
+    chrM: list[str] = ["chrM", "M"],
+    chunk_size: int = 2000,
+    tempdir: Path | None = None,
+    backend: Literal["hdf5"] = "hdf5",
+    n_jobs: int = 8,
+) -> AnnData
+```
+**WRONG:** `snap.read(file=...)` — this does not exist.
+**RIGHT:** `snap.pp.import_fragments(fragment_file=..., chrom_sizes=...)` — always use this.
+
+Note: In 2.9.0 `sorted_by_barcode` defaults to `True` (unlike older versions). The pipeline pre-sorts and caches as `fragments.sorted_by_barcode.tsv.gz`, then passes `sorted_by_barcode=True`.
+
+---
+
+### anndata ≥0.10
+
+**Import:** `import anndata as ad`
+
+```python
+ad.concat(
+    adatas: Collection[AnnData] | Mapping[str, AnnData],
+    axis: Literal[0, 1] = 0,          # 0=obs (cells), 1=var (features)
+    join: Literal["inner", "outer"] = "inner",
+    merge: str | None = None,          # how to merge .uns; "same" keeps keys with identical values
+    uns_merge: str | None = None,
+    label: str | None = None,          # column name added to .obs for source key
+    keys: Collection | None = None,    # values for label column
+    index_unique: str | None = None,   # separator to make obs_names unique; None keeps originals
+    fill_value = None,                 # fill for outer join missing values
+    pairwise: bool = False,
+) -> AnnData
+```
+Duplicate `obs_names` warning during batch aggregation is **expected** (same barcodes in different captures). `cell_id` uniqueness is what matters — always verify after concat.
 
 ---
 
