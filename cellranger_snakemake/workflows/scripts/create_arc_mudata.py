@@ -1,11 +1,12 @@
 """Create MuData object from ARC Cell Ranger count output with GEX and ATAC modalities."""
 
-import muon as mu
-import scanpy as sc
 import sys
 
+import muon as mu
+import scanpy as sc
+
 # Access snakemake object
-h5_path = snakemake.input.h5
+mtx_dir = snakemake.params.mtx_dir
 fragments_path = snakemake.input.fragments
 batch_id = snakemake.params.batch
 capture_id = snakemake.params.capture
@@ -17,75 +18,65 @@ sys.stdout = open(log_file, 'w')
 sys.stderr = sys.stdout
 
 try:
-    print(f"Reading ARC multiome data from: {h5_path}")
+    print(f"Reading ARC multiome data from: {mtx_dir}")
 
-    # Read the multiome h5 file which contains both GEX and ATAC
-    adata_full = sc.read_10x_h5(h5_path)
-    print(f"Loaded {adata_full.n_obs} cells and {adata_full.n_vars} features")
+    # Reads both GEX and ATAC, returning a MuData with modalities named "rna" and "atac".
+    # extended=False skips auto-loading peak annotation (mixed types cause h5 write errors)
+    # and fragment file auto-location (we set fragments_path manually below).
+    mdata = mu.read_10x_mtx(mtx_dir, extended=False)
 
-    # Separate GEX and ATAC modalities based on feature_types
-    gex_mask = adata_full.var['feature_types'] == 'Gene Expression'
-    atac_mask = adata_full.var['feature_types'] == 'Peaks'
+    print(f"Loaded modalities: {list(mdata.mod.keys())}")
+    print(f"rna: {mdata['rna'].n_obs} cells, {mdata['rna'].n_vars} genes")
+    print(f"atac: {mdata['atac'].n_obs} cells, {mdata['atac'].n_vars} peaks")
+    
+    # Rename "rna" -> "gex" to match pipeline conventions
+    print(f'Renaming "rna" modality to "gex"')
+    mdata.mod["gex"] = mdata.mod.pop("rna")
 
-    adata_gex = adata_full[:, gex_mask].copy()
-    adata_atac = adata_full[:, atac_mask].copy()
-
-    print(f"GEX: {adata_gex.n_obs} cells, {adata_gex.n_vars} genes")
-    print(f"ATAC: {adata_atac.n_obs} cells, {adata_atac.n_vars} peaks")
+    print(mdata)
 
     # Store fragment file path in ATAC modality
-    adata_atac.uns['fragments_file'] = fragments_path
+    print(f"Storing fragment file path in ATAC modality: {fragments_path}")
+    mdata["atac"].uns["fragments_file"] = fragments_path
 
     # Add traceability metadata to both modalities
-    for adata_mod in [adata_gex, adata_atac]:
-        adata_mod.obs['batch_id'] = str(batch_id)
-        adata_mod.obs['capture_id'] = str(capture_id)
-
-        # Create unique cell ID
-        adata_mod.obs['cell_id'] = (
-            adata_mod.obs['batch_id'].astype(str) + '_' +
-            adata_mod.obs['capture_id'].astype(str) + '_' +
-            adata_mod.obs.index.astype(str)
+    for mod_name in ["gex", "atac"]:
+        adata = mdata[mod_name]
+        adata.obs["batch_id"] = str(batch_id)
+        adata.obs["capture_id"] = str(capture_id)
+        adata.obs["cell_id"] = (
+            str(batch_id) + "_" + str(capture_id) + "_" + adata.obs_names.astype(str)
         )
+        if not adata.obs["cell_id"].is_unique:
+            raise ValueError(f"cell_id is not unique in {mod_name} modality!")
+        adata.obs["barcode"] = adata.obs_names
+        adata.obs_names = adata.obs["cell_id"]
 
-        # Verify uniqueness
-        if not adata_mod.obs['cell_id'].is_unique:
-            raise ValueError("cell_id is not unique!")
-        
-        adata_mod.obs['barcode'] = adata_mod.obs_names
-        adata_mod.obs_names = adata_mod.obs['cell_id']
-        adata_mod.var_names_make_unique()
+    # Sync top-level obs index with the updated modality obs_names
+    mdata.update()
 
-    print(f"\nGEX metadata columns: {adata_gex.obs.columns.tolist()}")
-    print(f"Batch: {batch_id}, Capture: {capture_id}")
-    print(f"First few GEX cells:\n{adata_gex.obs.head()}")
-
-    # Create MuData object with GEX and ATAC modalities
-    mdata = mu.MuData({'gex': adata_gex, 'atac': adata_atac})
-    print(f"\nCreated MuData with modalities: {list(mdata.mod.keys())}")
-
-    # Promote traceability metadata to top-level obs (muon prefixes these with modality name by default)
-    mdata.obs['batch_id'] = adata_gex.obs['batch_id']
-    mdata.obs['capture_id'] = adata_gex.obs['capture_id']
-    mdata.obs['cell_id'] = adata_gex.obs['cell_id']
+    # Promote traceability metadata to MuData top-level obs
+    mdata.obs["batch_id"] = mdata["gex"].obs["batch_id"]
+    mdata.obs["capture_id"] = mdata["gex"].obs["capture_id"]
+    mdata.obs["cell_id"] = mdata["gex"].obs["cell_id"]
 
     # Compute QC metrics
-    adatas = {'gex': mdata['gex'], 'atac': mdata['atac']}
-    for modality, adata in adatas.items():
+    for mod_name, adata in [("gex", mdata["gex"]), ("atac", mdata["atac"])]:
         qc_vars = []
-        if modality == 'gex':
-            if adata.var_names.str.startswith(('MT-', 'MT.')).any():
-                adata.var['mt'] = adata.var_names.str.startswith(('MT-', 'MT.'))
-                qc_vars.append('mt')
-            if adata.var_names.str.startswith(('RPS', 'RPL')).any():
-                adata.var['ribo'] = adata.var_names.str.startswith(('RPS', 'RPL'))
-                qc_vars.append('ribo')
+        if mod_name == "gex":
+            if adata.var_names.str.startswith(("MT-", "MT.")).any():
+                adata.var["mt"] = adata.var_names.str.startswith(("MT-", "MT."))
+                qc_vars.append("mt")
+            if adata.var_names.str.startswith(("RPS", "RPL")).any():
+                adata.var["ribo"] = adata.var_names.str.startswith(("RPS", "RPL"))
+                qc_vars.append("ribo")
         sc.pp.calculate_qc_metrics(adata, qc_vars=qc_vars, percent_top=None, inplace=True)
- 
-    # Write to disk
+
     print(f"\nWriting MuData to: {output_h5mu}")
     mdata.write(output_h5mu)
     print(f"✓ ARC MuData creation complete: {mdata.n_obs} cells")
+    print(f"  gex: {mdata['gex'].n_obs} x {mdata['gex'].n_vars}")
+    print(f"  atac: {mdata['atac'].n_obs} x {mdata['atac'].n_vars}")
 
 except Exception as e:
     print(f"ERROR creating ARC MuData: {e}", file=sys.stderr)

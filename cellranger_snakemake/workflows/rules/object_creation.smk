@@ -73,7 +73,7 @@ if config.get("cellranger_arc"):
     rule create_arc_mudata:
         """Create MuData object from ARC Cell Ranger count output (per-capture)."""
         input:
-            h5 = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
+            barcodes = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix", "barcodes.tsv.gz"),
             fragments = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "atac_fragments.tsv.gz"),
             count_done = os.path.join(LOGS_DIR, "{batch}_{capture}_arc_count.done")
         output:
@@ -81,7 +81,8 @@ if config.get("cellranger_arc"):
             done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_arc_mudata.done"))
         params:
             batch = "{batch}",
-            capture = "{capture}"
+            capture = "{capture}",
+            mtx_dir = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix")
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_arc_mudata.log")
         script:
