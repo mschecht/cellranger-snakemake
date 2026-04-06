@@ -22,6 +22,10 @@ dependencies:
   - scvi-tools>=1.4
   # Visualization
   - graphviz
+  # Jupyter
+  - jupyterlab>=4.0
+  - ipykernel>=6.0
+  - ipywidgets>=8.0
   # Testing
   - pytest
   - pip:
