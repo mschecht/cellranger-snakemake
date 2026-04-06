@@ -1,12 +1,10 @@
 # Case study: 3K PBMC Epi Multiome ATAC + Gene Expression
 
-The [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0) dataset is a great way to explore cell cellranger snakemake 
+In this case study, we will explain how to processs [10X Epi Multiome ATAC + Gene Expression data](https://www.10xgenomics.com/support/epi-multiome) by using the following test dataset: [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0).
 
 ## Learning objectives
 
-The goal of this tutorial is to show you how to get started preprocessing your own [10X Epi Multiome ATAC + Gene Expression data](https://www.10xgenomics.com/support/epi-multiome). 
-
-1. Learn how to set up the configuration file
+1. Set up the configuration file
 
 2. Compose the input files
 
@@ -14,7 +12,7 @@ The goal of this tutorial is to show you how to get started preprocessing your o
 
 4. Explore the resulting directory structure and where you can find processed data and metadata.
 
-5. Import the pre-processed data into Scanpy, Suerat, or ArchR to get started with data analysis. 
+5. Import the pre-processed data into [Muon](https://muon-tutorials.readthedocs.io/en/latest/) or [ArchR](https://www.archrproject.com/bookdown/importing-data-and-setting-up-a-multiome-project.html) to get started with multiome data analysis. 
 
 ## Download input data
 
@@ -40,7 +38,10 @@ tar -xvf refdata-cellranger-arc-GRCh38-2024-A.tar.gz
 
 ## Set up the input files
 
-Initialize a config file: `pipeline_config.yaml`
+1. Initialize a config file: `pipeline_config.yaml`
+
+Here you will run the command `snakemake-run-cellranger init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters.
+
 ```bash
 $ snakemake-run-cellranger init-config
 
@@ -80,13 +81,19 @@ Saving configuration to 'pipeline_config.yaml'...
 [INFO] Enabled steps: cellranger_arc, doublet_detection
 ```
 
-Make a `libraries.tsv`
+2. Make a `libraries_list.tsv`
+
+This file contains the paths to [3-column library CSV files](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) which contain paths to the multiome data. 
 ```bash
 echo -e "batch\tcapture\tCSV" > libraries_list.tsv
 echo -e "1\tA\tpbmc_unsorted_3k_library.csv" >> libraries_list.tsv
 ```
 
-Update the paths in `pbmc_unsorted_3k_library.csv` to absolute paths otherwise Cell Ranger ARC will be upset:
+The [3-column library CSV file](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) came with the data you downloaded at the beggining of this tutorial: `pbmc_unsorted_3k_library.csv`
+
+
+> 📌 **Note**: Update the paths in `pbmc_unsorted_3k_library.csv` to absolute paths otherwise Cell Ranger ARC will be upset.
+
 ```bash
 FASTQ_DIR=$(realpath pbmc_unsorted_3k)
 sed -i "s|pbmc_unsorted_3k/gex|${FASTQ_DIR}/gex|; s|pbmc_unsorted_3k/atac|${FASTQ_DIR}/atac|" pbmc_unsorted_3k_library.csv
@@ -104,7 +111,7 @@ resources:
 directories_suffix: none
 cellranger_arc:
   enabled: true
-  reference: /path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0
+  reference: /path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 # <- add the correct path!
   libraries: libraries_list.tsv
   normalize: none
   directories:
@@ -128,7 +135,7 @@ doublet_detection:
 
 ### Dry-run
 
-Before running the workflow it's best practice to run a [dry-run](https://snakemake.readthedocs.io/en/stable/executing/cli.html#useful-command-line-arguments). This is a Snakemake command that will test the workflow before running it to see which jobs will be run. This will print information for every job Snakemake plans on running. The most informative part for us is the `Job stats` section which we highlight below. This counts how many time individual Rules will be ran and is a great sanity check. For example, if you have 3 captures, then you should see Rule `cellranger_arc_count` being run three times:
+Before running the workflow it's best practice to run a [dry-run](https://snakemake.readthedocs.io/en/stable/executing/cli.html#useful-command-line-arguments) - a Snakemake command that will test the workflow without executing the underlying rules and print out it's gameplan for every job in the workflow. The most informative part for us is the `Job stats` section which we highlight below. `Job stats` counts how many times individual Rules will be run and acts as a fantastic sanity check prior to executing the workflow. For example, if you have three multiome captures, then the Rule `cellranger_arc_count` should be run three times. In this case study, we only have one capture so all Rules are executed once. 
 
 ```bash
 # Read about this command
@@ -174,7 +181,7 @@ total                       7
 
 ### Visualize the workflow with a DAG file
 
-Our favorite way to check the workflow before starting or for debugging is to examine the DAG file. This image show a network of jobs and dependencies for the workflow. Each node is a job and each arrow represents a dependent rule.
+Our favorite way to visualize a `dry-run` of a workflow is to examine the DAG file. This image represents the network of jobs and dependencies found in the `dry-run` of the workflow. Each node is a job and each arrow represents a dependent rule.
 
 > 📌 **Note**: If the rules are circles then the rule has not been run yet, however, if the rules are bordered with dotted lines then it's been completed. This distinction is valuable when examining an incomplete workflow. 
 
@@ -189,13 +196,15 @@ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dag 
 **Multiome Pipeline DAG** — DAG file showing all rules and their dependencies.
 :::
 
-Here we will break down the meaning of each rule so you can keep track of what's going on. 
+### Rule descriptions
 
-**cellranger_arc_count**: Runs `cellranger-arc count` per capture, aligning GEX and ATAC reads to the reference genome and producing a joint feature-barcode matrix.
+Here we will break down the meaning of each rule so you can keep track of what's going on. If you want more detail please refer to the [Pipeline Rules Reference](pipeline_rules.md).
 
-**create_arc_mudata**: Converts data from the Cell Ranger ARC output to per-capture [MuData object](https://mudata.readthedocs.io/stable/) (`.h5mu`), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+**cellranger_arc_count**: Runs the command [cellranger-arc count](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning GEX and ATAC reads to the reference genome and producing a joint feature-barcode matrix.
 
-**cellranger_arc_aggr**: Runs `cellranger-arc aggr` which aggregates all per-capture Cell Ranger ARC outputs within a batch into a single normalized count matrix.
+**create_arc_mudata**: Converts data from the Cell Ranger ARC output to per-capture [MuData object](https://mudata.readthedocs.io/stable/) (`.h5mu`) using the command [mu.read_10x_mtx()](https://muon.readthedocs.io/en/latest/api/generated/muon.read_10x_mtx.html), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+
+**cellranger_arc_aggr**: Runs [cellranger-arc aggr](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ARC outputs within a batch into a single normalized count matrix.
 
 **aggregate_arc_batch**: Merges all per-capture MuData objects into a single batch-level `.h5mu` file, verifying `cell_id` uniqueness across captures.
 
@@ -489,25 +498,46 @@ Doublet detection outputs from `Scrublet`
 
 ### Examine barcode metadata
 
-```python
-# Preview cell metadata
-mdata.obs[["batch_id", "capture_id", "cell_id", "scrublet_score", "predicted_doublet"]].head()
+Check out a summary of the workflow and barcode metadata with these files: 
+
+`1_arc_obs.tsv.gz`
+
+```bash
+$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc_obs.tsv.gz', sep='\t'); print(df)"
+                     cell_id modality  batch_id capture_id               cell_id.1             barcode  ...  pct_counts_mt  total_counts_ribo  log1p_total_counts_ribo  pct_counts_ribo  doublet_scrublet_scrublet_score  doublet_scrublet_scrublet_predicted_doublet
+0     1_A_AAACAGCCAACAGGTG-1      gex         1          A  1_A_AAACAGCCAACAGGTG-1  AAACAGCCAACAGGTG-1  ...      18.262806              113.0                 4.736198         6.291760                         0.065392                                          0.0
+1     1_A_AAACATGCAACAACAA-1      gex         1          A  1_A_AAACATGCAACAACAA-1  AAACATGCAACAACAA-1  ...       8.131098               33.0                 3.526361         0.825619                         0.046125                                          0.0
+2     1_A_AAACATGCACCTGGTG-1      gex         1          A  1_A_AAACATGCACCTGGTG-1  AAACATGCACCTGGTG-1  ...      77.826090               23.0                 3.178054         5.000000                         0.158837                                          0.0
+3     1_A_AAACCAACACAGCCTG-1      gex         1          A  1_A_AAACCAACACAGCCTG-1  AAACCAACACAGCCTG-1  ...      16.805113               86.0                 4.465908         5.495208                         0.048402                                          0.0
+4     1_A_AAACCAACAGCAAGAT-1      gex         1          A  1_A_AAACCAACAGCAAGAT-1  AAACCAACAGCAAGAT-1  ...      12.134688               91.0                 4.521789         5.781449                         0.086111                                          0.0
+...                      ...      ...       ...        ...                     ...                 ...  ...            ...                ...                      ...              ...                              ...                                          ...
+6013  1_A_TTTGTCTAGTCTATGA-1     atac         1          A  1_A_TTTGTCTAGTCTATGA-1  TTTGTCTAGTCTATGA-1  ...            NaN                NaN                      NaN              NaN                         0.014349                                          0.0
+6014  1_A_TTTGTGGCAGCACGAA-1     atac         1          A  1_A_TTTGTGGCAGCACGAA-1  TTTGTGGCAGCACGAA-1  ...            NaN                NaN                      NaN              NaN                         0.126394                                          0.0
+6015  1_A_TTTGTGGCATCGCTCC-1     atac         1          A  1_A_TTTGTGGCATCGCTCC-1  TTTGTGGCATCGCTCC-1  ...            NaN                NaN                      NaN              NaN                         0.019632                                          0.0
+6016  1_A_TTTGTGTTCACTTCAT-1     atac         1          A  1_A_TTTGTGTTCACTTCAT-1  TTTGTGTTCACTTCAT-1  ...            NaN                NaN                      NaN              NaN                         0.086111                                          0.0
+6017  1_A_TTTGTGTTCATGCGTG-1     atac         1          A  1_A_TTTGTGTTCATGCGTG-1  TTTGTGTTCATGCGTG-1  ...            NaN                NaN                      NaN              NaN                         0.058992                                          0.0
+
+[6018 rows x 18 columns]
+```
+
+`1_arc_obs_summary.tsv.gz`
+
+```bash
+$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc_obs_summary.tsv.gz', sep='\t'); print(df)"
+  modality  batch_id  n_cells  median_umi  median_genes  median_fragments  median_peaks
+0      gex         1     3009      2764.0        1494.0               NaN           NaN
+1     atac         1     3009         NaN           NaN               0.0           0.0
 ```
 
 ### Muon
 
 The final MuData object in `08_FINAL/` contains both GEX and ATAC modalities with all preprocessing metadata joined in. Load it with:
 
-```python 
+```python
 import muon as mu
+import scanpy as sc
 
 mdata = mu.read("3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc.h5mu")
-
-# Verify traceability metadata is present and unique
-assert "batch_id" in mdata.obs.columns
-assert "capture_id" in mdata.obs.columns
-assert "cell_id" in mdata.obs.columns
-assert mdata.obs["cell_id"].is_unique, "cell_id must be unique!"
 
 # Inspect the data
 print(mdata)
@@ -518,16 +548,47 @@ print(f"\nATAC shape: {mdata['atac'].shape}")
 print(f"\nObs columns: {list(mdata.obs.columns)}")
 ```
 
-### Scanpy 
+```
+MuData object with n_obs × n_vars = 3009 × 117757
+  obs:  'batch_id', 'capture_id', 'cell_id'
+  var:  'gene_ids', 'feature_types', 'n_cells_by_counts', 'mean_counts', ...
+  2 modalities
+    atac: 3009 x 81156
+      obs: 'batch_id', 'capture_id', 'cell_id', 'barcode',
+           'n_genes_by_counts', 'total_counts', ...,
+           'doublet_scrublet_scrublet_score', 'doublet_scrublet_scrublet_predicted_doublet'
+      var: 'gene_ids', 'feature_types', 'n_cells_by_counts', ...
+    gex:  3009 x 36601
+      obs: 'batch_id', 'capture_id', 'cell_id', 'barcode',
+           'n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_ribo', ...,
+           'doublet_scrublet_scrublet_score', 'doublet_scrublet_scrublet_predicted_doublet'
+      var: 'gene_ids', 'feature_types', 'mt', 'ribo', 'n_cells_by_counts', ...
 
-```python
-# Access GEX modality for Scanpy downstream analysis
-adata_gex = mdata["gex"]
+Total cells: 3009
+Modalities: ['atac', 'gex']
+GEX shape:  (3009, 36601)
+ATAC shape: (3009, 81156)
+
+Obs columns: ['atac:batch_id', 'atac:capture_id', 'atac:cell_id', ...,
+              'gex:batch_id',  'gex:capture_id',  'gex:cell_id',  ...,
+              'batch_id', 'capture_id', 'cell_id']
 ```
 
-### SnapATAC2
+Immediately visualize QC metrics for GEX and ATAC:
 
-### Seurat
+**GEX**
+```python
+sc.pl.violin(mdata["gex"], ['total_counts', 'n_genes_by_counts', 'pct_counts_mt'], jitter=0.4, multi_panel=True)
+```
+![alt text](_images/muon_GEX_QC.png)
+
+**ATAC**
+```python
+sc.pl.violin(mdata["atac"], ['total_counts', 'n_genes_by_counts'], jitter=0.4, multi_panel=True)
+```
+![alt text](_images/muon_ATAC_QC.png)
+
+
+### Seurat/Signac
 
 ### ArchR
-
