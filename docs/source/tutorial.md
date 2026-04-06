@@ -313,3 +313,15 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_ge
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
+
+## FAQs
+
+How do I re-run the workflow from a specific step?
+
+A great way to do this is to pass the Snakemake argument `--forcerun` straight to Snakemake with the argument `--snakemake-args`. Here is an example where you can restart the workflow from the rule `create_arc_metadata`: 
+
+```bash
+snakemake-run-cellranger run --config-file pipeline_config.yaml \
+                             --cores 1 \
+                             --snakemake-args --forcerun create_arc_mudata
+```
