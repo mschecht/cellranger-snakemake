@@ -40,7 +40,7 @@ tar -xvf refdata-cellranger-arc-GRCh38-2024-A.tar.gz
 
 1. Initialize a config file: `pipeline_config.yaml`
 
-Here you will run the command `snakemake-run-cellranger init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters.
+Here you will run the command `snakemake-run-cellranger init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters. Answer the same way as below if you would like to follow along in this tutorial: 
 
 ```bash
 $ snakemake-run-cellranger init-config
@@ -456,7 +456,7 @@ $ tree -L 2 3K_PBMC_MULTIOME_PROCESSED/
     └── 1_arc_obs.tsv.gz
 ```
 
-`00_LOGS`
+`00_LOGS/`
 
 This directory contains all the `.log` and `.done` files created throughout the workflow and are organized by `Batch_Capture_modality_rule`. The `.log` files will contain any STDOUT printed from every step of the workflow. This is allows you to dive in and interrogate any step your single-cell preprocessing. 
 
@@ -468,27 +468,27 @@ grep -R "error" 3K_PBMC_MULTIOME_PROCESSED/00_LOGS
 
 The `.done` files are an internal checklist to keep track of a subset of rules that finished (don't worry about it unless you are a developer and want to contribute to the code base).
 
-`01_CELLRANGERARC_COUNT`
+`01_CELLRANGERARC_COUNT/`
 
 Here you will find all of the `Cell Ranger count` outputs for each individual capture.
 
-`02_CELLRANGERARC_AGGR`
+`02_CELLRANGERARC_AGGR/`
 
 This will be the aggregated count matrices across batches. In this tutorial there is only one capture so you won't find any processed data here.
 
-`03_ANNDATA`
+`03_ANNDATA/`
 
 Here you will find `MuData` objects for every capture. In this case it will be Muon because multiome.
 
-`04_BATCH_OBJECTS`
+`04_BATCH_OBJECTS/`
 
 `MuData` object from the aggregated object
 
-`06_DOUBLET_DETECTION`
+`06_DOUBLET_DETECTION/`
 
 Doublet detection outputs from `Scrublet`
 
-`08_FINAL`
+`08_FINAL/`
 
 `1_arc.h5mu`
 `1_arc_obs_summary.tsv.gz`
@@ -497,6 +497,8 @@ Doublet detection outputs from `Scrublet`
 ## Load the output for downstream analysis
 
 ### Examine barcode metadata
+
+Now that you have successfully preprocessed the dataset [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0) we will show a few examples of how you can immedatly start analyzing your data with multiple programs!
 
 Check out a summary of the workflow and barcode metadata with these files: 
 
