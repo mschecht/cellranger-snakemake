@@ -332,7 +332,7 @@ Execute 1 jobs...
 
 [Tue Mar  3 10:17:20 2026]
 rule cellranger_arc_count:
-    input: /project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0, pbmc_unsorted_3k_library.csv
+    input: /path/to/refdata-cellranger-arc-GRCh38-2024-A, pbmc_unsorted_3k_library.csv
     output: 3K_PBMC_MULTIOME_PROCESSED/01_CELLRANGERARC_COUNT/1_A/outs/filtered_feature_bc_matrix.h5, 3K_PBMC_MULTIOME_PROCESSED/01_CELLRANGERARC_COUNT/1_A/outs/atac_fragments.tsv.gz, 3K_PBMC_MULTIOME_PROCESSED/01_CELLRANGERARC_COUNT/1_A/outs/gex_possorted_bam.bam, 3K_PBMC_MULTIOME_PROCESSED/01_CELLRANGERARC_COUNT/1_A/outs/filtered_feature_bc_matrix/barcodes.tsv.gz, 3K_PBMC_MULTIOME_PROCESSED/01_CELLRANGERARC_COUNT/1_A/outs/web_summary.html, 3K_PBMC_MULTIOME_PROCESSED/00_LOGS/1_A_arc_count.done
     log: 3K_PBMC_MULTIOME_PROCESSED/00_LOGS/1_A_arc_count.log
     jobid: 2
@@ -374,23 +374,20 @@ Additionally, we always let you know with a `[WARNING]` if we change anything fr
 
 ```
 [WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
 ```
 
-Finally, we print `[INFO]` from every entry job so you can fact check your workflow i.e. are these number of `batches` and `samples` you were expecting to preprocess?
+> 📌 **Note**: You may see some messages printed twice. This is expected — Snakemake evaluates the config in two passes during DAG construction.
+
+Finally, we print `[INFO]` from every job so you can fact check your workflow i.e. are these number of `batches` and `samples` you were expecting to preprocess?
 
 ```
 [INFO] libraries_list.tsv file format is valid.
-[INFO] libraries_list.tsv file format is valid.
-[INFO] Cell Ranger ARC: Found 1 capture(s) across 1 batch(es)
 [INFO] Cell Ranger ARC: Found 1 capture(s) across 1 batch(es)
 [INFO] Batch aggregation: Found 1 ARC batch(es)
-[INFO] Batch aggregation: Found 1 ARC batch(es)
-[INFO] Doublet Detection: Using scrublet method
 [INFO] Doublet Detection: Using scrublet method
 ```
 
-Everything else are messages directly from Snakemake runing the workflow you configured! If you are new to Snakemake please take some time to orient yourself: https://snakemake.readthedocs.io/en/stable/tutorial/tutorial.html
+Everything else are messages directly from Snakemake running the workflow you configured! If you are new to Snakemake please take some time to orient yourself: https://snakemake.readthedocs.io/en/stable/tutorial/tutorial.html
 
 
 
@@ -410,7 +407,7 @@ Serving UI at http://midway3-0323.rcc.local:44865?auth=nTZ0qkEGdaSUvGtvxqySJq1uP
 Running preflight checks (please wait)...
 Checking FASTQ folder...
 Checking reference...
-Checking reference_path (/project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0) on midway3-0323.rcc.local...
+Checking reference_path (/path/to/refdata-cellranger-arc-GRCh38-2024-A) on midway3-0323.rcc.local...
 Checking optional arguments...
 
 ...
@@ -458,7 +455,7 @@ $ tree -L 2 3K_PBMC_MULTIOME_PROCESSED/
 
 `00_LOGS/`
 
-This directory contains all the `.log` and `.done` files created throughout the workflow and are organized by `Batch_Capture_modality_rule`. The `.log` files will contain any STDOUT printed from every step of the workflow. This is allows you to dive in and interrogate any step your single-cell preprocessing. 
+This directory contains all the `.log` and `.done` files created throughout the workflow and are organized by `Batch_Capture_modality_rule`. The `.log` files will contain any STDOUT printed from every step of the workflow. This allows you to dive in and interrogate any step of your single-cell preprocessing. 
 
 A quick way to find errors if you are debugging the workflow is to run:
 
