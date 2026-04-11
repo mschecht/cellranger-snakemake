@@ -17,6 +17,14 @@ dependencies = [
     "packaging>=20.0",
 ]
 
+[project.optional-dependencies]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+    "sphinx-copybutton>=0.5",
+    "myst-parser>=2.0",
+]
+
 [project.scripts]
 snakemake-run-cellranger = "cellranger_snakemake.cli:main"
 sc-preprocess = "cellranger_snakemake.cli:main"  # Alias for new unified pipeline

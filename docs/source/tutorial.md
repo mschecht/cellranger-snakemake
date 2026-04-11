@@ -210,6 +210,8 @@ You can also visualize this with a [dag file](https://en.wikipedia.org/wiki/Dire
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
+FIXME: add picture of DAG file and explain the rules for the user!
+
 ## 6. Run the tool!
 
 ```bash
@@ -310,4 +312,16 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_ge
 snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
+```
+
+## FAQs
+
+How do I re-run the workflow from a specific step?
+
+A great way to do this is to pass the Snakemake argument `--forcerun` straight to Snakemake with the argument `--snakemake-args`. Here is an example where you can restart the workflow from the rule `create_arc_metadata`: 
+
+```bash
+snakemake-run-cellranger run --config-file pipeline_config.yaml \
+                             --cores 1 \
+                             --snakemake-args --forcerun create_arc_mudata
 ```
