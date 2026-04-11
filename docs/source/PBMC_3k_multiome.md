@@ -532,6 +532,8 @@ $ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/0
 
 ### Muon
 
+> 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_3k_multiome_analysis.ipynb`](https://github.com/mschecht/cellranger-snakemake/tree/main/tests/notebooks/PBMC_3k_multiome_analysis.ipynb).
+
 The final MuData object in `08_FINAL/` contains both GEX and ATAC modalities with all preprocessing metadata joined in. Load it with:
 
 ```python
