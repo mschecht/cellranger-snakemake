@@ -1,6 +1,6 @@
 # Case study: 3K PBMC Epi Multiome ATAC + Gene Expression
 
-In this case study, we will explain how to processs [10X Epi Multiome ATAC + Gene Expression data](https://www.10xgenomics.com/support/epi-multiome) by using the following test dataset: [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0).
+In this case study, we will explain how to process [10X Epi Multiome ATAC + Gene Expression data](https://www.10xgenomics.com/support/epi-multiome) by using the following test dataset: [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0).
 
 ## Learning objectives
 
@@ -89,7 +89,7 @@ echo -e "batch\tcapture\tCSV" > libraries_list.tsv
 echo -e "1\tA\tpbmc_unsorted_3k_library.csv" >> libraries_list.tsv
 ```
 
-The [3-column library CSV file](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) came with the data you downloaded at the beggining of this tutorial: `pbmc_unsorted_3k_library.csv`
+The [3-column library CSV file](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) came with the data you downloaded at the beginning of this tutorial: `pbmc_unsorted_3k_library.csv`
 
 
 > 📌 **Note**: Update the paths in `pbmc_unsorted_3k_library.csv` to absolute paths otherwise Cell Ranger ARC will be upset.
@@ -111,7 +111,7 @@ resources:
 directories_suffix: none
 cellranger_arc:
   enabled: true
-  reference: /path/to/refdata-cellranger-arc-GRCh38-2020-A-2.0.0 # <- add the correct path!
+  reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A # <- add the correct path!
   libraries: libraries_list.tsv
   normalize: none
   directories:
@@ -144,7 +144,7 @@ snakemake-run-cellranger run -h
 # Dry run
 $ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
 [INFO] ============================================================
@@ -152,8 +152,8 @@ $ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dr
 [INFO] Output directory: 3K_PBMC_MULTIOME_PROCESSED
 [INFO] Enabled steps: cellranger_arc, doublet_detection
 [INFO] ============================================================
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
 [INFO] libraries_list.tsv file format is valid.
 [INFO] libraries_list.tsv file format is valid.
 [INFO] Cell Ranger ARC: Found 1 capture(s) across 1 batch(es)
@@ -290,7 +290,7 @@ $ snakemake-run-cellranger run --config-file pipeline_config.yaml \
                                --cores all \
                                --snakemake-args --profile HPC_profiles
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
 Using profile HPC_profiles for setting default command line arguments.
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
@@ -299,8 +299,8 @@ Using profile HPC_profiles for setting default command line arguments.
 [INFO] Output directory: 3K_PBMC_MULTIOME_PROCESSED
 [INFO] Enabled steps: cellranger_arc, doublet_detection
 [INFO] ============================================================
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
 [INFO] libraries_list.tsv file format is valid.
 [INFO] libraries_list.tsv file format is valid.
 [INFO] Cell Ranger ARC: Found 1 capture(s) across 1 batch(es)
@@ -341,7 +341,7 @@ rule cellranger_arc_count:
     threads: 8
     resources: mem_mb=65536, mem_mib=62500, disk_mb=1000, disk_mib=954, tmpdir=<TBD>, slurm_account=pi-lbarreiro, slurm_partition=lbarreiro, runtime=720
 Shell command: None
-Job 2 has been submitted with SLURM jobid 46363794 (log: /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/.snakemake/slurm_logs/rule_cellranger_arc_count/1_A/46363794.log).
+Job 2 has been submitted with SLURM jobid 46363794 (log: /path/to/PBMC_3K_MULTIOME/.snakemake/slurm_logs/rule_cellranger_arc_count/1_A/46363794.log).
 ```
 
 Messages from this tool will always be prefaced in brackets e.g. `[INFO]`, `[WARNING]`, `[ERROR]`.
@@ -352,10 +352,10 @@ The first `[INFO]` prints the preprocessing steps enabled in the config file. In
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
 ```
 
-Next, we print the Snakemake command running under the hood for convenient debugging:
+Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
 
 ```
-[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
 ```
 
 After that, we print some more `[INFO]` about the run:
@@ -373,8 +373,8 @@ After that, we print some more `[INFO]` about the run:
 Additionally, we always let you know with a `[WARNING]` if we change anything from your input files on the fly: 
 
 ```
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
-[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/tests/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
+[WARNING] Row 2 in 'libraries_list.tsv': Converting relative path 'pbmc_unsorted_3k_library.csv' to absolute path '/path/to/PBMC_3K_MULTIOME/pbmc_unsorted_3k_library.csv'
 ```
 
 Finally, we print `[INFO]` from every entry job so you can fact check your workflow i.e. are these number of `batches` and `samples` you were expecting to preprocess?
@@ -482,13 +482,15 @@ Here you will find `MuData` objects for every capture. In this case it will be M
 
 `04_BATCH_OBJECTS/`
 
-`MuData` object from the aggregated object
+Batch-level `MuData` object created by merging all per-capture objects from `03_ANNDATA/`. This is the aggregated, pre-metadata-enriched object — all cells from all captures in the batch are present, and `cell_id` uniqueness is verified. It does not yet contain doublet scores or demultiplexing results.
 
 `06_DOUBLET_DETECTION/`
 
 Doublet detection outputs from `Scrublet`
 
 `08_FINAL/`
+
+Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
 
 `1_arc.h5mu`
 `1_arc_obs_summary.tsv.gz`
@@ -498,7 +500,7 @@ Doublet detection outputs from `Scrublet`
 
 ### Examine barcode metadata
 
-Now that you have successfully preprocessed the dataset [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0) we will show a few examples of how you can immedatly start analyzing your data with multiple programs!
+Now that you have successfully preprocessed the dataset [PBMC from a Healthy Donor - No Cell Sorting (3k)](https://www.10xgenomics.com/datasets/pbmc-from-a-healthy-donor-no-cell-sorting-3-k-1-standard-2-0-0) we will show a few examples of how you can immediately start analyzing your data with multiple programs!
 
 Check out a summary of the workflow and barcode metadata with these files: 
 
