@@ -15,6 +15,8 @@ Reproducibility and scalability are essential components of contemporary [FAIR](
 installation
 quickstart
 tutorial
+PBMC_1K_ATAC
+PBMC_GEX
 PBMC_3k_multiome
 development
 ```
