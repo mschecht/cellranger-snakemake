@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from tempfile import gettempdir
 
 sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 from custom_logger import custom_logger
@@ -32,6 +33,10 @@ if config.get("cellranger_gex"):
         params:
             batch = "{batch}",
             capture = "{capture}"
+        threads: config["cellranger_gex"].get("anndata_threads", 1)
+        resources:
+            mem_mb = config["cellranger_gex"].get("anndata_mem_gb", 16) * 1024,
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_gex_anndata.log")
         script:
@@ -57,6 +62,10 @@ if config.get("cellranger_atac"):
         params:
             batch = "{batch}",
             capture = "{capture}"
+        threads: config["cellranger_atac"].get("anndata_threads", 1)
+        resources:
+            mem_mb = config["cellranger_atac"].get("anndata_mem_gb", 32) * 1024,
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_atac_anndata.log")
         script:
@@ -83,6 +92,10 @@ if config.get("cellranger_arc"):
             batch = "{batch}",
             capture = "{capture}",
             mtx_dir = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix")
+        threads: config["cellranger_arc"].get("anndata_threads", 1)
+        resources:
+            mem_mb = config["cellranger_arc"].get("anndata_mem_gb", 16) * 1024,
+            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(LOGS_DIR, "{batch}_{capture}_arc_mudata.log")
         script:

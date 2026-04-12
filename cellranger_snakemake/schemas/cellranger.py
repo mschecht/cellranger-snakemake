@@ -63,6 +63,16 @@ class CellRangerGEXConfig(BaseStepConfig):
         description="Maximum number of jobs (Cell Ranger's --maxjobs flag)"
     )
     
+    anndata_threads: int = Field(
+        default=1,
+        ge=1,
+        description="CPU threads for create_gex_anndata"
+    )
+    anndata_mem_gb: int = Field(
+        default=16,
+        gt=0,
+        description="Memory (GB) for create_gex_anndata"
+    )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",
@@ -70,7 +80,7 @@ class CellRangerGEXConfig(BaseStepConfig):
             CELLRANGERGEX_AGGR_DIR="02_CELLRANGERGEX_AGGR"
         )
     )
-    
+
     class DirectoryConfig(DirectoryConfig):
         """GEX-specific directories."""
         CELLRANGERGEX_COUNT_DIR: str = Field(default="01_CELLRANGERGEX_COUNT")
@@ -130,6 +140,16 @@ class CellRangerATACConfig(BaseStepConfig):
         description="Maximum number of jobs (Cell Ranger's --maxjobs flag)"
     )
     
+    anndata_threads: int = Field(
+        default=1,
+        ge=1,
+        description="CPU threads for create_atac_anndata"
+    )
+    anndata_mem_gb: int = Field(
+        default=32,
+        gt=0,
+        description="Memory (GB) for create_atac_anndata (SnapATAC2 fragment sorting requires more memory)"
+    )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
             LOGS_DIR="00_LOGS",
@@ -137,7 +157,7 @@ class CellRangerATACConfig(BaseStepConfig):
             CELLRANGERATAC_AGGR_DIR="02_CELLRANGERATAC_AGGR"
         )
     )
-    
+
     class DirectoryConfig(DirectoryConfig):
         """ATAC-specific directories."""
         CELLRANGERATAC_COUNT_DIR: str = Field(default="01_CELLRANGERATAC_COUNT")
@@ -162,6 +182,16 @@ class CellRangerARCConfig(BaseStepConfig):
     normalize: Literal["none", "depth"] = Field(
         default="none",
         description="Normalization method for aggregation"
+    )
+    anndata_threads: int = Field(
+        default=1,
+        ge=1,
+        description="CPU threads for create_arc_mudata"
+    )
+    anndata_mem_gb: int = Field(
+        default=16,
+        gt=0,
+        description="Memory (GB) for create_arc_mudata"
     )
     directories: DirectoryConfig = Field(
         default_factory=lambda: DirectoryConfig(
