@@ -316,14 +316,16 @@ rule my_rule:
     threads: config["my_step"].get("threads", 1)
     resources:
         mem_mb = config["my_step"].get("mem_gb", 16) * 1024,  # SLURM uses MB
+        runtime = config["my_step"].get("runtime_minutes", 720),  # passed as --time to SLURM
         tmpdir = RESOURCES.get("tmpdir") or gettempdir()
 ```
 
-Add `threads` and `mem_gb` to the **parent config class** (not the method sub-config) in `schemas/<step>.py`:
+Add `threads`, `mem_gb`, and `runtime_minutes` to the **parent config class** (not the method sub-config) in `schemas/<step>.py`:
 
 ```python
 threads: int = Field(default=1, ge=1, description="Number of threads")
 mem_gb: int = Field(default=16, ge=1, description="Memory in GB")
+runtime_minutes: int = Field(default=720, gt=0, description="Maximum runtime in minutes for the SLURM job")
 ```
 - Method-specific config goes in the method-level `if` block
 

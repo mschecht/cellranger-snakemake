@@ -43,6 +43,11 @@ class CellRangerGEXConfig(BaseStepConfig):
         gt=0,
         description="Memory (GB) for cellranger count"
     )
+    runtime_minutes: int = Field(
+        default=720,
+        gt=0,
+        description="Maximum runtime in minutes for the SLURM job"
+    )
     
     # Cell Ranger job submission options (--jobmode and --mempercore, --maxjobs): https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-job-submission-mode
     jobmode: Optional[Literal["local", "slurm", "sge"]] = Field(
@@ -104,6 +109,11 @@ class CellRangerATACConfig(BaseStepConfig):
         default=64,
         gt=0,
         description="Memory (GB) for cellranger-atac count"
+    )
+    runtime_minutes: int = Field(
+        default=720,
+        gt=0,
+        description="Maximum runtime in minutes for the SLURM job"
     )
     
     # Cell Ranger job submission options (optional, for cellranger's built-in cluster submission)
@@ -169,6 +179,11 @@ class CellRangerARCConfig(BaseStepConfig):
         default=64,
         gt=0,
         description="Memory (GB) for cellranger-arc count"
+    )
+    runtime_minutes: int = Field(
+        default=720,
+        gt=0,
+        description="Maximum runtime in minutes for the SLURM job"
     )
     
     # Cell Ranger job submission options (optional, for cellranger's built-in cluster submission)

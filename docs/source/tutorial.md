@@ -97,6 +97,7 @@ cellranger_gex:
   create-bam: true
   threads: 10
   mem_gb: 64
+  runtime_minutes: 720  # max SLURM job runtime in minutes (default: 720 = 12 hours)
 demultiplexing:
   enabled: false
   method: vireo                          # Options: vireo, demuxalot

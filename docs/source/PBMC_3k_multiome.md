@@ -118,6 +118,7 @@ cellranger_arc:
     LOGS_DIR: 00_LOGS
   threads: 10
   mem_gb: 64
+  runtime_minutes: 720  # max SLURM job runtime in minutes (default: 720 = 12 hours)
 doublet_detection:
   enabled: true
   method: scrublet

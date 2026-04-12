@@ -67,12 +67,18 @@ if config.get("cellranger_gex"):
         threads: config["cellranger_gex"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024,
+            runtime = config["cellranger_gex"].get("runtime_minutes", 720),
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(GEX_LOGS_DIR, "{batch}_{capture}_gex_count.log")
         run:
             output_id = f"{wildcards.batch}_{wildcards.capture}"
             create_bam_str = str(params.create_bam).lower() # Convert Python boolean to lowercase string for Cell Ranger
+
+            # Remove stale _lock file so Cell Ranger can resume a partial run
+            lock_file = os.path.join(output_id, "_lock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
 
             shell(
                 f"""
@@ -194,14 +200,21 @@ if config.get("cellranger_atac"):
         params:
             outdir = ATAC_COUNT_DIR,
             sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
-        threads: 8
+        threads: config["cellranger_atac"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
+            runtime = config["cellranger_atac"].get("runtime_minutes", 720),
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.log")
         run:
             output_id = f"{wildcards.batch}_{wildcards.capture}"
+
+            # Remove stale _lock file so Cell Ranger ATAC can resume a partial run
+            lock_file = os.path.join(output_id, "_lock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+
             shell(
                 f"""
                 cellranger-atac count \\
@@ -326,14 +339,21 @@ if config.get("cellranger_arc"):
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
             outdir = ARC_COUNT_DIR
-        threads: 8
+        threads: config["cellranger_arc"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_arc"].get("mem_gb", 64) * 1024,
+            runtime = config["cellranger_arc"].get("runtime_minutes", 720),
             tmpdir = RESOURCES.get("tmpdir") or gettempdir()
         log:
             os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.log")
         run:
             output_id = f"{wildcards.batch}_{wildcards.capture}"
+
+            # Remove stale _lock file so Cell Ranger ARC can resume a partial run
+            lock_file = os.path.join(output_id, "_lock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+
             shell(
                 f"""
                 cellranger-arc count \\
