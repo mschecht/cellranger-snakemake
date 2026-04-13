@@ -1,0 +1,537 @@
+# Case study: 1K PBMC ATAC
+
+In this case study, we will explain how to process [10X ATACseq](https://www.10xgenomics.com/support/epi-atac) by using the following test dataset: [1k Peripheral Blood Mononuclear Cells (PBMCs) from a Healthy Donor (Next GEM v1.1)](https://www.10xgenomics.com/datasets/1-k-peripheral-blood-mononuclear-cells-pbm-cs-from-a-healthy-donor-next-gem-v-1-1-1-1-standard-2-0-0)
+
+## Learning objectives
+
+1. Set up the configuration file
+
+2. Compose the input files
+
+3. Run the workflow
+
+4. Explore the resulting directory structure and where you can find processed data and metadata.
+
+5. Import the pre-processed data into [SnapATAC2](https://scverse.org/SnapATAC2/) or [ArchR](https://www.archrproject.com/bookdown/importing-data-and-setting-up-a-multiome-project.html) to get started with multiome data analysis. 
+
+## Download input data
+
+Here we will download the [1k Peripheral Blood Mononuclear Cells (PBMCs) from a Healthy Donor (Next GEM v1.1)](https://www.10xgenomics.com/datasets/1-k-peripheral-blood-mononuclear-cells-pbm-cs-from-a-healthy-donor-next-gem-v-1-1-1-1-standard-2-0-0) and the [human reference genome for Cell Ranger ATAC](https://www.10xgenomics.com/support/software/cell-ranger-atac/downloads#reference-downloads):
+
+Download ATACseq data
+```bash
+mkdir tests/PBMC_1K_ATAC && cd tests/PBMC_1K_ATAC
+
+# Input fastq files
+wget https://cf.10xgenomics.com/samples/cell-atac/2.0.0/atac_pbmc_1k_nextgem/atac_pbmc_1k_nextgem_fastqs.tar
+
+# Human reference genome
+wget "https://cf.10xgenomics.com/supp/cell-arc/refdata-cellranger-arc-GRCh38-2024-A.tar.gz"
+```
+
+Extract files
+```bash
+tar -xvf atac_pbmc_1k_nextgem_fastqs.tar
+tar -xvf refdata-cellranger-arc-GRCh38-2024-A.tar.gz
+```
+
+## Set up the input files
+
+1. Initialize a config file: `pipeline_config.yaml`
+
+Here you will run the command `snakemake-run-cellranger init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters. Answer the same way as below if you would like to follow along in this tutorial: 
+
+```bash
+$ snakemake-run-cellranger init-config
+
+Single-Cell Preprocessing Pipeline Configuration Generator
+
+Project name: 1K_PBMC_ATAC_PROCESSED
+Output directory (output): 1K_PBMC_ATAC_PROCESSED
+
+Resource Configuration
+Total memory (GB) (32):
+Temporary directory ():
+Directory suffix (or 'none') (none):
+
+Cell Ranger Configuration
+Enable Cell Ranger GEX? [y/n] (n):
+Enable Cell Ranger ATAC? [y/n] (n): y
+  Reference genome path:
+  Libraries TSV path:
+  Chemistry [auto/ARC-v1] (auto):
+  Normalization method [none/depth] (none):
+Enable Cell Ranger ARC? [y/n] (n): n
+
+Enable demultiplexing? [y/n] (n): n
+
+Enable doublet detection? [y/n] (n): y
+  Doublet detection method [scrublet/solo] (scrublet):
+    Expected doublet rate (0.06):
+    Min genes per cell (filter_cells_min_genes) (100):
+    Min cells per gene (filter_genes_min_cells) (3):
+    Min gene variability percentile (85.0):
+    Number of principal components (30):
+
+Enable cell type annotation? [y/n] (n): n
+
+Saving configuration to 'pipeline_config.yaml'...
+
+✓ Configuration saved to: pipeline_config.yaml
+[INFO] Enabled steps: cellranger_atac, doublet_detection
+```
+
+2. Make a `libraries.tsv`
+
+This file tells the pipeline where to find your FASTQ files. It has four tab-separated columns: `batch`, `capture`, `sample`, and `fastqs`.
+
+```bash
+echo -e "batch\tcapture\tsample\tfastqs" > libraries.tsv
+echo -e "1\tL001\tatac_pbmc_1k_nextgem\t$(realpath atac_pbmc_1k_nextgem_fastqs)" >> libraries.tsv
+```
+
+| Column | Description |
+|--------|-------------|
+| `batch` | Batch identifier (e.g. `1`) |
+| `capture` | Lane/capture identifier (e.g. `L001`) |
+| `sample` | Sample name passed to `cellranger-atac count --sample` |
+| `fastqs` | Absolute path to the directory containing FASTQ files |
+
+> 📌 **Note**: The `fastqs` column must be an absolute path — `cellranger-atac` will fail with relative paths. The `$(realpath ...)` call above handles this automatically.
+
+Then update `pipeline_config.yaml` to point to the file:
+
+```yaml
+project_name: 1K_PBMC_ATAC_PROCESSED
+output_dir: 1K_PBMC_ATAC_PROCESSED
+samples: {}
+resources:
+  mem_gb: 32
+  tmpdir: ''
+directories_suffix: none
+cellranger_atac:
+  enabled: true
+  reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A # <- add the correct path!
+  libraries: libraries.tsv
+  chemistry: auto
+  normalize: none
+  threads: 10
+  mem_gb: 64
+  runtime_minutes: 720  # max SLURM job runtime in minutes (default: 720 = 12 hours)
+  directories:
+    LOGS_DIR: 00_LOGS
+doublet_detection:
+  enabled: true
+  method: scrublet
+  threads: 1
+  mem_gb: 16
+  scrublet:
+    filter_cells_min_genes: 100
+    filter_genes_min_cells: 3
+    expected_doublet_rate: 0.06
+    min_gene_variability_pctl: 85.0
+    n_prin_comps: 30
+    sim_doublet_ratio: 2.0
+    random_state: 0
+```
+
+## Run the tool 
+
+### Dry-run
+
+Before running the workflow it's best practice to run a [dry-run](https://snakemake.readthedocs.io/en/stable/executing/cli.html#useful-command-line-arguments) - a Snakemake command that will test the workflow without executing the underlying rules and print out it's gameplan for every job in the workflow. The most informative part for us is the `Job stats` section which we highlight below. `Job stats` counts how many times individual Rules will be run and acts as a fantastic sanity check prior to executing the workflow. For example, if you have three multiome captures, then the Rule `cellranger_atac_count` should be run three times. In this case study, we only have one capture so all Rules are executed once. 
+
+```bash
+# Read about this command
+snakemake-run-cellranger run -h
+
+# Dry run
+$ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
+[INFO] Config validated. Enabled steps: cellranger_atac, doublet_detection
+[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
+[INFO] ============================================================
+[INFO] Single-Cell Preprocessing Pipeline
+[INFO] ============================================================
+[INFO] Project: 1K_PBMC_ATAC_PROCESSED
+[INFO] Output directory: 1K_PBMC_ATAC_PROCESSED
+[INFO] Enabled steps: cellranger_atac, doublet_detection
+[INFO] ============================================================
+[INFO] libraries.tsv file format is valid.
+[INFO] libraries.tsv file format is valid.
+[INFO] Cell Ranger ATAC: Found 1 sample(s) across 1 batch(es)
+[INFO] Cell Ranger ATAC: Found 1 sample(s) across 1 batch(es)
+[INFO] Batch aggregation: Found 1 ATAC batch(es)
+[INFO] Batch aggregation: Found 1 ATAC batch(es)
+[INFO] Doublet Detection: Using scrublet method
+[INFO] Doublet Detection: Using scrublet method
+host: midway3-login1.rcc.local
+Building DAG of jobs...
+Job stats:
+job                      count
+---------------------  -------
+cellranger_atac_count        1
+cellranger_atac_aggr         1
+create_atac_anndata          1
+aggregate_atac_batch         1
+run_scrublet                 1
+enrich_atac_metadata         1
+all                          1
+total                        7
+...
+```
+
+### Visualize the workflow with a DAG file
+
+Our favorite way to visualize a `dry-run` of a workflow is to examine the DAG file. This image represents the network of jobs and dependencies found in the `dry-run` of the workflow. Each node is a job and each arrow represents a dependent rule.
+
+> 📌 **Note**: If the rules are circles then the rule has not been run yet, however, if the rules are bordered with dotted lines then it's been completed. This distinction is valuable when examining an incomplete workflow. 
+
+```bash
+snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag_atac_1k.png
+```
+
+:::{figure} _images/dag_atac_1k_incomplete.png
+:alt: DAG for ATAC 1k PBMC pipeline
+:width: 80%
+
+**ATAC Pipeline DAG** — DAG file showing all rules and their dependencies.
+:::
+
+### Rule descriptions
+
+Here we will break down the meaning of each rule so you can keep track of what's going on. If you want more detail please refer to the [Pipeline Rules Reference](pipeline_rules.md).
+
+**cellranger_atac_count**: Runs the command [cellranger-atac count](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning ATAC reads to the reference genome and producing a peak-barcode matrix.
+
+**create_atac_anndata**: Converts data from the Cell Ranger ATAC output to a per-capture [AnnData object](https://anndata.readthedocs.io/en/latest/) (`.h5ad`), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+
+**cellranger_atac_aggr**: Runs [cellranger-atac aggr](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ATAC outputs within a batch into a single normalized count matrix.
+
+**aggregate_atac_batch**: Merges all per-capture AnnData objects into a single batch-level `.h5ad` file, verifying `cell_id` uniqueness across captures.
+
+**run_scrublet**: Runs Scrublet doublet detection on each per-capture AnnData object, adding doublet scores and predictions to cell metadata.
+
+**enrich_atac_metadata**: Joins all downstream preprocessing metadata from doublet detection into the batch-level AnnData object.
+
+**all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
+
+### Local Execution
+
+```bash
+# Local execution
+snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1
+```
+
+### Snakemake arguments
+
+We added the parameter `--snakemake-args` to send arguments straight to `Snakemake`!
+
+For example, a popular `Snakemake` argument is `--keep-going`, where `Snakemake` will continue running jobs even if one fails. Please note that it MUST be the last argument in the command. Here is what it looks like in practice:
+
+```bash
+snakemake-run-cellranger run --config-file pipeline_config.yaml \
+                             --cores 1 \
+                             --dry-run \
+                             --snakemake-args --keep-going
+```
+
+Another useful argument is `--forcerun`, which forces Snakemake to re-execute a specific rule and all rules that depend on it — without re-running expensive upstream steps like Cell Ranger. This is handy when you update a script and only want to reprocess from that point forward:
+
+```bash
+snakemake-run-cellranger run --config-file pipeline_config.yaml \
+                             --cores 1 \
+                             --snakemake-args "--forcerun create_atac_anndata aggregate_atac_batch"
+```
+
+> 📌 **Note**: You can pass multiple rule names to `--forcerun`. Snakemake will automatically re-run all downstream rules that depend on the forced rules.
+
+## Run jobs in parallel!
+
+Make a Snakemake SLURM [configuration file](https://snakemake.readthedocs.io/en/v7.19.1/executing/cli.html#profiles)
+
+> 📌 **Note**: Replace the BASH variables `SLURM_ACCOUNT` and `SLURM_PARTITION` with your SLURM appropriate setting before running the script below.
+
+```bash
+# Set your SLURM account and partition
+SLURM_ACCOUNT=""   # <- replace with your account
+SLURM_PARTITION=""    # <- replace with your partition
+
+mkdir -p HPC_profiles
+cat > HPC_profiles/config.yaml << EOF
+executor: slurm
+jobs: 10
+default-resources:
+- slurm_account=${SLURM_ACCOUNT}
+- slurm_partition=${SLURM_PARTITION}
+- runtime=720
+retries: 2
+latency-wait: 60
+printshellcmds: true
+keep-going: true
+rerun-incomplete: true
+EOF
+```
+
+```bash
+# HPC execution - `--cores all` tells Snakemake to use the `threads` assigned to each rule.
+snakemake-run-cellranger run --config-file pipeline_config.yaml \
+                             --cores all \
+                             --snakemake-args --profile HPC_profiles --keep-going
+```
+
+## Interpreting STDOUT
+
+After starting the program you should see an output that looks like this, let's break it down:
+
+```console
+$ snakemake-run-cellranger run --config-file pipeline_config.yaml \
+>                              --cores all \
+>                              --snakemake-args --profile HPC_profiles --keep-going
+[INFO] Config validated. Enabled steps: cellranger_atac, doublet_detection
+[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/cellranger-snakemake/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles --keep-going
+Using profile HPC_profiles for setting default command line arguments.
+[INFO] ============================================================
+[INFO] Single-Cell Preprocessing Pipeline
+[INFO] ============================================================
+[INFO] Project: 1K_PBMC_ATAC_PROCESSED
+[INFO] Output directory: 1K_PBMC_ATAC_PROCESSED
+[INFO] Enabled steps: cellranger_atac, doublet_detection
+[INFO] ============================================================
+[INFO] libraries.tsv file format is valid.
+[INFO] libraries.tsv file format is valid.
+[INFO] Cell Ranger ATAC: Found 1 sample(s) across 1 batch(es)
+[INFO] Cell Ranger ATAC: Found 1 sample(s) across 1 batch(es)
+[INFO] Batch aggregation: Found 1 ATAC batch(es)
+[INFO] Batch aggregation: Found 1 ATAC batch(es)
+[INFO] Doublet Detection: Using scrublet method
+[INFO] Doublet Detection: Using scrublet method
+host: midway3-login1.rcc.local
+Building DAG of jobs...
+SLURM run ID: fe7a5e53-100a-411c-9d66-de1ec86b684c
+MinJobAge 120s (>= 120s). 'squeue' should work reliably for status queries.
+Using shell: /usr/bin/bash
+Provided remote nodes: 10
+Job stats:
+job                      count
+---------------------  -------
+cellranger_atac_count        1
+cellranger_atac_aggr         1
+create_atac_anndata          1
+aggregate_atac_batch         1
+run_scrublet                 1
+enrich_atac_metadata         1
+all                          1
+total                        7
+
+Select jobs to execute...
+Execute 1 jobs...
+```
+
+Messages from this tool will always be prefaced in brackets e.g. `[INFO]`, `[WARNING]`, `[ERROR]`.
+
+The first `[INFO]` prints the preprocessing steps enabled in the config file. In this tutorial, we enabled Cell Ranger ATAC to process the [1k PBMCs ATAC data](https://www.10xgenomics.com/datasets/1-k-peripheral-blood-mononuclear-cells-pbm-cs-from-a-healthy-donor-next-gem-v-1-1-1-1-standard-2-0-0) and Doublet detection with Scrublet:
+
+```
+[INFO] Config validated. Enabled steps: cellranger_atac, doublet_detection
+```
+
+Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
+
+```
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
+```
+
+After that, we print some more `[INFO]` about the run:
+
+```
+[INFO] ============================================================
+[INFO] Single-Cell Preprocessing Pipeline
+[INFO] ============================================================
+[INFO] Project: 1K_PBMC_ATAC_PROCESSED
+[INFO] Output directory: 1K_PBMC_ATAC_PROCESSED
+[INFO] Enabled steps: cellranger_atac, doublet_detection
+[INFO] ============================================================
+```
+
+Finally, we print `[INFO]` from every job so you can fact check your workflow i.e. are these the number of `batches` and `samples` you were expecting to preprocess?
+
+```
+[INFO] libraries.tsv file format is valid.
+[INFO] Cell Ranger ATAC: Found 1 sample(s) across 1 batch(es)
+[INFO] Batch aggregation: Found 1 ATAC batch(es)
+[INFO] Doublet Detection: Using scrublet method
+```
+
+> 📌 **Note**: You may see some messages printed twice. This is expected — Snakemake evaluates the config in two passes during DAG construction.
+
+Everything else are messages directly from Snakemake running the workflow you configured! If you are new to Snakemake please take some time to orient yourself: https://snakemake.readthedocs.io/en/stable/tutorial/tutorial.html
+
+Log file paths for every Rule will be printed in the Snakemake stdout like this:
+
+```
+log: 1K_PBMC_ATAC_PROCESSED/00_LOGS/1_L001_atac_count.log
+```
+
+For example, you could explore the log for that Cell Ranger ATAC job by printing the log file like this:
+
+```bash
+$ cat 1K_PBMC_ATAC_PROCESSED/00_LOGS/1_L001_atac_count.log
+Martian Runtime - v4.0.7
+Serving UI at http://midway3-0323.rcc.local:34101?auth=upepGFywWPU8K2GA4BD29lPWcYSjdgQbAakoEbQTQS0
+
+Running preflight checks (please wait)...
+Checking FASTQ folder...
+Checking reference...
+Checking reference_path (/path/to/refdata-cellranger-arc-GRCh38-2024-A) on midway3-0323.rcc.local...
+Checking optional arguments...
+
+...
+
+2026-04-12 16:27:23 [runtime] (chunks_complete) ID.1_L001.SC_ATAC_COUNTER_CS.SC_ATAC_COUNTER._BASIC_SC_ATAC_COUNTER._ATAC_MATRIX_COMPUTER.MARK_ATAC_DUPLICATES
+2026-04-12 16:27:23 [runtime] (run:local)       ID.1_L001.SC_ATAC_COUNTER_CS.SC_ATAC_COUNTER._BASIC_SC_ATAC_COUNTER._ATAC_MATRIX_COMPUTER.MARK_ATAC_DUPLICATES.fork0.join
+```
+
+## Examine the output directory structure
+
+After successfully completing the workflow, you should see this resulting directory structure. Let's break it down:
+
+```bash
+$ tree -L 2 1K_PBMC_ATAC_PROCESSED/
+1K_PBMC_ATAC_PROCESSED/
+├── 00_LOGS
+│   ├── 1_L001_atac_count.done
+│   ├── 1_L001_atac_count.log
+│   ├── 1_L001_atac_anndata.done
+│   ├── 1_L001_atac_anndata.log
+│   ├── 1_atac_aggr.done
+│   ├── 1_atac_aggr.log
+│   ├── 1_atac_batch_aggregation.done
+│   ├── 1_atac_batch_aggregation.log
+│   ├── 1_atac_enrichment.done
+│   ├── 1_atac_enrichment.log
+│   ├── 1_L001_scrublet.done
+│   └── 1_L001_scrublet.log
+├── 01_CELLRANGERATAC_COUNT
+│   └── 1_L001
+├── 02_CELLRANGERATAC_AGGR
+│   └── 1_aggregation.csv
+├── 03_ANNDATA
+│   └── 1_L001.h5ad
+├── 04_BATCH_OBJECTS
+│   └── 1_atac.h5ad
+├── 06_DOUBLET_DETECTION
+│   └── 1_L001_scrublet.tsv.gz
+└── 08_FINAL
+    ├── 1_atac.h5ad
+    ├── 1_atac_obs_summary.tsv.gz
+    └── 1_atac_obs.tsv.gz
+```
+
+`00_LOGS/`
+
+This directory contains all the `.log` and `.done` files created throughout the workflow and are organized by `Batch_Capture_modality_rule`. The `.log` files will contain any STDOUT printed from every step of the workflow. This allows you to dive in and interrogate any step of your single-cell preprocessing.
+
+A quick way to find errors if you are debugging the workflow is to run:
+
+```bash
+grep -R "error" 1K_PBMC_ATAC_PROCESSED/00_LOGS
+```
+
+The `.done` files are an internal checklist to keep track of a subset of rules that finished (don't worry about it unless you are a developer and want to contribute to the code base).
+
+`01_CELLRANGERATAC_COUNT/`
+
+Here you will find all of the `Cell Ranger ATAC count` outputs for each individual capture.
+
+`02_CELLRANGERATAC_AGGR/`
+
+This will be the aggregated count matrices across batches. In this tutorial there is only one capture so you won't find any processed data here.
+
+`03_ANNDATA/`
+
+Here you will find an `AnnData` object for every capture.
+
+`04_BATCH_OBJECTS/`
+
+Batch-level `AnnData` object created by merging all per-capture objects from `03_ANNDATA/`. This is the aggregated, pre-metadata-enriched object — all cells from all captures in the batch are present, and `cell_id` uniqueness is verified. It does not yet contain doublet scores or demultiplexing results.
+
+`06_DOUBLET_DETECTION/`
+
+Doublet detection outputs from `Scrublet`.
+
+`08_FINAL/`
+
+The final enriched `AnnData` object with all preprocessing metadata joined in, ready for downstream analysis.
+
+`1_atac.h5ad`
+`1_atac_obs_summary.tsv.gz`
+`1_atac_obs.tsv.gz`
+
+## Load the output for downstream analysis
+
+### Examine barcode metadata
+
+Now that you have successfully preprocessed the dataset [1k PBMCs ATAC](https://www.10xgenomics.com/datasets/1-k-peripheral-blood-mononuclear-cells-pbm-cs-from-a-healthy-donor-next-gem-v-1-1-1-1-standard-2-0-0) we will show a few examples of how you can immediately start analyzing your data!
+
+Check out a summary of the workflow and barcode metadata with these files:
+
+`1_atac_obs.tsv.gz`
+
+```bash
+$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FINAL/1_atac_obs.tsv.gz', sep='\t'); print(df)"
+                      cell_id  n_fragment  frac_dup  frac_mito  batch_id capture_id  ...  total_counts  doublet_scrublet_scrublet_score  doublet_scrublet_scrublet_predicted_doublet
+0   1_L001_AAACGAATCGCATAAC-1       16220  0.621161        0.0         1       L001  ...           0.0                              NaN                                          NaN
+1   1_L001_AAACGAATCTGTGTGA-1        7256  0.636455        0.0         1       L001  ...           0.0                              NaN                                          NaN
+2   1_L001_AAACTCGAGAGGAACA-1       17324  0.592951        0.0         1       L001  ...           0.0                              NaN                                          NaN
+...
+
+[1016 rows x 14 columns]
+```
+
+`1_atac_obs_summary.tsv.gz`
+
+```bash
+$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FINAL/1_atac_obs_summary.tsv.gz', sep='\t'); print(df)"
+   batch_id  n_cells  median_fragments  median_peaks
+0         1     1016               0.0           0.0
+```
+
+### SnapATAC2
+
+> 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_1k_ATAC_analysis.ipynb`](https://github.com/mschecht/cellranger-snakemake/tree/main/tests/notebooks/PBMC_1k_ATAC_analysis.ipynb).
+
+The pipeline produces two objects for ATAC analysis:
+
+- **`03_ANNDATA/1_L001_snap.h5ad`** — SnapATAC2-native per-capture object. Stores raw fragment data in `obsm['fragment_paired']`, which is required for fragment-level analyses like TSS enrichment scoring and fragment size distribution plots.
+- **`08_FINAL/1_atac.h5ad`** — Final enriched scanpy AnnData. Has the cells × peaks matrix, all QC metrics, traceability metadata, and doublet scores — but no raw fragment data.
+
+Load the SnapATAC2-native object for fragment-level QC:
+
+```python
+import snapatac2 as snap
+
+adata_snap = snap.read_dataset("1K_PBMC_ATAC_PROCESSED/03_ANNDATA/1_L001_snap.h5ad")
+
+# Fragment size distribution (nucleosomal banding pattern)
+fig = snap.pl.frag_size_distr(adata_snap, show=False)
+fig.update_yaxes(type="log")
+fig.show()
+
+# TSS enrichment score
+snap.metrics.tsse(adata_snap, snap.genome.hg38)
+snap.pl.tsse(adata_snap)
+```
+
+:::{figure} _images/SnapATAC2_frag_size.png
+:alt: ATAC fragment size distribtution
+:width: 80%
+
+**Fragment size distribution** — nucleosomal banding pattern from 1K PBMC ATAC data.
+:::
+
+:::{figure} _images/SnapATAC2_TSS.png
+:alt: ATAC TSS enrichment
+:width: 80%
+
+**TSS enrichment** — accessibility signal at transcription start sites.
+:::
