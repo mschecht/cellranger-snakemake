@@ -63,7 +63,11 @@ if config.get("cellranger_gex"):
             outdir = GEX_COUNT_DIR,
             chemistry = GEX_CHEMISTRY,
             create_bam = GEX_CREATE_BAM,
-            sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0]
+            sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0],
+            jobmode     = config["cellranger_gex"].get("jobmode"),
+            mempercore  = config["cellranger_gex"].get("mempercore"),
+            maxjobs     = config["cellranger_gex"].get("maxjobs"),
+            jobinterval = config["cellranger_gex"].get("jobinterval")
         threads: config["cellranger_gex"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024,
@@ -80,6 +84,17 @@ if config.get("cellranger_gex"):
             if os.path.exists(lock_file):
                 os.remove(lock_file)
 
+            if params.jobmode and params.jobmode != "local":
+                cluster_flags = f"--jobmode={params.jobmode}"
+                if params.mempercore:
+                    cluster_flags += f" \\\n                    --mempercore={params.mempercore}"
+                if params.maxjobs:
+                    cluster_flags += f" \\\n                    --maxjobs={params.maxjobs}"
+                if params.jobinterval:
+                    cluster_flags += f" \\\n                    --jobinterval={params.jobinterval}"
+            else:
+                cluster_flags = f"--localcores={threads} \\\n                    --localmem={resources.mem_mb // 1024}"
+
             shell(
                 f"""
                 cellranger count \\
@@ -89,6 +104,7 @@ if config.get("cellranger_gex"):
                     --sample={params.sample_name} \\
                     --create-bam={create_bam_str} \\
                     --chemistry={params.chemistry} \\
+                    {cluster_flags} \\
                     2>&1 > {log}
                 """
             )
@@ -199,7 +215,11 @@ if config.get("cellranger_atac"):
             done = touch(os.path.join(ATAC_LOGS_DIR, "{batch}_{capture}_atac_count.done"))
         params:
             outdir = ATAC_COUNT_DIR,
-            sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0]
+            sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0],
+            jobmode     = config["cellranger_atac"].get("jobmode"),
+            mempercore  = config["cellranger_atac"].get("mempercore"),
+            maxjobs     = config["cellranger_atac"].get("maxjobs"),
+            jobinterval = config["cellranger_atac"].get("jobinterval")
         threads: config["cellranger_atac"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
@@ -215,6 +235,17 @@ if config.get("cellranger_atac"):
             if os.path.exists(lock_file):
                 os.remove(lock_file)
 
+            if params.jobmode and params.jobmode != "local":
+                cluster_flags = f"--jobmode={params.jobmode}"
+                if params.mempercore:
+                    cluster_flags += f" \\\n                    --mempercore={params.mempercore}"
+                if params.maxjobs:
+                    cluster_flags += f" \\\n                    --maxjobs={params.maxjobs}"
+                if params.jobinterval:
+                    cluster_flags += f" \\\n                    --jobinterval={params.jobinterval}"
+            else:
+                cluster_flags = f"--localcores={threads} \\\n                    --localmem={resources.mem_mb // 1024}"
+
             shell(
                 f"""
                 cellranger-atac count \\
@@ -222,6 +253,7 @@ if config.get("cellranger_atac"):
                     --reference={input.reference} \\
                     --fastqs={input.fastqs} \\
                     --sample={params.sample_name} \\
+                    {cluster_flags} \\
                     2>&1 > {log}
                 """
             )
@@ -338,7 +370,11 @@ if config.get("cellranger_arc"):
             summary = os.path.join(ARC_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
-            outdir = ARC_COUNT_DIR
+            outdir       = ARC_COUNT_DIR,
+            jobmode      = config["cellranger_arc"].get("jobmode"),
+            mempercore   = config["cellranger_arc"].get("mempercore"),
+            maxjobs      = config["cellranger_arc"].get("maxjobs"),
+            jobinterval  = config["cellranger_arc"].get("jobinterval")
         threads: config["cellranger_arc"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_arc"].get("mem_gb", 64) * 1024,
@@ -354,12 +390,24 @@ if config.get("cellranger_arc"):
             if os.path.exists(lock_file):
                 os.remove(lock_file)
 
+            if params.jobmode and params.jobmode != "local":
+                cluster_flags = f"--jobmode={params.jobmode}"
+                if params.mempercore:
+                    cluster_flags += f" \\\n                    --mempercore={params.mempercore}"
+                if params.maxjobs:
+                    cluster_flags += f" \\\n                    --maxjobs={params.maxjobs}"
+                if params.jobinterval:
+                    cluster_flags += f" \\\n                    --jobinterval={params.jobinterval}"
+            else:
+                cluster_flags = f"--localcores={threads} \\\n                    --localmem={resources.mem_mb // 1024}"
+
             shell(
                 f"""
                 cellranger-arc count \\
                     --id={output_id} \\
                     --reference={input.reference} \\
                     --libraries={input.libraries_csv} \\
+                    {cluster_flags} \\
                     2>&1 > {log}
                 """
             )

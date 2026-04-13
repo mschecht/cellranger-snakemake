@@ -279,6 +279,48 @@ snakemake-run-cellranger run --config-file pipeline_config.yaml \
                              --snakemake-args --profile HPC_profiles --keep-going
 ```
 
+### Cell Ranger cluster mode
+
+By default, `cellranger-atac count` runs all of its internal pipeline stages on the same node as the Snakemake job. On large datasets this can be slow because Cell Ranger ATAC is limited to the cores allocated to that single SLURM job.
+
+**Cluster mode** lets Cell Ranger ATAC submit each of its internal pipeline stages as independent SLURM jobs, parallelizing the work across your cluster. You can read about how to set it up [here](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode)
+
+To enable, add `jobmode` and related fields to `cellranger_atac` in your config:
+
+```yaml
+cellranger_atac:
+  enabled: true
+  reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A
+  libraries: libraries.tsv
+  chemistry: auto
+  normalize: none
+  threads: 1        # lightweight — just the cellranger-atac count wrapper process
+  mem_gb: 8         # memory for the wrapper job only
+  jobmode: slurm    # Cell Ranger ATAC submits its own SLURM subjobs
+  mempercore: 8     # GB of RAM per core on your cluster nodes
+  maxjobs: 64       # max Cell Ranger ATAC subjobs running at once
+  directories:
+    LOGS_DIR: 00_LOGS
+```
+
+| Field | Description |
+|-------|-------------|
+| `jobmode` | `slurm`, `sge`, `lsf`, or a path to a custom `.template` file |
+| `mempercore` | GB of RAM per CPU core on your cluster nodes — tells Cell Ranger ATAC how to size its subjobs |
+| `maxjobs` | Maximum number of Cell Ranger ATAC subjobs submitted at once |
+| `jobinterval` | Milliseconds between job submissions (optional, default is fine) |
+
+> 📌 **Note**: When `jobmode` is set to `slurm`, the `threads` and `mem_gb` fields apply to the lightweight Snakemake wrapper job only — not to Cell Ranger ATAC's internal compute. Reduce them to `threads: 1` and `mem_gb: 8`. Cell Ranger ATAC sizes its own subjobs using `mempercore`.
+
+You can confirm cluster mode is active by checking the log file — each pipeline stage will show `(run:slurm)` instead of `(run:local)`:
+
+```
+2026-04-13 13:20:25 [runtime] (run:slurm)   ID.1_L001.SC_ATAC_COUNTER_CS.WRITE_GENE_INDEX.fork0.chnk0.main
+2026-04-13 13:20:37 [runtime] (run:slurm)   ID.1_L001.SC_ATAC_COUNTER_CS.DETECT_CHEMISTRY.fork0.chnk0.main
+```
+
+**Resuming a killed run**: If the job is killed mid-run, Cell Ranger ATAC's Martian runtime saves checkpoints after each completed stage. The pipeline automatically removes the `_lock` file left by the killed process, so resubmitting the Snakemake job will resume from the last completed stage rather than starting over.
+
 ## Interpreting STDOUT
 
 After starting the program you should see an output that looks like this, let's break it down:
