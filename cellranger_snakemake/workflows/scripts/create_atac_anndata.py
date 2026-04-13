@@ -5,6 +5,7 @@ import sys
 import gzip
 import subprocess
 
+import pandas as pd
 import scanpy as sc
 import snapatac2 as snap
 
@@ -14,6 +15,7 @@ peak_matrix_path = snakemake.input.peak_matrix
 batch_id = snakemake.params.batch
 capture_id = snakemake.params.capture
 output_h5ad = snakemake.output.h5ad
+output_snap_h5ad = snakemake.output.snap_h5ad
 log_file = snakemake.log[0]
 
 # Redirect output to log
@@ -97,18 +99,24 @@ try:
     snap_adata = snap.pp.import_fragments(
         sorted_fragments,
         chrom_sizes=chrom_sizes,
+        file=output_snap_h5ad,
         sorted_by_barcode=True,
         whitelist=filtered_barcodes,
         min_num_fragments=1,
     )
+    print(f"✓ SnapATAC2 dataset saved to: {output_snap_h5ad}")
     print(f"✓ SnapATAC2 QC computed for {snap_adata.n_obs} cells")
 
     # ---- Step 3: Transfer SnapATAC2 QC metrics to peak-matrix AnnData ----
-    qc_cols = [c for c in snap_adata.obs.columns if c.startswith(('n_', 'frac_'))]
+    # When import_fragments writes to file=, .obs is PyDataFrameElem (backed),
+    # not a pandas DataFrame — access known columns directly by name.
+    qc_cols = ['n_fragment', 'frac_dup', 'frac_mito']
     print(f"Transferring QC metrics: {qc_cols}")
 
-    # Align by barcode index (both use Cell Ranger barcodes)
-    snap_obs = snap_adata.obs[qc_cols].reindex(adata.obs.index)
+    snap_obs = pd.DataFrame(
+        {col: list(snap_adata.obs[col]) for col in qc_cols},
+        index=list(snap_adata.obs_names),
+    ).reindex(adata.obs.index)
     for col in qc_cols:
         adata.obs[col] = snap_obs[col].values
 

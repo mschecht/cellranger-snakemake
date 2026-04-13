@@ -58,6 +58,7 @@ if config.get("cellranger_atac"):
             count_done = os.path.join(LOGS_DIR, "{batch}_{capture}_atac_count.done")
         output:
             h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}.h5ad"),
+            snap_h5ad = os.path.join(ANNDATA_DIR, "{batch}_{capture}_snap.h5ad"),
             done = touch(os.path.join(LOGS_DIR, "{batch}_{capture}_atac_anndata.done"))
         params:
             batch = "{batch}",
