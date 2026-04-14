@@ -242,9 +242,6 @@ dependencies:
   - anndata>=0.10
   - muon>=0.1.6
   - snapatac2>=2.6
-  - scvi-tools>=1.1
-  - celltypist>=1.6
-  - decoupler>=1.7
   - scrublet>=0.2.3
   - leidenalg
   - pip:
