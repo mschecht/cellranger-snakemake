@@ -17,7 +17,6 @@ log_file = snakemake.log[0]
 # Directories for metadata files
 demux_dir = snakemake.params.get("demux_dir")
 doublet_dir = snakemake.params.get("doublet_dir")
-annotation_dir = snakemake.params.get("annotation_dir")
 
 # Redirect output to log
 sys.stdout = open(log_file, 'w')
@@ -104,9 +103,8 @@ try:
     #   col 0 = plain barcodes, joined to obs via cell_id
     # ========================================================================
     steps = [
-        (demux_dir,      "demux",    "demultiplexing"),
-        (doublet_dir,    "doublet",  "doublet_detection"),
-        (annotation_dir, "celltype", "celltype_annotation"),
+        (demux_dir,   "demux",   "demultiplexing"),
+        (doublet_dir, "doublet", "doublet_detection"),
     ]
 
     for step_dir, col_prefix, label in steps:

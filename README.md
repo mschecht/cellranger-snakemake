@@ -13,7 +13,7 @@ to deploy in high-performance computing or cloud environments. By combining Snak
 
 - **Per-capture objects**: AnnData/MuData objects created immediately after Cell Ranger count (one per capture), then aggregated into batch-level objects
 - **Traceability**: All objects include `batch_id`, `capture_id`, and globally unique `cell_id` metadata
-- **Python-only tools**: Doublet detection (Scrublet, SOLO), cell type annotation (celltypist, scANVI, decoupler), demultiplexing (Vireo, demuxalot)
+- **Python-only tools**: Doublet detection (Scrublet), demultiplexing (Vireo, demuxalot)
 - **Metadata enrichment**: Analysis results automatically merged into final batch objects
 - **Multi-modality**: Supports GEX, ATAC, and ARC (multiome) workflows
 

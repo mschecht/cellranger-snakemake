@@ -158,12 +158,11 @@ if config.get("cellranger_arc"):
 # ============================================================================
 
 # Final output directory
-FINAL_DIR = os.path.join(config.get("output_dir", "output"), "08_FINAL")
+FINAL_DIR = OUTPUT_DIRS.get("final_dir")
 
 # Directories for metadata sources
 DEMUX_DIR = OUTPUT_DIRS.get("demultiplexing_dir")
 DOUBLET_DIR = OUTPUT_DIRS.get("doublet_detection_dir")
-ANNOTATION_DIR = OUTPUT_DIRS.get("celltype_annotation_dir")
 
 
 if config.get("cellranger_gex"):
@@ -181,8 +180,7 @@ if config.get("cellranger_gex"):
             batch = "{batch}",
             modality = "gex",
             demux_dir = DEMUX_DIR,
-            doublet_dir = DOUBLET_DIR,
-            annotation_dir = ANNOTATION_DIR
+            doublet_dir = DOUBLET_DIR
         log:
             os.path.join(LOGS_DIR, "{batch}_gex_enrichment.log")
         script:
@@ -204,8 +202,7 @@ if config.get("cellranger_atac"):
             batch = "{batch}",
             modality = "atac",
             demux_dir = DEMUX_DIR,
-            doublet_dir = DOUBLET_DIR,
-            annotation_dir = ANNOTATION_DIR
+            doublet_dir = DOUBLET_DIR
         log:
             os.path.join(LOGS_DIR, "{batch}_atac_enrichment.log")
         script:
@@ -227,8 +224,7 @@ if config.get("cellranger_arc"):
             batch = "{batch}",
             modality = "arc",
             demux_dir = DEMUX_DIR,
-            doublet_dir = DOUBLET_DIR,
-            annotation_dir = ANNOTATION_DIR
+            doublet_dir = DOUBLET_DIR
         log:
             os.path.join(LOGS_DIR, "{batch}_arc_enrichment.log")
         script:

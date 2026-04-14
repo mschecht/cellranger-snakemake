@@ -20,7 +20,7 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 
 ### 2. Python-Only Stack
 - **NEVER** use R-based tools (e.g., DoubletFinder, Azimuth, SingleR)
-- Always use Python equivalents: scanpy, snapatac2, muon, scvi-tools, celltypist, decoupler
+- Always use Python equivalents: scanpy, snapatac2, muon
 - This is a **hard requirement**
 
 ### 3. Traceability is Critical
@@ -54,8 +54,7 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 04_BATCH_OBJECTS/           - Batch-level aggregated objects
 05_DEMULTIPLEXING/          - Demux outputs (per-capture)
 06_DOUBLET_DETECTION/       - Doublet outputs (per-capture)
-07_CELLTYPE_ANNOTATION/     - Annotation outputs (per-capture)
-08_FINAL/                   - Future use
+07_FINAL/                   - Future use
 ```
 
 **Do NOT** renumber directories without explicit approval.
@@ -151,9 +150,6 @@ from cellranger_snakemake.config_validator import parse_output_directories
 - `snapatac2>=2.6` (ATAC) — installed: 2.9.0
 
 ### Analysis Tools
-- `scvi-tools>=1.1` (SOLO, scANVI)
-- `celltypist>=1.6` (cell type annotation)
-- `decoupler>=1.7` (marker-based annotation)
 - `scrublet>=0.2.3` (doublet detection)
 
 ### Other
