@@ -66,48 +66,10 @@ class ScrubletConfig(BaseModel):
         extra = "forbid"
 
 
-class SoloConfig(BaseModel):
-    """SOLO (from scvi-tools) doublet detection parameters."""
-
-    tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="scvi-tools",
-        url="https://docs.scvi-tools.org/en/stable/user_guide/models/solo.html",
-    )
-
-    n_hidden: int = Field(
-        default=128,
-        ge=1,
-        description="Number of hidden units"
-    )
-    n_latent: int = Field(
-        default=64,
-        ge=1,
-        description="Latent space dimensionality"
-    )
-    n_layers: int = Field(
-        default=1,
-        ge=1,
-        description="Number of hidden layers"
-    )
-    learning_rate: float = Field(
-        default=1e-3,
-        gt=0.0,
-        description="Learning rate"
-    )
-    max_epochs: int = Field(
-        default=400,
-        ge=1,
-        description="Maximum training epochs"
-    )
-
-    class Config:
-        extra = "forbid"
-
-
 class DoubletDetectionConfig(BaseStepConfig):
     """Doublet detection step configuration"""
 
-    method: Literal["scrublet", "solo"] = Field(
+    method: Literal["scrublet"] = Field(
         description="Doublet detection method to use"
     )
 
@@ -116,14 +78,12 @@ class DoubletDetectionConfig(BaseStepConfig):
 
     # Method-specific parameters
     scrublet: Optional[ScrubletConfig] = None
-    solo: Optional[SoloConfig] = None
 
     @model_validator(mode='after')
     def validate_method_params(self):
         """Ensure the correct parameters are provided for the selected method."""
         method_configs = {
             "scrublet": self.scrublet,
-            "solo": self.solo,
         }
 
         selected_config = method_configs.get(self.method)
@@ -132,10 +92,5 @@ class DoubletDetectionConfig(BaseStepConfig):
                 f"Parameters for method '{self.method}' are required. "
                 f"Please provide a '{self.method}' configuration block."
             )
-
-        # Warn if other method configs are present
-        other_configs = {k: v for k, v in method_configs.items() if k != self.method and v is not None}
-        if other_configs:
-            print(f"Warning: Ignoring unused doublet detection configs: {list(other_configs.keys())}")
 
         return self
