@@ -55,9 +55,6 @@ if "demultiplexing" in ENABLED_STEPS:
 if "doublet_detection" in ENABLED_STEPS:
     include: "rules/doublet_detection.smk"
 
-if "celltype_annotation" in ENABLED_STEPS:
-    include: "rules/celltype_annotation.smk"
-
 
 # Master rule - collects all final outputs
 rule all:

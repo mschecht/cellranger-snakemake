@@ -14,12 +14,7 @@ from cellranger_snakemake.schemas.cellranger import (
 from cellranger_snakemake.schemas.demultiplexing import (
     DemuxalotConfig, VireoConfig
 )
-from cellranger_snakemake.schemas.doublet_detection import (
-    ScrubletConfig, SoloConfig
-)
-from cellranger_snakemake.schemas.annotation import (
-    CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig, CelltypistCustomConfig
-)
+from cellranger_snakemake.schemas.doublet_detection import ScrubletConfig
 
 
 # Pipeline directory structure - update this when adding new analysis steps
@@ -34,9 +29,8 @@ PIPELINE_DIRECTORIES = [
     ("anndata", "03_ANNDATA"),  # Phase 1: Per-capture AnnData/MuData objects
     ("batch_objects", "04_BATCH_OBJECTS"),  # Phase 5: Batch-level aggregated objects
     ("demultiplexing", "05_DEMULTIPLEXING"),  # Renumbered
-    ("doublet_detection", "06_DOUBLET_DETECTION"),  # Renumbered
-    ("celltype_annotation", "07_CELLTYPE_ANNOTATION"),  # Renumbered
-    ("final", "08_FINAL"),  # Future: Final merged objects with all metadata
+    ("doublet_detection", "06_DOUBLET_DETECTION"),
+    ("final", "07_FINAL"),  # Future: Final merged objects with all metadata
 ]
 
 
@@ -116,13 +110,6 @@ class ConfigValidator:
         },
         "doublet_detection": {
             "scrublet": ScrubletConfig,
-            "solo": SoloConfig,
-        },
-        "celltype_annotation": {
-            "celltypist": CelltypistConfig,
-            "scanvi": ScANVIConfig,
-            "decoupler_markers": DecouplerMarkerConfig,
-            "celltypist_custom": CelltypistCustomConfig,
         },
     }
     
@@ -230,15 +217,6 @@ class ConfigValidator:
                 _check(config.demultiplexing.demuxalot.genome_names, "demultiplexing.demuxalot.genome_names")
             if config.demultiplexing.vireo:
                 _check(config.demultiplexing.vireo.cellsnp.vcf, "demultiplexing.vireo.cellsnp.vcf")
-
-        # Cell type annotation
-        if config.celltype_annotation and config.celltype_annotation.enabled:
-            if config.celltype_annotation.celltypist_custom:
-                _check(config.celltype_annotation.celltypist_custom.training_data,
-                       "celltype_annotation.celltypist_custom.training_data")
-            if config.celltype_annotation.sctype and config.celltype_annotation.sctype.marker_database:
-                _check(config.celltype_annotation.sctype.marker_database,
-                       "celltype_annotation.sctype.marker_database")
 
         # Sample-level paths
         for sample_id, sample in config.samples.items():

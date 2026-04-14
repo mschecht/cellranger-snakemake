@@ -76,11 +76,7 @@ from cellranger_snakemake.schemas.demultiplexing import (
     VireoConfig, CellSNPConfig
 )
 from cellranger_snakemake.schemas.doublet_detection import (
-    DoubletDetectionConfig, ScrubletConfig, SoloConfig
-)
-from cellranger_snakemake.schemas.annotation import (
-    CelltypeAnnotationConfig, CelltypistConfig, ScANVIConfig,
-    DecouplerMarkerConfig, CelltypistCustomConfig
+    DoubletDetectionConfig, ScrubletConfig
 )
 
 
@@ -138,12 +134,6 @@ class ConfigGenerator:
                 scrublet=ScrubletConfig()
             ),
             
-            # Cell type annotation config - disabled by default
-            "celltype_annotation": CelltypeAnnotationConfig(
-                enabled=False,
-                method="celltypist",
-                celltypist=CelltypistConfig(model="Immune_All_Low.pkl")
-            ),
         }
         
         return PipelineConfig(**config_dict)
@@ -192,10 +182,6 @@ class ConfigGenerator:
         # Doublet detection
         if Confirm.ask("\nEnable doublet detection?", default=False):
             config_dict["doublet_detection"] = self._configure_doublet_detection()
-        
-        # Cell type annotation
-        if Confirm.ask("\nEnable cell type annotation?", default=False):
-            config_dict["celltype_annotation"] = self._configure_celltype_annotation()
         
         # Create and validate config
         return PipelineConfig(**config_dict)
@@ -283,10 +269,10 @@ class ConfigGenerator:
         return DemultiplexingConfig(method=method, **{method: method_config})
     
     def _configure_doublet_detection(self) -> DoubletDetectionConfig:
-        """Configure doublet detection (Python-only)."""
+        """Configure doublet detection."""
         method = Prompt.ask(
             "  Doublet detection method",
-            choices=["scrublet", "solo"],
+            choices=["scrublet"],
             default="scrublet"
         )
 
@@ -305,89 +291,7 @@ class ConfigGenerator:
                 n_prin_comps=n_prin_comps
             )
 
-        elif method == "solo":
-            n_hidden = IntPrompt.ask("    Number of hidden units", default=128)
-            n_latent = IntPrompt.ask("    Latent dimensionality", default=64)
-            n_layers = IntPrompt.ask("    Number of layers", default=1)
-            learning_rate = FloatPrompt.ask("    Learning rate", default=1e-3)
-            max_epochs = IntPrompt.ask("    Maximum epochs", default=400)
-            method_config = SoloConfig(
-                n_hidden=n_hidden,
-                n_latent=n_latent,
-                n_layers=n_layers,
-                learning_rate=learning_rate,
-                max_epochs=max_epochs
-            )
-
         return DoubletDetectionConfig(method=method, **{method: method_config})
-    
-    def _configure_celltype_annotation(self) -> CelltypeAnnotationConfig:
-        """Configure cell type annotation (Python-only)."""
-        method = Prompt.ask(
-            "  Annotation method",
-            choices=["celltypist", "scanvi", "decoupler_markers", "celltypist_custom"],
-            default="celltypist"
-        )
-
-        method_config = None
-        if method == "celltypist":
-            model = Prompt.ask("    Model name or path")
-            majority_voting = Confirm.ask("    Use majority voting?", default=False)
-            over_clustering = None
-            min_prop = 0.5
-            if majority_voting:
-                over_clustering = Prompt.ask("    Over-clustering column (optional)", default=None)
-                min_prop = FloatPrompt.ask("    Minimum proportion", default=0.5)
-            method_config = CelltypistConfig(
-                model=model,
-                majority_voting=majority_voting,
-                over_clustering=over_clustering,
-                min_prop=min_prop
-            )
-
-        elif method == "scanvi":
-            reference_path = Prompt.ask("    Reference AnnData (.h5ad) path")
-            label_key = Prompt.ask("    Label column in reference", default="cell_type")
-            n_hidden = IntPrompt.ask("    Number of hidden units", default=128)
-            n_latent = IntPrompt.ask("    Latent dimensionality", default=30)
-            n_layers = IntPrompt.ask("    Number of layers", default=2)
-            max_epochs = IntPrompt.ask("    Maximum epochs", default=400)
-            method_config = ScANVIConfig(
-                reference_path=reference_path,
-                label_key=label_key,
-                n_hidden=n_hidden,
-                n_latent=n_latent,
-                n_layers=n_layers,
-                max_epochs=max_epochs
-            )
-
-        elif method == "decoupler_markers":
-            marker_database = Prompt.ask("    Marker database path or tissue type")
-            method_choice = Prompt.ask(
-                "    Scoring method",
-                choices=["ulm", "wsum", "ora", "aucell"],
-                default="ulm"
-            )
-            min_score = FloatPrompt.ask("    Minimum score threshold", default=0.5)
-            method_config = DecouplerMarkerConfig(
-                marker_database=marker_database,
-                method=method_choice,
-                min_score=min_score
-            )
-
-        elif method == "celltypist_custom":
-            training_data = Prompt.ask("    Training data path")
-            label_column = Prompt.ask("    Label column")
-            feature_selection = Confirm.ask("    Use feature selection?", default=True)
-            n_jobs = IntPrompt.ask("    Number of parallel jobs", default=1)
-            method_config = CelltypistCustomConfig(
-                training_data=training_data,
-                label_column=label_column,
-                feature_selection=feature_selection,
-                n_jobs=n_jobs
-            )
-
-        return CelltypeAnnotationConfig(method=method, **{method: method_config})
     
     def save_config(self, config: PipelineConfig, output_path: str):
         """Save configuration to YAML file."""

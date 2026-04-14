@@ -50,10 +50,6 @@ def build_all_targets(config, enabled_steps):
     if "doublet_detection" in enabled_steps:
         targets.extend(get_doublet_outputs(config))
 
-    # Annotation outputs
-    if "celltype_annotation" in enabled_steps:
-        targets.extend(get_annotation_outputs(config))
-
     # Final enriched objects (merge all metadata into batch objects)
     if any(step in enabled_steps for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc"]):
         targets.extend(get_enriched_object_outputs(config))
@@ -375,35 +371,3 @@ def get_doublet_outputs(config):
     return outputs
 
 
-def get_annotation_outputs(config):
-    """
-    Get cell type annotation output file paths (per-capture sidecar TSVs).
-
-    Args:
-        config: Snakemake config dictionary
-
-    Returns:
-        list: Paths to annotation .done files
-    """
-    if not config.get("celltype_annotation"):
-        return []
-
-    output_dirs = parse_output_directories(config)
-    annot_config = config["celltype_annotation"]
-    method = annot_config["method"]
-    logs_dir = output_dirs["logs_dir"]
-
-    outputs = []
-
-    # Get per-capture outputs from cellranger GEX if available
-    if config.get("cellranger_gex"):
-        gex_config = config["cellranger_gex"]
-        df = pd.read_csv(gex_config["libraries"], sep="\t")
-
-        for _, row in df.iterrows():
-            batch = row['batch']
-            capture = row['capture']
-            # Output pattern: {batch}_{capture}_{method}.done
-            outputs.append(os.path.join(logs_dir, f"{batch}_{capture}_{method}.done"))
-
-    return outputs

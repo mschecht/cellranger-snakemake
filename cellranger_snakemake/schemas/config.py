@@ -6,7 +6,6 @@ from .base import ResourceConfig
 from .cellranger import CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 from .demultiplexing import DemultiplexingConfig
 from .doublet_detection import DoubletDetectionConfig
-from .annotation import CelltypeAnnotationConfig
 
 
 class SampleMetadata(BaseModel):
@@ -72,11 +71,6 @@ class PipelineConfig(BaseModel):
         default=None,
         description="Doublet detection configuration"
     )
-    celltype_annotation: Optional[CelltypeAnnotationConfig] = Field(
-        default=None,
-        description="Cell type annotation configuration"
-    )
-    
     class Config:
         extra = "forbid"
         validate_assignment = True
@@ -119,7 +113,6 @@ class PipelineConfig(BaseModel):
             "cellranger_arc": self.cellranger_arc,
             "demultiplexing": self.demultiplexing,
             "doublet_detection": self.doublet_detection,
-            "celltype_annotation": self.celltype_annotation,
         }
         
         for step_name, step_config in step_configs.items():
