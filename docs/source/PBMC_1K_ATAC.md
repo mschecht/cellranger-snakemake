@@ -66,14 +66,12 @@ Enable Cell Ranger ARC? [y/n] (n): n
 Enable demultiplexing? [y/n] (n): n
 
 Enable doublet detection? [y/n] (n): y
-  Doublet detection method [scrublet/solo] (scrublet):
+  Doublet detection method [scrublet] (scrublet):
     Expected doublet rate (0.06):
     Min genes per cell (filter_cells_min_genes) (100):
     Min cells per gene (filter_genes_min_cells) (3):
     Min gene variability percentile (85.0):
     Number of principal components (30):
-
-Enable cell type annotation? [y/n] (n): n
 
 Saving configuration to 'pipeline_config.yaml'...
 
@@ -463,7 +461,7 @@ $ tree -L 2 1K_PBMC_ATAC_PROCESSED/
 │   └── 1_atac.h5ad
 ├── 06_DOUBLET_DETECTION
 │   └── 1_L001_scrublet.tsv.gz
-└── 08_FINAL
+└── 07_FINAL
     ├── 1_atac.h5ad
     ├── 1_atac_obs_summary.tsv.gz
     └── 1_atac_obs.tsv.gz
@@ -501,7 +499,7 @@ Batch-level `AnnData` object created by merging all per-capture objects from `03
 
 Doublet detection outputs from `Scrublet`.
 
-`08_FINAL/`
+`07_FINAL/`
 
 The final enriched `AnnData` object with all preprocessing metadata joined in, ready for downstream analysis.
 
@@ -520,7 +518,7 @@ Check out a summary of the workflow and barcode metadata with these files:
 `1_atac_obs.tsv.gz`
 
 ```bash
-$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FINAL/1_atac_obs.tsv.gz', sep='\t'); print(df)"
+$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/07_FINAL/1_atac_obs.tsv.gz', sep='\t'); print(df)"
                       cell_id  n_fragment  frac_dup  frac_mito  batch_id capture_id  ...  total_counts  doublet_scrublet_scrublet_score  doublet_scrublet_scrublet_predicted_doublet
 0   1_L001_AAACGAATCGCATAAC-1       16220  0.621161        0.0         1       L001  ...           0.0                              NaN                                          NaN
 1   1_L001_AAACGAATCTGTGTGA-1        7256  0.636455        0.0         1       L001  ...           0.0                              NaN                                          NaN
@@ -533,7 +531,7 @@ $ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FI
 `1_atac_obs_summary.tsv.gz`
 
 ```bash
-$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FINAL/1_atac_obs_summary.tsv.gz', sep='\t'); print(df)"
+$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/07_FINAL/1_atac_obs_summary.tsv.gz', sep='\t'); print(df)"
    batch_id  n_cells  median_fragments  median_peaks
 0         1     1016               0.0           0.0
 ```
@@ -545,7 +543,7 @@ $ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_ATAC_PROCESSED/08_FI
 The pipeline produces two objects for ATAC analysis:
 
 - **`03_ANNDATA/1_L001_snap.h5ad`** — SnapATAC2-native per-capture object. Stores raw fragment data in `obsm['fragment_paired']`, which is required for fragment-level analyses like TSS enrichment scoring and fragment size distribution plots.
-- **`08_FINAL/1_atac.h5ad`** — Final enriched scanpy AnnData. Has the cells × peaks matrix, all QC metrics, traceability metadata, and doublet scores — but no raw fragment data.
+- **`07_FINAL/1_atac.h5ad`** — Final enriched scanpy AnnData. Has the cells × peaks matrix, all QC metrics, traceability metadata, and doublet scores — but no raw fragment data.
 
 Load the SnapATAC2-native object for fragment-level QC:
 

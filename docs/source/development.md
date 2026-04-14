@@ -49,7 +49,7 @@ rule my_rule:
 
 ## Key Concepts
 
-**Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing, doublet detection, or cell type annotation. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + [vireo](https://github.com/single-cell-genetics/vireo) or [demuxalot](https://github.com/arogozhnikov/demuxalot).
+**Preprocessing Step**: A preprocessing stage in single-cell analysis, such as demultiplexing or doublet detection. Each step has its own Snakemake rule file (`workflows/rules/<step>.smk`) and Pydantic schema (`schemas/<step>.py`) to encourage expansion to different tool options that solve the same preprocessing step e.g. [cellsnp-lite](https://github.com/single-cell-genetics/cellsnp-lite) + [vireo](https://github.com/single-cell-genetics/vireo) or [demuxalot](https://github.com/arogozhnikov/demuxalot).
 
 **Method**: A software tool that implements a **preprocessing step**. For example, the demultiplexing step supports two methods: [vireo](https://github.com/single-cell-genetics/vireo) and [demuxalot](https://github.com/arogozhnikov/demuxalot). Adding a new method means integrating another tool into an existing prepcrocessing step.
 
@@ -78,8 +78,7 @@ cellranger_snakemake/
 │   ├── config.py                   # PipelineConfig (unified schema)
 │   ├── cellranger.py               # GEX/ATAC/ARC Cell Ranger configs
 │   ├── demultiplexing.py           # DemuxalotConfig, VireoConfig
-│   ├── doublet_detection.py        # ScrubletConfig, SoloConfig
-│   └── annotation.py               # CelltypistConfig, ScANVIConfig, DecouplerMarkerConfig
+│   └── doublet_detection.py        # ScrubletConfig
 ├── workflows/
 │   ├── main.smk                    # Master workflow, rule all, includes
 │   ├── rules/                      # One .smk file per pipeline step
@@ -87,8 +86,7 @@ cellranger_snakemake/
 │   │   ├── object_creation.smk     # Per-capture AnnData/MuData creation
 │   │   ├── batch_aggregation.smk   # Batch-level aggregation + metadata enrichment
 │   │   ├── demultiplexing.smk      # Demuxalot/Vireo
-│   │   ├── doublet_detection.smk   # Scrublet/SOLO
-│   │   └── celltype_annotation.smk # Celltypist/scANVI/Decoupler
+│   │   └── doublet_detection.smk   # Scrublet
 │   └── scripts/
 │       ├── build_targets.py        # Generates target files for rule all
 │       ├── parse_config.py         # Extracts enabled steps, methods, etc.
@@ -97,11 +95,7 @@ cellranger_snakemake/
 │       ├── create_arc_mudata.py    # ARC per-capture MuData creation
 │       ├── aggregate_batch.py      # Batch aggregation (per-capture → batch)
 │       ├── merge_metadata.py       # Merge analysis metadata into batch objects
-│       ├── run_scrublet.py         # Scrublet doublet detection
-│       ├── run_solo.py             # SOLO doublet detection
-│       ├── run_celltypist.py       # Celltypist annotation
-│       ├── run_scanvi.py           # scANVI annotation
-│       └── run_decoupler_markers.py # Decoupler marker-based annotation
+│       └── run_scrublet.py         # Scrublet doublet detection
 tests/
 ├── test.sh                         # Integration test script
 ├── 00_TEST_DATA_GEX/               # Test configs and library lists
@@ -136,19 +130,19 @@ Phase 3: Per-capture object creation (AnnData/MuData with traceability metadata)
 Phase 4: Batch aggregation (merge per-capture objects)
   → 04_BATCH_OBJECTS/{batch}_{modality}.h5ad|h5mu
 
-Phase 5-7: Per-capture analysis (demux, doublet, annotation — run in parallel)
-  → 05_DEMULTIPLEXING/, 06_DOUBLET_DETECTION/, 07_CELLTYPE_ANNOTATION/
+Phase 5-6: Per-capture analysis (demux, doublet — run in parallel)
+  → 05_DEMULTIPLEXING/, 06_DOUBLET_DETECTION/
 
-Phase 8: Metadata enrichment (merge analysis results into batch objects)
-  → 08_FINAL/{batch}_{modality}.h5ad|h5mu
+Phase 7: Metadata enrichment (merge analysis results into batch objects)
+  → 07_FINAL/{batch}_{modality}.h5ad|h5mu
 ```
 
 **Metadata enrichment** is the final phase. The rules live in `batch_aggregation.smk` (alongside the aggregation rules) and the logic is in `scripts/merge_metadata.py`. For each batch, enrichment:
 
 1. Reads the batch object from `04_BATCH_OBJECTS/`
-2. Searches `05_DEMULTIPLEXING/`, `06_DOUBLET_DETECTION/`, and `07_CELLTYPE_ANNOTATION/` for per-capture result files
+2. Searches `05_DEMULTIPLEXING/` and `06_DOUBLET_DETECTION/` for per-capture result files
 3. Joins analysis metadata onto `adata.obs` using `cell_id` as the key
-4. Writes the enriched object to `08_FINAL/`
+4. Writes the enriched object to `07_FINAL/`
 
 Enrichment is always the last step. It runs for every enabled modality regardless of which analysis steps are enabled — if no analysis metadata is found, it copies the batch object as-is.
 
@@ -170,7 +164,7 @@ Target generation for enrichment is handled by `get_enriched_object_outputs()` i
 6. [Test](#testing)
 7. [Document](#building-and-editing-documentation)
 
-**Adding a new pipeline step** (e.g., cell type annotation):
+**Adding a new pipeline step** (e.g., a new QC filter or analysis method):
 
 1. Create the Pydantic schema in `schemas/<new_step>.py`
 2. Register the output directory in `config_validator.py`
@@ -369,43 +363,39 @@ See [Testing](#testing) below.
 
 ### Adding a New Pipeline Step
 
-This example shows how cell type annotation was added as a pipeline step. Use this as a template for adding new steps.
+Follow these steps to add a new preprocessing step (e.g., a quality-control filter, RNA velocity, etc.):
 
 #### Step 1: Create the Pydantic schema
 
-Create `cellranger_snakemake/schemas/annotation.py`:
+Create `cellranger_snakemake/schemas/<new_step>.py`:
 
 ```python
-"""Cell type annotation configuration schemas."""
+"""<Step name> configuration schemas."""
 
 from typing import ClassVar, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
 from .base import BaseStepConfig, ToolMeta
 
 
-class CelltypistConfig(BaseModel):
-    """Celltypist annotation parameters."""
+class MyMethodConfig(BaseModel):
+    """Parameters for my method."""
 
     tool_meta: ClassVar[ToolMeta] = ToolMeta(
-        package="celltypist",
-        url="https://github.com/Teichlab/celltypist",
+        package="my-package",
+        url="https://github.com/my/package",
     )
 
-    model: str = Field(description="Path to celltypist model file or model name")
-    majority_voting: bool = Field(default=False, description="Use majority voting")
+    my_param: str = Field(description="An example parameter")
 
     class Config:
         extra = "forbid"
 
 
-class CelltypeAnnotationConfig(BaseStepConfig):
-    """Cell type annotation step configuration."""
+class MyStepConfig(BaseStepConfig):
+    """My new step configuration."""
 
-    method: Literal["celltypist", "azimuth", "singler", "sctype"] = Field(
-        description="Cell type annotation method to use"
-    )
-    celltypist: Optional[CelltypistConfig] = None
-    # ... other method configs ...
+    method: Literal["my_method"] = Field(description="Method to use")
+    my_method: Optional[MyMethodConfig] = None
 
     @model_validator(mode='after')
     def validate_method_params(self):
@@ -418,11 +408,8 @@ class CelltypeAnnotationConfig(BaseStepConfig):
 After Step 1, verify the new step and its methods are visible:
 
 ```bash
-# Confirm the new step appears with its methods
 snakemake-run-cellranger list-methods
-
-# Confirm schema fields are correct
-snakemake-run-cellranger show-params --step celltype_annotation --method celltypist
+snakemake-run-cellranger show-params --step my_step --method my_method
 ```
 
 #### Step 2: Register the output directory
@@ -430,120 +417,26 @@ snakemake-run-cellranger show-params --step celltype_annotation --method celltyp
 In `cellranger_snakemake/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
 
 ```python
-PIPELINE_DIRECTORIES = [
-    ("logs", "00_LOGS"),
-    # ... existing entries ...
-    ("celltype_annotation", "07_CELLTYPE_ANNOTATION"),
-]
+("my_step", "0N_MY_STEP"),
 ```
 
 #### Step 3: Register the step in parse_config.py
 
-In `cellranger_snakemake/workflows/scripts/parse_config.py`, add the step name to the `get_enabled_steps` list:
-
-```python
-for step in ["cellranger_gex", "cellranger_atac", "cellranger_arc",
-             "demultiplexing", "doublet_detection", "celltype_annotation"]:
-```
+Add the step name to the `get_enabled_steps` list in `schemas/config.py`.
 
 #### Step 4: Add target generation in build_targets.py
 
-In `cellranger_snakemake/workflows/scripts/build_targets.py`:
-
-1. Add a call in `build_all_targets()`:
-
-```python
-if "celltype_annotation" in enabled_steps:
-    targets.extend(get_annotation_outputs(config))
-```
-
-2. Add the target function:
-
-```python
-def get_annotation_outputs(config):
-    if not config.get("celltype_annotation"):
-        return []
-
-    output_dirs = parse_output_directories(config)
-    logs_dir = output_dirs["logs_dir"]
-    annot_config = config["celltype_annotation"]
-    method = annot_config["method"]
-
-    outputs = []
-    if config.get("cellranger_gex"):
-        df = pd.read_csv(config["cellranger_gex"]["libraries"], sep="\t")
-        batches = df['batch'].unique().tolist()
-        captures = df['capture'].unique().tolist()
-
-        for batch in batches:
-            for capture in captures:
-                outputs.append(os.path.join(logs_dir, f"{method}_output_{batch}_{capture}.done"))
-
-    return outputs
-```
+Add a call in `build_all_targets()` and a `get_<step>_outputs()` function following the pattern of `get_doublet_outputs()`.
 
 #### Checkpoint: Verify config validation
 
-After Steps 2-4, create a test config with the new step enabled and verify it validates:
-
 ```bash
-# Config should validate without errors
 snakemake-run-cellranger validate-config --config-file your_test_config.yaml
 ```
 
-This confirms the schema, output directory, `parse_config.py`, and `build_targets.py` are all wired up correctly. The dry run won't work yet — you need the rule file first.
-
 #### Step 5: Create the rule file
 
-Create `cellranger_snakemake/workflows/rules/celltype_annotation.smk`:
-
-```python
-"""Cell type annotation workflow rules."""
-
-import os
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
-from custom_logger import custom_logger
-
-if config.get("celltype_annotation"):
-    ANNOT_CONFIG = config["celltype_annotation"]
-    ANNOT_METHOD = ANNOT_CONFIG["method"]
-
-    custom_logger.info(f"Cell Type Annotation: Using {ANNOT_METHOD} method")
-
-# ============================================================================
-# CELLTYPIST
-# ============================================================================
-
-if config.get("celltype_annotation") and ANNOT_METHOD == "celltypist":
-
-    rule celltypist:
-        """Run Celltypist for cell type annotation."""
-        input:
-            h5 = "{sample}/outs/filtered_feature_bc_matrix.h5"
-        output:
-            predictions = "{sample}/celltypist/predicted_labels.csv",
-            done = touch("{sample}/celltypist/{sample}_celltypist.done")
-        params:
-            model = ANNOT_CONFIG.get("celltypist", {}).get("model", "Immune_All_Low.pkl")
-        threads: config["celltype_annotation"].get("threads", 1)
-        resources:
-            mem_mb = config["celltype_annotation"].get("mem_gb", 16) * 1024,
-            tmpdir = RESOURCES.get("tmpdir") or gettempdir()
-        script:
-            "../scripts/run_celltypist.py"
-```
-
-Always include `threads:` and `resources:` — without them SLURM defaults to 1 GB and jobs will OOM on real data. Add `threads` and `mem_gb` to the top-level config class in `schemas/<new_step>.py`:
-
-```python
-threads: int = Field(default=1, ge=1, description="Number of threads")
-mem_gb: int = Field(default=16, ge=1, description="Memory in GB")
-```
-
-Import `gettempdir` at the top of the `.smk` file — it is not inherited from other rule files:
+Create `cellranger_snakemake/workflows/rules/<new_step>.smk`. Always include `threads:` and `resources:` — without them SLURM defaults to 1 GB and jobs will OOM on real data. Import `gettempdir` explicitly:
 
 ```python
 from tempfile import gettempdir
@@ -551,11 +444,9 @@ from tempfile import gettempdir
 
 #### Step 6: Include the rule file in main.smk
 
-In `cellranger_snakemake/workflows/main.smk`:
-
 ```python
-if "celltype_annotation" in ENABLED_STEPS:
-    include: "rules/celltype_annotation.smk"
+if "my_step" in ENABLED_STEPS:
+    include: "rules/my_step.smk"
 ```
 
 #### Step 7: Create a dummy rule and test the DAG
@@ -565,7 +456,7 @@ Before implementing the actual tool logic, write a dummy `shell` block:
 ```python
 shell:
     """
-    echo "Placeholder for celltypist"
+    echo "Placeholder for my_method"
     touch {output.predictions}
     """
 ```

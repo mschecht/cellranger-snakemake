@@ -113,24 +113,17 @@ demultiplexing:
       gzip: true
 doublet_detection:
   enabled: false
-  method: scrublet                       # Options: scrublet, solo
+  method: scrublet
   scrublet:
     expected_doublet_rate: 0.06
     min_counts: 2
     min_cells: 3
-celltype_annotation:
-  enabled: false
-  method: celltypist                     # Options: celltypist, scanvi, decoupler_markers
-  celltypist:
-    model: Immune_All_Low.pkl
-    majority_voting: false
 ```
 
-To see all available methods and their parameters:
+To see all available parameters:
 
 ```bash
-snakemake-run-cellranger list-methods
-snakemake-run-cellranger show-params --step doublet_detection --method solo
+snakemake-run-cellranger show-params --step doublet_detection --method scrublet
 ```
 
 The ATAC and ARC configs follow the same structure, replacing `cellranger_gex` with `cellranger_atac` or `cellranger_arc`. Generate them with:
@@ -257,8 +250,7 @@ tests/test_output_gex/
 │   └── 1_gex.h5ad
 ├── 05_DEMULTIPLEXING/                    # Demux results (if enabled)
 ├── 06_DOUBLET_DETECTION/                 # Doublet results (if enabled)
-├── 07_CELLTYPE_ANNOTATION/               # Annotation results (if enabled)
-└── 08_FINAL/                             # Enriched objects (analysis metadata merged in)
+└── 07_FINAL/                             # Enriched objects (analysis metadata merged in)
     └── 1_gex.h5ad
 ```
 
@@ -268,8 +260,8 @@ The pipeline processes data in phases:
 2. **Cell Ranger aggregation** (per-batch): Batch-level aggregation by Cell Ranger
 3. **Object creation** (per-capture): Creates AnnData/MuData objects with traceability metadata (`batch_id`, `capture_id`, `cell_id`)
 4. **Batch aggregation**: Merges per-capture objects into batch-level objects, preserving all metadata
-5. **Analysis** (per-capture, if enabled): Demultiplexing, doublet detection, and/or cell type annotation run in parallel
-6. **Metadata enrichment**: Merges analysis results back into batch objects, producing final objects in `08_FINAL/`
+5. **Analysis** (per-capture, if enabled): Demultiplexing and doublet detection run in parallel
+6. **Metadata enrichment**: Merges analysis results back into batch objects, producing final objects in `07_FINAL/`
 
 Every cell in the final objects has three metadata columns for traceability:
 - `batch_id`: Batch identifier (e.g., `"1"`)

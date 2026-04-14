@@ -50,12 +50,14 @@ snakemake-run-cellranger --help
 snakemake --version     # should print 9.x
 bcftools --version      # should print 1.22+
 samtools --version      # should print 1.22+
+cellsnp-lite --version  # should print 1.2+
+vireo --help            # should print usage
 ```
 
 Check that Python packages import correctly:
 
 ```bash
-python -c "import scanpy; import anndata; import muon; import snapatac2; import scvi; import celltypist; import decoupler; import scrublet; print('All imports OK')"
+python -c "import scanpy; import anndata; import muon; import snapatac2; import scrublet; print('All imports OK')"
 ```
 
 ## 4. Cell Ranger installation

@@ -66,14 +66,12 @@ Enable Cell Ranger ARC? [y/n] (n): y
 Enable demultiplexing? [y/n] (n): n
 
 Enable doublet detection? [y/n] (n): y
-  Doublet detection method [scrublet/solo] (scrublet):
+  Doublet detection method [scrublet] (scrublet):
     Expected doublet rate (0.06):
     Min genes per cell (filter_cells_min_genes) (100):
     Min cells per gene (filter_genes_min_cells) (3):
     Min gene variability percentile (85.0):
     Number of principal components (30):
-
-Enable cell type annotation? [y/n] (n): n
 
 Saving configuration to 'pipeline_config.yaml'...
 
@@ -488,7 +486,7 @@ $ tree -L 2 3K_PBMC_MULTIOME_PROCESSED/
 │   └── 1_arc.h5mu
 ├── 06_DOUBLET_DETECTION
 │   └── 1_A_scrublet.tsv.gz
-└── 08_FINAL
+└── 07_FINAL
     ├── 1_arc.h5mu
     ├── 1_arc_obs_summary.tsv.gz
     └── 1_arc_obs.tsv.gz
@@ -526,7 +524,7 @@ Batch-level `MuData` object created by merging all per-capture objects from `03_
 
 Doublet detection outputs from `Scrublet`
 
-`08_FINAL/`
+`07_FINAL/`
 
 Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
 
@@ -545,7 +543,7 @@ Check out a summary of the workflow and barcode metadata with these files:
 `1_arc_obs.tsv.gz`
 
 ```bash
-$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc_obs.tsv.gz', sep='\t'); print(df)"
+$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/07_FINAL/1_arc_obs.tsv.gz', sep='\t'); print(df)"
                      cell_id modality  batch_id capture_id               cell_id.1             barcode  ...  pct_counts_mt  total_counts_ribo  log1p_total_counts_ribo  pct_counts_ribo  doublet_scrublet_scrublet_score  doublet_scrublet_scrublet_predicted_doublet
 0     1_A_AAACAGCCAACAGGTG-1      gex         1          A  1_A_AAACAGCCAACAGGTG-1  AAACAGCCAACAGGTG-1  ...      18.262806              113.0                 4.736198         6.291760                         0.065392                                          0.0
 1     1_A_AAACATGCAACAACAA-1      gex         1          A  1_A_AAACATGCAACAACAA-1  AAACATGCAACAACAA-1  ...       8.131098               33.0                 3.526361         0.825619                         0.046125                                          0.0
@@ -565,7 +563,7 @@ $ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/0
 `1_arc_obs_summary.tsv.gz`
 
 ```bash
-$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc_obs_summary.tsv.gz', sep='\t'); print(df)"
+$ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/07_FINAL/1_arc_obs_summary.tsv.gz', sep='\t'); print(df)"
   modality  batch_id  n_cells  median_umi  median_genes  median_fragments  median_peaks
 0      gex         1     3009      2764.0        1494.0               NaN           NaN
 1     atac         1     3009         NaN           NaN               0.0           0.0
@@ -575,13 +573,13 @@ $ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/0
 
 > 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_3k_multiome_analysis.ipynb`](https://github.com/mschecht/cellranger-snakemake/tree/main/tests/notebooks/PBMC_3k_multiome_analysis.ipynb).
 
-The final MuData object in `08_FINAL/` contains both GEX and ATAC modalities with all preprocessing metadata joined in. Load it with:
+The final MuData object in `07_FINAL/` contains both GEX and ATAC modalities with all preprocessing metadata joined in. Load it with:
 
 ```python
 import muon as mu
 import scanpy as sc
 
-mdata = mu.read("3K_PBMC_MULTIOME_PROCESSED/08_FINAL/1_arc.h5mu")
+mdata = mu.read("3K_PBMC_MULTIOME_PROCESSED/07_FINAL/1_arc.h5mu")
 
 # Inspect the data
 print(mdata)

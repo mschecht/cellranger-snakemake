@@ -67,14 +67,12 @@ Enable Cell Ranger ARC? [y/n] (n): n
 Enable demultiplexing? [y/n] (n): n
 
 Enable doublet detection? [y/n] (n): y
-  Doublet detection method [scrublet/solo] (scrublet):
+  Doublet detection method [scrublet] (scrublet):
     Expected doublet rate (0.06):
     Min genes per cell (filter_cells_min_genes) (100):
     Min cells per gene (filter_genes_min_cells) (3):
     Min gene variability percentile (85.0):
     Number of principal components (30):
-
-Enable cell type annotation? [y/n] (n): n
 
 Saving configuration to 'pipeline_config.yaml'...
 
@@ -479,7 +477,7 @@ $ tree -L 2 1K_PBMC_GEX_PROCESSED/
 │   └── 1_gex.h5ad
 ├── 06_DOUBLET_DETECTION
 │   └── 1_L001_scrublet.tsv.gz
-└── 08_FINAL
+└── 07_FINAL
     ├── 1_gex.h5ad
     └── 1_gex_obs.tsv.gz
 ```
@@ -516,7 +514,7 @@ Batch-level `AnnData` object created by merging all per-capture objects from `03
 
 Doublet detection outputs from `Scrublet`.
 
-`08_FINAL/`
+`07_FINAL/`
 
 The final enriched `AnnData` object with all preprocessing metadata joined in, ready for downstream analysis.
 
@@ -534,7 +532,7 @@ Check out per-barcode metadata with this file:
 `1_gex_obs.tsv.gz`
 
 ```bash
-$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_GEX_PROCESSED/08_FINAL/1_gex_obs.tsv.gz', sep='\t'); print(df)"
+$ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex_obs.tsv.gz', sep='\t'); print(df)"
                     cell_id  batch_id capture_id                barcode  n_genes_by_counts  total_counts  ...  pct_counts_mt  pct_counts_ribo  doublet_scrublet_scrublet_score  doublet_scrublet_scrublet_predicted_doublet
 0    1_L001_AAACCCAAGGAGAGTA-1         1      L001  AAACCCAAGGAGAGTA-1               1234        4521.0  ...       3.210000         2.100000                         0.042301                                          0.0
 1    1_L001_AAACGCTTCAGCCCAG-1         1      L001  AAACGCTTCAGCCCAG-1               2105        8934.0  ...       1.560000         4.200000                         0.038921                                          0.0
@@ -545,12 +543,12 @@ $ python -c "import pandas as pd; df = pd.read_csv('1K_PBMC_GEX_PROCESSED/08_FIN
 
 > 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_1k_GEX_analysis.ipynb`](https://github.com/mschecht/cellranger-snakemake/tree/main/tests/notebooks/PBMC_1k_GEX_analysis.ipynb).
 
-The final AnnData object in `08_FINAL/` contains all GEX data with all preprocessing metadata joined in. Load it with:
+The final AnnData object in `07_FINAL/` contains all GEX data with all preprocessing metadata joined in. Load it with:
 
 ```python
 import scanpy as sc
 
-adata = sc.read_h5ad("1K_PBMC_GEX_PROCESSED/08_FINAL/1_gex.h5ad")
+adata = sc.read_h5ad("1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex.h5ad")
 
 # Inspect the data
 print(adata)
