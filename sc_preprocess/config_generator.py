@@ -66,16 +66,16 @@ except ImportError:
                     print("Please enter a valid number.")
 
 
-from cellranger_snakemake.schemas.config import PipelineConfig, SampleMetadata
-from cellranger_snakemake.schemas.base import ResourceConfig
-from cellranger_snakemake.schemas.cellranger import (
+from sc_preprocess.schemas.config import PipelineConfig, SampleMetadata
+from sc_preprocess.schemas.base import ResourceConfig
+from sc_preprocess.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
-from cellranger_snakemake.schemas.demultiplexing import (
+from sc_preprocess.schemas.demultiplexing import (
     DemultiplexingConfig, DemuxalotConfig,
     VireoConfig, CellSNPConfig
 )
-from cellranger_snakemake.schemas.doublet_detection import (
+from sc_preprocess.schemas.doublet_detection import (
     DoubletDetectionConfig, ScrubletConfig
 )
 

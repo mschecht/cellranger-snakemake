@@ -18,13 +18,13 @@ conda update --name base conda
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/mschecht/cellranger-snakemake.git
-cd cellranger-snakemake
+git clone https://github.com/mschecht/sc-preprocess.git
+cd sc-preprocess
 ```
 
 ## 2. Create the conda environment
 
-A single command installs all dependencies and the `cellranger-snakemake` CLI:
+A single command installs all dependencies and the `sc-preprocess` CLI:
 
 ```bash
 conda env create -f environment.yaml
@@ -44,7 +44,7 @@ Check that the CLI and key tools are working:
 
 ```bash
 # Pipeline CLI
-snakemake-run-cellranger --help
+sc-preprocess --help
 
 # Core tools
 snakemake --version     # should print 9.x
@@ -105,8 +105,8 @@ The output should show an arrow (`->`) pointing to an **executable file**, not a
 Verify with the built-in version checker:
 
 ```bash
-snakemake-run-cellranger check-versions
-snakemake-run-cellranger check-versions --workflow GEX   # check specific workflow
+sc-preprocess check-versions
+sc-preprocess check-versions --workflow GEX   # check specific workflow
 ```
 
 ## 5. Building the documentation (optional)

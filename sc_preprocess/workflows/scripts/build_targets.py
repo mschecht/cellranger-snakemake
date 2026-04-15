@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from pathlib import Path
-from cellranger_snakemake.config_validator import parse_output_directories
+from sc_preprocess.config_validator import parse_output_directories
 
 def build_all_targets(config, enabled_steps):
     """

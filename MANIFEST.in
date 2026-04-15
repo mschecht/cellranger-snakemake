@@ -1,6 +1,6 @@
 # Include all Snakemake files
-recursive-include cellranger_snakemake/workflows *.smk
-recursive-include cellranger_snakemake/workflows *.py
+recursive-include sc_preprocess/workflows *.smk
+recursive-include sc_preprocess/workflows *.py
 
 # Include other important files
 include README.md

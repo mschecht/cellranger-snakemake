@@ -9,15 +9,15 @@ import subprocess
 
 from pathlib import Path
 
-from cellranger_snakemake.utils.utils import validate_cores
-from cellranger_snakemake.config_generator import ConfigGenerator
-from cellranger_snakemake.config_validator import ConfigValidator
-from cellranger_snakemake.utils.custom_logger import custom_logger
-from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
-from cellranger_snakemake.utils.test_data_generator import TestDataGenerator
+from sc_preprocess.utils.utils import validate_cores
+from sc_preprocess.config_generator import ConfigGenerator
+from sc_preprocess.config_validator import ConfigValidator
+from sc_preprocess.utils.custom_logger import custom_logger
+from sc_preprocess.utils.version_check import CellRangerVersionChecker
+from sc_preprocess.utils.test_data_generator import TestDataGenerator
 
 __version__ = "0.1.0-dev"
-__description__ = "Snakemake wrapper for single-cell preprocessing pipelines"
+__description__ = "Single-cell preprocessing pipeline for 10X Genomics data"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -26,38 +26,38 @@ def main():
         epilog="""
 Examples:
   # Generate unified config interactively
-  snakemake-run-cellranger init-config
+  sc-preprocess init-config
 
   # Quick config validation (optional - 'run' auto-validates)
-  snakemake-run-cellranger validate-config --config-file pipeline_config.yaml
+  sc-preprocess validate-config --config-file pipeline_config.yaml
 
   # Check installed Cell Ranger versions
-  snakemake-run-cellranger check-versions
-  snakemake-run-cellranger check-versions --workflow GEX
+  sc-preprocess check-versions
+  sc-preprocess check-versions --workflow GEX
 
   # Run the pipeline (dry-run, auto-validates config first)
-  snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
+  sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dry-run
 
   # Run the pipeline (real run with 8 cores, auto-validates config first)
-  snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 8
+  sc-preprocess run --config-file pipeline_config.yaml --cores 8
 
   # Generate DAG visualization
-  snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag.png
+  sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag.png
 
   # Show available parameters for a Cell Ranger modality
-  snakemake-run-cellranger show-params --step cellranger --method gex
+  sc-preprocess show-params --step cellranger --method gex
 
   # Show available parameters for a processing method
-  snakemake-run-cellranger show-params --step doublet_detection --method scrublet
+  sc-preprocess show-params --step doublet_detection --method scrublet
 
   # List all available methods
-  snakemake-run-cellranger list-methods
+  sc-preprocess list-methods
 
   # Generate example test data files e.g. for ATAC workflow
-  snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA
+  sc-preprocess generate-test-data ATAC --output-dir 00_TEST_DATA
 
   # Build and serve documentation locally
-  snakemake-run-cellranger render-docs --port 8000
+  sc-preprocess render-docs --port 8000
         """
     )
 
@@ -86,22 +86,22 @@ Common Snakemake arguments:
 
 Examples:
   # Dry run to check what will be executed
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 --dry-run
+  sc-preprocess run --config-file config.yaml --cores 1 --dry-run
   
   # Run with 8 cores
-  snakemake-run-cellranger run --config-file config.yaml --cores 8
+  sc-preprocess run --config-file config.yaml --cores 8
   
   # Use all available cores
-  snakemake-run-cellranger run --config-file config.yaml --cores all
+  sc-preprocess run --config-file config.yaml --cores all
 
   # Unlock working directory
-  snakemake-run-cellranger run --config-file config.yaml --cores 1 --snakemake-args --unlock
+  sc-preprocess run --config-file config.yaml --cores 1 --snakemake-args --unlock
 
   # Pass additional arguments to Snakemake (e.g., limit parallel jobs)
-  snakemake-run-cellranger run --config-file config.yaml --cores all --snakemake-args --jobs 10
+  sc-preprocess run --config-file config.yaml --cores all --snakemake-args --jobs 10
 
   # Run with HPC execution via a Snakemake profile (note: --snakemake-args is LAST)
-  snakemake-run-cellranger run --config-file config.yaml --cores all --snakemake-args --profile HPC_profiles
+  sc-preprocess run --config-file config.yaml --cores all --snakemake-args --profile HPC_profiles
         """
     )
     run_parser.add_argument(
@@ -172,13 +172,13 @@ Examples:
         epilog="""
 Examples:
   # List all available steps
-  snakemake-run-cellranger show-params
+  sc-preprocess show-params
 
   # List methods for a specific step
-  snakemake-run-cellranger show-params --step demultiplexing
+  sc-preprocess show-params --step demultiplexing
 
   # Show parameters for a specific method
-  snakemake-run-cellranger show-params --step demultiplexing --method vireo
+  sc-preprocess show-params --step demultiplexing --method vireo
         """
     )
     params_parser.add_argument(
@@ -226,13 +226,13 @@ Examples:
 
         Examples:
           # Generate GEX workflow test files
-          snakemake-run-cellranger generate-test-data GEX --output-dir 00_TEST_DATA_GEX
+          sc-preprocess generate-test-data GEX --output-dir 00_TEST_DATA_GEX
 
           # Generate ATAC workflow test files in custom directory
-          snakemake-run-cellranger generate-test-data ATAC --output-dir 00_TEST_DATA_ATAC
+          sc-preprocess generate-test-data ATAC --output-dir 00_TEST_DATA_ATAC
 
           # Generate ARC workflow test files
-          snakemake-run-cellranger generate-test-data ARC --output-dir 00_TEST_DATA_ARC
+          sc-preprocess generate-test-data ARC --output-dir 00_TEST_DATA_ARC
         """
     )
     testdata_parser.add_argument(
@@ -255,10 +255,10 @@ Examples:
         epilog="""
 Examples:
   # Build docs and serve on default port 8000
-  snakemake-run-cellranger render-docs
+  sc-preprocess render-docs
 
   # Use a custom port
-  snakemake-run-cellranger render-docs --port 9000
+  sc-preprocess render-docs --port 9000
         """
     )
     render_docs_parser.add_argument(
@@ -415,9 +415,9 @@ Examples:
         custom_logger.info(f"HPC profile: {output_dir}/HPC_profiles/config.yaml")
         custom_logger.info(f"\nTo run the {workflow_type} test pipeline:")
         custom_logger.info(f"  # Local execution:")
-        custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 8")
+        custom_logger.info(f"  sc-preprocess run --config-file {config_path} --cores 8")
         custom_logger.info(f"\n  # Cluster execution (edit HPC_profiles/config.yaml first):")
-        custom_logger.info(f"  snakemake-run-cellranger run --config-file {config_path} --cores 1 --snakemake-args --profile {output_dir}/HPC_profiles")
+        custom_logger.info(f"  sc-preprocess run --config-file {config_path} --cores 1 --snakemake-args --profile {output_dir}/HPC_profiles")
     
     elif args.subcommand == 'check-versions':
         checker = CellRangerVersionChecker()

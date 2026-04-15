@@ -7,14 +7,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Type
 from pydantic import ValidationError
 
-from cellranger_snakemake.schemas.config import PipelineConfig
-from cellranger_snakemake.schemas.cellranger import (
+from sc_preprocess.schemas.config import PipelineConfig
+from sc_preprocess.schemas.cellranger import (
     CellRangerGEXConfig, CellRangerATACConfig, CellRangerARCConfig
 )
-from cellranger_snakemake.schemas.demultiplexing import (
+from sc_preprocess.schemas.demultiplexing import (
     DemuxalotConfig, VireoConfig
 )
-from cellranger_snakemake.schemas.doublet_detection import ScrubletConfig
+from sc_preprocess.schemas.doublet_detection import ScrubletConfig
 
 
 # Pipeline directory structure - update this when adding new analysis steps
@@ -249,8 +249,8 @@ class ConfigValidator:
             for step_name in cls.METHOD_SCHEMAS.keys():
                 print(f"  - {step_name}")
             print("\nUsage:")
-            print("  snakemake-run-cellranger show-params --step <STEP>")
-            print("  snakemake-run-cellranger show-params --step <STEP> --method <METHOD>")
+            print("  sc-preprocess show-params --step <STEP>")
+            print("  sc-preprocess show-params --step <STEP> --method <METHOD>")
             return
 
         # Validate step
@@ -265,7 +265,7 @@ class ConfigValidator:
             for method_name in cls.METHOD_SCHEMAS[step].keys():
                 print(f"  - {method_name}")
             print("\nUsage:")
-            print(f"  snakemake-run-cellranger show-params --step {step} --method <METHOD>")
+            print(f"  sc-preprocess show-params --step {step} --method <METHOD>")
             return
 
         # Case 3: Both step and method provided - show parameters
@@ -298,7 +298,7 @@ class ConfigValidator:
 
         # Fall back to shell command for non-Python tools (e.g., Cell Ranger)
         if tool_meta.shell_version_cmd:
-            from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+            from sc_preprocess.utils.version_check import CellRangerVersionChecker
             command = tool_meta.shell_version_cmd.split()[0]
             version = CellRangerVersionChecker.get_version(command)
             if version:

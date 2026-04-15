@@ -3,12 +3,12 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cellranger-snakemake"
+name = "sc-preprocess"
 version = "0.1.0-dev"
 authors = [
     {name = "Matthew S. Schechter", email = "mschechter@uchicago.edu"},
 ]
-description = "Snakemake wrapper for single-cell preprocessing workflows"
+description = "Single-cell preprocessing pipeline for 10X Genomics data"
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0",
@@ -26,20 +26,16 @@ docs = [
 ]
 
 [project.scripts]
-snakemake-run-cellranger = "cellranger_snakemake.cli:main"
-sc-preprocess = "cellranger_snakemake.cli:main"  # Alias for new unified pipeline
-sc-config-init = "cellranger_snakemake.config_generator:main"
-sc-config-validate = "cellranger_snakemake.config_validator:main"
+sc-preprocess = "sc_preprocess.cli:main"
+sc-config-init = "sc_preprocess.config_generator:main"
+sc-config-validate = "sc_preprocess.config_validator:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cellranger_snakemake*"]
+include = ["sc_preprocess*"]
 
 [tool.setuptools.package-data]
-"cellranger_snakemake" = ["workflows/**/*.smk", "workflows/**/*.py"]
-"cellranger_snakemake.workflows.ARC" = ["*.smk"]
-"cellranger_snakemake.workflows.ATAC" = ["*.smk"]
-"cellranger_snakemake.workflows.GEX" = ["*.smk"]
+"sc_preprocess" = ["workflows/**/*.smk", "workflows/**/*.py"]

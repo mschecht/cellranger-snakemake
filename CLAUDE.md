@@ -1,4 +1,4 @@
-# cellranger-snakemake Project Guidelines
+# sc-preprocess Project Guidelines
 
 ## Project Overview
 
@@ -101,7 +101,7 @@ Imports must be organized in three groups, sorted by character length within eac
 
 1. **Standard library** imports
 2. **Third-party** imports (e.g., scanpy, muon, pandas)
-3. **Local** imports (from cellranger_snakemake)
+3. **Local** imports (from sc_preprocess)
 
 **Example:**
 ```python
@@ -110,7 +110,7 @@ import sys
 import muon as mu
 import scanpy as sc
 
-from cellranger_snakemake.config_validator import parse_output_directories
+from sc_preprocess.config_validator import parse_output_directories
 ```
 
 **Rules:**
@@ -166,9 +166,9 @@ from cellranger_snakemake.config_validator import parse_output_directories
 
 ### Generate Test Data
 ```bash
-snakemake-run-cellranger generate-test-data GEX --output-dir tests/00_TEST_DATA_GEX
-snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
-snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
+sc-preprocess generate-test-data GEX --output-dir tests/00_TEST_DATA_GEX
+sc-preprocess generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
+sc-preprocess generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
 ### Run Tests
@@ -176,16 +176,16 @@ snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_
 #### GEX
 ```bash
 # Dry run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
 
 # DAG visualization
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag_gex.png
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag_gex.png
 
 # Local run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 
 # Run with HPC profile
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
@@ -193,16 +193,16 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_ge
 #### ATAC
 ```bash
 # Dry run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dry-run
+sc-preprocess run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dry-run
 
 # DAG visualization
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dag | dot -Tpng > dag_atac.png
+sc-preprocess run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1 --dag | dot -Tpng > dag_atac.png
 
 # Local run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1
+sc-preprocess run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml --cores 1
 
 # Run with HPC profile
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml \
+sc-preprocess run --config-file tests/00_TEST_DATA_ATAC/test_config_atac.yaml \
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
@@ -210,16 +210,16 @@ snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ATAC/test_config_a
 #### ARC
 ```bash
 # Dry run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dry-run
+sc-preprocess run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dry-run
 
 # DAG visualization
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dag | dot -Tpng > dag_arc.png
+sc-preprocess run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1 --dag | dot -Tpng > dag_arc.png
 
 # Local run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1
+sc-preprocess run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml --cores 1
 
 # Run with HPC profile
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml \
+sc-preprocess run --config-file tests/00_TEST_DATA_ARC/test_config_arc.yaml \
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
