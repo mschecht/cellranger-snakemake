@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'cellranger-snakemake'
+project = 'sc-preprocess'
 copyright = '2026, Matthew S. Schechter'
 author = 'Matthew S. Schechter'
 

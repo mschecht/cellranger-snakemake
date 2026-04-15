@@ -4,7 +4,7 @@ import subprocess
 import re
 from typing import Optional, Dict, Tuple
 from packaging import version
-from cellranger_snakemake.utils.custom_logger import custom_logger
+from sc_preprocess.utils.custom_logger import custom_logger
 
 
 class CellRangerVersionChecker:

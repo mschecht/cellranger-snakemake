@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide walks you through contributing to the cellranger-snakemake pipeline. Whether you're adding a new analysis method or an entirely new single-cell preprocessing step, this document provides the workflow, patterns, and testing strategies you need.
+This guide walks you through contributing to the sc-preprocess pipeline. Whether you're adding a new analysis method or an entirely new single-cell preprocessing step, this document provides the workflow, patterns, and testing strategies you need.
 
 ## Getting Started
 
@@ -69,7 +69,7 @@ Follow these steps when making changes:
 Understanding the file layout is essential before making changes:
 
 ```
-cellranger_snakemake/   
+sc_preprocess/   
 ├── cli.py                          # CLI entry points
 ├── config_generator.py             # Interactive config builder
 ├── config_validator.py             # PIPELINE_DIRECTORIES, validation
@@ -186,7 +186,7 @@ This example shows how [Vireo](https://github.com/single-cell-genetics/vireo) wa
 
 #### Step 1: Add method config schema
 
-In `cellranger_snakemake/schemas/demultiplexing.py`:
+In `sc_preprocess/schemas/demultiplexing.py`:
 
 ```python
 from typing import ClassVar
@@ -252,15 +252,15 @@ After completing Steps 1-2, verify the new method is visible to the CLI:
 
 ```bash
 # Confirm the method appears in the registry
-snakemake-run-cellranger list-methods
+sc-preprocess list-methods
 
 # Confirm schema fields and tool_meta are correct
-snakemake-run-cellranger show-params --step demultiplexing --method vireo
+sc-preprocess show-params --step demultiplexing --method vireo
 ```
 
 #### Step 3: Add the rule
 
-In `cellranger_snakemake/workflows/rules/demultiplexing.smk`:
+In `sc_preprocess/workflows/rules/demultiplexing.smk`:
 
 ```python
 if config.get("demultiplexing") and DEMUX_METHOD == "vireo":
@@ -325,7 +325,7 @@ runtime_minutes: int = Field(default=720, gt=0, description="Maximum runtime in 
 
 #### Step 4: Add target generation
 
-In `cellranger_snakemake/workflows/scripts/build_targets.py`:
+In `sc_preprocess/workflows/scripts/build_targets.py`:
 
 ```python
 if method == "vireo":
@@ -340,20 +340,20 @@ After completing Steps 3-4, create a test config that uses the new method and ve
 
 ```bash
 # Validate the config parses correctly
-snakemake-run-cellranger validate-config --config-file your_test_config.yaml
+sc-preprocess validate-config --config-file your_test_config.yaml
 
 # Dry run - confirm the new rule appears and targets match
-snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dry-run
+sc-preprocess run --config-file your_test_config.yaml --cores 1 --dry-run
 
 # Visual check - confirm rule dependencies look correct
-snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dag | dot -Tpng > dag.png
+sc-preprocess run --config-file your_test_config.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
 If you get a `MissingInputException`, the `.done` filename in `build_targets.py` doesn't match the rule output. See [Common Pitfalls](#common-pitfalls).
 
 #### Step 5: Add to config generator
 
-Update `cellranger_snakemake/config_generator.py` so `init-config` can produce the new method's parameters interactively.
+Update `sc_preprocess/config_generator.py` so `init-config` can produce the new method's parameters interactively.
 
 #### Step 6: Test
 
@@ -367,7 +367,7 @@ Follow these steps to add a new preprocessing step (e.g., a quality-control filt
 
 #### Step 1: Create the Pydantic schema
 
-Create `cellranger_snakemake/schemas/<new_step>.py`:
+Create `sc_preprocess/schemas/<new_step>.py`:
 
 ```python
 """<Step name> configuration schemas."""
@@ -408,13 +408,13 @@ class MyStepConfig(BaseStepConfig):
 After Step 1, verify the new step and its methods are visible:
 
 ```bash
-snakemake-run-cellranger list-methods
-snakemake-run-cellranger show-params --step my_step --method my_method
+sc-preprocess list-methods
+sc-preprocess show-params --step my_step --method my_method
 ```
 
 #### Step 2: Register the output directory
 
-In `cellranger_snakemake/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
+In `sc_preprocess/config_validator.py`, add to `PIPELINE_DIRECTORIES`:
 
 ```python
 ("my_step", "0N_MY_STEP"),
@@ -431,12 +431,12 @@ Add a call in `build_all_targets()` and a `get_<step>_outputs()` function follow
 #### Checkpoint: Verify config validation
 
 ```bash
-snakemake-run-cellranger validate-config --config-file your_test_config.yaml
+sc-preprocess validate-config --config-file your_test_config.yaml
 ```
 
 #### Step 5: Create the rule file
 
-Create `cellranger_snakemake/workflows/rules/<new_step>.smk`. Always include `threads:` and `resources:` — without them SLURM defaults to 1 GB and jobs will OOM on real data. Import `gettempdir` explicitly:
+Create `sc_preprocess/workflows/rules/<new_step>.smk`. Always include `threads:` and `resources:` — without them SLURM defaults to 1 GB and jobs will OOM on real data. Import `gettempdir` explicitly:
 
 ```python
 from tempfile import gettempdir
@@ -464,8 +464,8 @@ shell:
 Then verify the DAG resolves correctly:
 
 ```bash
-snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dry-run
-snakemake-run-cellranger run --config-file your_test_config.yaml --cores 1 --dag | dot -Tpng > dag.png
+sc-preprocess run --config-file your_test_config.yaml --cores 1 --dry-run
+sc-preprocess run --config-file your_test_config.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
 Check that:
@@ -480,7 +480,7 @@ Replace the dummy shell with the actual tool invocation. Use either `shell:` for
 
 #### Step 9: Add to config generator
 
-Update `cellranger_snakemake/config_generator.py` so that `snakemake-run-cellranger init-config` can interactively generate config for the new step.
+Update `sc_preprocess/config_generator.py` so that `sc-preprocess init-config` can interactively generate config for the new step.
 
 #### Step 10: Write tests
 
@@ -502,10 +502,10 @@ Always verify the DAG first. This catches target/output mismatches without execu
 
 ```bash
 # Dry run - checks all inputs/outputs resolve
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
 
 # Visual DAG - confirm rule dependencies look correct
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
 ### Integration tests
@@ -517,19 +517,19 @@ Integration tests run the full pipeline on test data:
 bash tests/test.sh
 
 # Or run a specific workflow manually
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 ```
 
 ### Test checklist for a new step
 
 When adding a new step, verify all of the following before merging:
 
-- [ ] **Config validation**: `snakemake-run-cellranger validate-config --config-file your_config.yaml` succeeds
-- [ ] **Dry run**: `snakemake-run-cellranger run --config-file ... --cores 1 --dry-run` shows your rule
+- [ ] **Config validation**: `sc-preprocess validate-config --config-file your_config.yaml` succeeds
+- [ ] **Dry run**: `sc-preprocess run --config-file ... --cores 1 --dry-run` shows your rule
 - [ ] **DAG**: Your rule appears with correct dependencies in the DAG visualization
 - [ ] **Dummy execution**: Pipeline completes with placeholder `touch` commands
 - [ ] **Real execution**: Pipeline completes with the actual tool on test data
-- [ ] **Config generator**: `snakemake-run-cellranger init-config` includes the new step
+- [ ] **Config generator**: `sc-preprocess init-config` includes the new step
 
 ---
 
@@ -547,7 +547,7 @@ When adding a new step, verify all of the following before merging:
 
 ## Building and Editing Documentation
 
-This project uses [Sphinx](https://www.sphinx-doc.org/) with MyST-Parser for markdown support and is deployed on [Read the Docs](https://about.readthedocs.com/). Documentation is hosted at: https://cellranger-snakemake.readthedocs.io/
+This project uses [Sphinx](https://www.sphinx-doc.org/) with MyST-Parser for markdown support and is deployed on [Read the Docs](https://about.readthedocs.com/). Documentation is hosted at: https://sc-preprocess.readthedocs.io/
 
 ### Documentation structure
 
@@ -569,7 +569,7 @@ docs/
 Here is how you can render the documentation locally in your web browser:
 
 ```bash
-snakemake-run-cellranger render-docs
+sc-preprocess render-docs
 ```
 
 If you would like to do it manually, here you go: 

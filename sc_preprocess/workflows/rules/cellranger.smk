@@ -10,8 +10,8 @@ import pandas as pd
 from pathlib import Path
 from tempfile import gettempdir
 from collections import defaultdict
-from cellranger_snakemake import utils as u
-from cellranger_snakemake.config_validator import parse_output_directories, parse_cellranger_config
+from sc_preprocess import utils as u
+from sc_preprocess.config_validator import parse_output_directories, parse_cellranger_config
 
 
 # ============================================================================

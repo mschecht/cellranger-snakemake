@@ -4,7 +4,7 @@ import argparse
 
 import pandas as pd
 
-from cellranger_snakemake.utils.custom_logger import custom_logger
+from sc_preprocess.utils.custom_logger import custom_logger
 
 
 def validate_cores(value):

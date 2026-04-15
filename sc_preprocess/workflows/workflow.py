@@ -5,11 +5,11 @@ import shlex
 import subprocess
 
 from pathlib import Path
-from cellranger_snakemake.utils.custom_logger import custom_logger
-from cellranger_snakemake.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, ATAC_README_content, GEX_CONFIG, GEX_README_content
-from cellranger_snakemake.schemas.config import PipelineConfig
-from cellranger_snakemake.config_validator import ConfigValidator
-from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+from sc_preprocess.utils.custom_logger import custom_logger
+from sc_preprocess.config_templates import ARC_CONFIG, ARC_README_content, ATAC_CONFIG, ATAC_README_content, GEX_CONFIG, GEX_README_content
+from sc_preprocess.schemas.config import PipelineConfig
+from sc_preprocess.config_validator import ConfigValidator
+from sc_preprocess.utils.version_check import CellRangerVersionChecker
 
 class Workflow:
     def __init__(self, name, get_default_config, config_file):

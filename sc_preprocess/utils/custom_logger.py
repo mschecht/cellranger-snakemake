@@ -17,7 +17,7 @@ class ColorFormatter(logging.Formatter):
         return f"{color}{message}{self.RESET}"
 
 # Initialize custom_logger
-custom_logger = logging.getLogger("cellranger_snakemake")
+custom_logger = logging.getLogger("sc_preprocess")
 custom_logger.setLevel(logging.DEBUG)  # Adjust level as needed
 
 ch = logging.StreamHandler()

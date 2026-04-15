@@ -2,15 +2,15 @@
 
 ## Tutorial and test case for development for GEX, ATAC, and ARC workflow
 
-In this section, we will run `cellranger-snakemake` using a test dataset from Cell Ranger (derived from fasta files are used by the internal testing tool for cellranger called [cellranger testrun](https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-in#testrun)) to get new users ready to go as well as developers who need test cases for each of the workflow modes. Follow the steps to set up the test dataset, and run basic commands. 
+In this section, we will run `sc-preprocess` using a test dataset from Cell Ranger (derived from fasta files are used by the internal testing tool for cellranger called [cellranger testrun](https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-in#testrun)) to get new users ready to go as well as developers who need test cases for each of the workflow modes. Follow the steps to set up the test dataset, and run basic commands. 
 
 > 📌 **Note**: This section works the same for either GEX or ATAC and has a few modifications for ARC which we note below.
 
 ## 1. Launch the conda environment
 
-If you haven't installed `cellranger-snakemake` already, see the [Installation](installation.md) page. Installation is a single command: `conda env create -f environment.yaml`.
+If you haven't installed `sc-preprocess` already, see the [Installation](installation.md) page. Installation is a single command: `conda env create -f environment.yaml`.
 
-Activate the `cellranger-snakemake` conda environment with the following command:
+Activate the `sc-preprocess` conda environment with the following command:
 
 ```bash
 conda activate snakemake8
@@ -22,27 +22,27 @@ Here is how you can check out the help menu for all positional arugments:
 
 ```bash
 # Read about positional arguments
-snakemake-run-cellranger --help
+sc-preprocess --help
 ```
 
 To learn more about a specific positional argument, include the argument and `--help` like this:
 
 ```bash
 # Help menu for run positional argument
-snakemake-run-cellranger run --help
+sc-preprocess run --help
 ```
 
 ## 3. Generate input files for test
 
-The command `snakemake-run-cellranger generate-test-data` conveniently creates a directory containing all the input files necessary you need to run the test dataset. 
+The command `sc-preprocess generate-test-data` conveniently creates a directory containing all the input files necessary you need to run the test dataset. 
 
 ```bash
 # Read about test data set
-snakemake-run-cellranger generate-test-data -h
+sc-preprocess generate-test-data -h
 
-snakemake-run-cellranger generate-test-data GEX --output-dir tests/00_TEST_DATA_GEX
-snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
-snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
+sc-preprocess generate-test-data GEX --output-dir tests/00_TEST_DATA_GEX
+sc-preprocess generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
+sc-preprocess generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
 This should have produced the following file structure:
@@ -69,13 +69,13 @@ This YAML file contains all the bells and whistles needed to run the underlying 
 To generate the config files for a workflow customized to your data run this command below. It will interactively ask you which steps you plan on running and automatically produce a config file.
 
 ```bash
-snakemake-run-cellranger init-config
+sc-preprocess init-config
 ```
 
 You can also run this command to generate a default config yaml with every configuration available:
 
 ```bash
-snakemake-run-cellranger init-config --get-default-config
+sc-preprocess init-config --get-default-config
 ```
 
 For this tutorial, here is the GEX test config yaml file:
@@ -123,14 +123,14 @@ doublet_detection:
 To see all available parameters:
 
 ```bash
-snakemake-run-cellranger show-params --step doublet_detection --method scrublet
+sc-preprocess show-params --step doublet_detection --method scrublet
 ```
 
 The ATAC and ARC configs follow the same structure, replacing `cellranger_gex` with `cellranger_atac` or `cellranger_arc`. Generate them with:
 
 ```bash
-snakemake-run-cellranger generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
-snakemake-run-cellranger generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
+sc-preprocess generate-test-data ATAC --output-dir tests/00_TEST_DATA_ATAC
+sc-preprocess generate-test-data ARC --output-dir tests/00_TEST_DATA_ARC
 ```
 
 ### `libraries_list.tsv`
@@ -191,20 +191,23 @@ Before you run the workflow it's a good idea to see how many jobs will be run to
 
 ```bash
 # Read about this command
-snakemake-run-cellranger run -h
+sc-preprocess run -h
 
 # Dry run
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dry-run
 ```
 
 You can also visualize this with a [dag file](https://en.wikipedia.org/wiki/Directed_acyclic_graph):
 
 ```bash
 # Generate workflow DAG
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --dag | dot -Tpng > dag.png
 ```
 
-FIXME: add picture of DAG file and explain the rules for the user!
+:::{figure} _images/dag_gex_test_incomplete.png
+:alt: DAG for GEX test case
+:width: 80%
+:::
 
 ## 6. Run the tool!
 
@@ -214,14 +217,14 @@ rm -rf 1_L00*
 rm -r test_output_gex
 
 # Local execution
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1
 ```
 
 The flag `--snakemake-args` passes and arguments after it directly to `snakemake`. Please note that this flag has to be the very last flag in the command:
 
 ```bash
 # Local execution - add more arguments to snakemake
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --jobs 2
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --jobs 2
 ```
 
 ## 7. Pipeline output structure
@@ -273,11 +276,11 @@ Every cell in the final objects has three metadata columns for traceability:
 To launch on the HPC, we will use the `--snakemake-args` command to pass additional arguments to snakemake to let it know we are going to use an HPC. The `--snakemake-args` must be the LAST argument and anything after it will be snakemake arguments passed directly to `snakemake`.
 
 > **Note**: If the directory gets locked, you can unlock it by running:
-> `snakemake-run-cellranger run --config-file <your_config.yaml> --cores 1 --snakemake-args --unlock`
+> `sc-preprocess run --config-file <your_config.yaml> --cores 1 --snakemake-args --unlock`
 
 The argument we will be passing straight to `snakemake` will be `--profile`. The provides `snakemake` with a path to a configurgation file that contains parameters fro runnign the is workflow on an HPC or cloud computing environment. Run `snakemake -h` to read more detail.
 
-The command `snakemake-run-cellranger generate-test-data` you ran above already produced a boiler plate config yaml file filled out for SLURM here:
+The command `sc-preprocess generate-test-data` you ran above already produced a boiler plate config yaml file filled out for SLURM here:
 
 ```bash
 $ cat tests/00_TEST_DATA_GEX/HPC_profiles/config.yaml
@@ -299,10 +302,10 @@ You read about HPC executor functionality [here](https://snakemake.github.io/sna
 What is the difference between `--cores` and `--jobs`? The `--cores` command assigns the number of CPUs per jobs while the `--jobs` argument controls how many parallel jobs can be run at the same time.
 
 ```bash
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --unlock
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml --cores 1 --snakemake-args --unlock
 
 # HPC execution - `--cores all` tell snakemake to use the `threads` assigned to each rule.
-snakemake-run-cellranger run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
+sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
                              --cores all \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
@@ -314,7 +317,7 @@ How do I re-run the workflow from a specific step?
 A great way to do this is to pass the Snakemake argument `--forcerun` straight to Snakemake with the argument `--snakemake-args`. Here is an example where you can restart the workflow from the rule `create_arc_metadata`: 
 
 ```bash
-snakemake-run-cellranger run --config-file pipeline_config.yaml \
+sc-preprocess run --config-file pipeline_config.yaml \
                              --cores 1 \
                              --snakemake-args --forcerun create_arc_mudata
 ```

@@ -3,7 +3,7 @@
 
 
 import sys
-from cellranger_snakemake.utils.custom_logger import custom_logger
+from sc_preprocess.utils.custom_logger import custom_logger
 
 __all__ = [
     "custom_logger",

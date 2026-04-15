@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(workflow.basedir).parent / "utils"))
 
 from pathlib import Path
 from custom_logger import custom_logger
-from cellranger_snakemake.config_validator import parse_output_directories
+from sc_preprocess.config_validator import parse_output_directories
 
 
 # Get demultiplexing config

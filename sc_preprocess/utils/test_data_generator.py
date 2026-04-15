@@ -6,8 +6,8 @@ import subprocess
 
 from pathlib import Path
 from typing import Optional, Tuple, Dict
-from cellranger_snakemake import utils as u
-from cellranger_snakemake.utils.version_check import CellRangerVersionChecker
+from sc_preprocess import utils as u
+from sc_preprocess.utils.version_check import CellRangerVersionChecker
 
 
 class TestDataGenerator:

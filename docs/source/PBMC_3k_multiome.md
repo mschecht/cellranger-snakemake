@@ -40,10 +40,10 @@ tar -xvf refdata-cellranger-arc-GRCh38-2024-A.tar.gz
 
 1. Initialize a config file: `pipeline_config.yaml`
 
-Here you will run the command `snakemake-run-cellranger init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters. Answer the same way as below if you would like to follow along in this tutorial: 
+Here you will run the command `sc-preprocess init-config` will which prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how modify various parameters. Answer the same way as below if you would like to follow along in this tutorial: 
 
 ```bash
-$ snakemake-run-cellranger init-config
+$ sc-preprocess init-config
 
 Single-Cell Preprocessing Pipeline Configuration Generator
 
@@ -138,12 +138,12 @@ Before running the workflow it's best practice to run a [dry-run](https://snakem
 
 ```bash
 # Read about this command
-snakemake-run-cellranger run -h
+sc-preprocess run -h
 
 # Dry run
-$ snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dry-run
+$ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dry-run
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
 [INFO] ============================================================
@@ -185,7 +185,7 @@ Our favorite way to visualize a `dry-run` of a workflow is to examine the DAG fi
 > 📌 **Note**: If the rules are circles then the rule has not been run yet, however, if the rules are bordered with dotted lines then it's been completed. This distinction is valuable when examining an incomplete workflow. 
 
 ```bash
-snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag_arc_3k.png
+sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng > dag_arc_3k.png
 ```
 
 :::{figure} _images/dag_arc_3k_incomplete.png
@@ -217,7 +217,7 @@ Here we will break down the meaning of each rule so you can keep track of what's
 
 ```bash
 # Local execution
-snakemake-run-cellranger run --config-file pipeline_config.yaml --cores 1
+sc-preprocess run --config-file pipeline_config.yaml --cores 1
 ```
 
 
@@ -228,7 +228,7 @@ We added the parameter `--snakemake-args` to send arguments straight to `Snakema
 For example, a popular `Snakemake` argument is `--keep-going`, where `Snakemake` will continue running jobs even if one fails. Please note that is MUST be the last argument in the command. Here is what is looks like in practice:
 
 ```bash
-snakemake-run-cellranger run --config-file pipeline_config.yaml \
+sc-preprocess run --config-file pipeline_config.yaml \
                              --cores 1 \
                              --dry-run \
                              --snakemake-args --keep-going
@@ -237,7 +237,7 @@ snakemake-run-cellranger run --config-file pipeline_config.yaml \
 Another useful argument is `--forcerun`, which forces Snakemake to re-execute a specific rule and all rules that depend on it — without re-running expensive upstream steps like Cell Ranger. This is handy when you update a script and only want to reprocess from that point forward:
 
 ```bash
-snakemake-run-cellranger run --config-file pipeline_config.yaml \
+sc-preprocess run --config-file pipeline_config.yaml \
                              --cores 1 \
                              --snakemake-args "--forcerun create_arc_mudata aggregate_arc_batch"
 ```
@@ -274,7 +274,7 @@ EOF
 
 ```bash
 # HPC execution - `--cores all` tell snakemake to use the `threads` assigned to each rule.
-snakemake-run-cellranger run --config-file pipeline_config.yaml \
+sc-preprocess run --config-file pipeline_config.yaml \
                              --cores all \
                              --snakemake-args --profile HPC_profiles --keep-going
 ```
@@ -325,11 +325,11 @@ You can confirm cluster mode is active by checking the log file — each pipelin
 After starting the program you should see an output that looks like this, let's break it down:
 
 ```console
-$ snakemake-run-cellranger run --config-file pipeline_config.yaml \ 
+$ sc-preprocess run --config-file pipeline_config.yaml \ 
                                --cores all \
                                --snakemake-args --profile HPC_profiles
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
 Using profile HPC_profiles for setting default command line arguments.
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
@@ -391,10 +391,10 @@ The first `[INFO]` prints the preprocessing steps enabled in the config file. In
 [INFO] Config validated. Enabled steps: cellranger_arc, doublet_detection
 ```
 
-Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
+Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `sc-preprocess` is installed in your environment — this is expected and you don't need to use this path directly.
 
 ```
-[INFO] Running Snakemake with command: snakemake --snakefile /path/to/cellranger_snakemake/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
+[INFO] Running Snakemake with command: snakemake --snakefile /path/to/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles
 ```
 
 After that, we print some more `[INFO]` about the run:
@@ -526,7 +526,7 @@ Doublet detection outputs from `Scrublet`
 
 `07_FINAL/`
 
-Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `cellranger-snakemake` is installed in your environment — this is expected and you don't need to use this path directly.
+Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `sc-preprocess` is installed in your environment — this is expected and you don't need to use this path directly.
 
 `1_arc.h5mu`
 `1_arc_obs_summary.tsv.gz`
@@ -571,7 +571,7 @@ $ python -c "import pandas as pd; df = pd.read_csv('3K_PBMC_MULTIOME_PROCESSED/0
 
 ### Muon
 
-> 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_3k_multiome_analysis.ipynb`](https://github.com/mschecht/cellranger-snakemake/tree/main/tests/notebooks/PBMC_3k_multiome_analysis.ipynb).
+> 📌 **Note**: A companion Jupyter notebook for loading the output and generating QC visualizations is available at [`notebooks/PBMC_3k_multiome_analysis.ipynb`](https://github.com/mschecht/sc-preprocess/tree/main/tests/notebooks/PBMC_3k_multiome_analysis.ipynb).
 
 The final MuData object in `07_FINAL/` contains both GEX and ATAC modalities with all preprocessing metadata joined in. Load it with:
 
