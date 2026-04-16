@@ -94,7 +94,7 @@ The [3-column library CSV file](https://www.10xgenomics.com/support/software/cel
 
 ```bash
 FASTQ_DIR=$(realpath pbmc_unsorted_3k)
-sed -i "s|pbmc_unsorted_3k/gex|${FASTQ_DIR}/gex|; s|pbmc_unsorted_3k/atac|${FASTQ_DIR}/atac|" pbmc_unsorted_3k_library.csv
+sed -i "s|/path/to/fastqs/pbmc_unsorted_3k/gex|${FASTQ_DIR}/gex|; s|/path/to/fastqs/pbmc_unsorted_3k/atac|${FASTQ_DIR}/atac|" pbmc_unsorted_3k_library.csv
 ```
 
 Finish filling out the `pipeline_config.yaml` with paths to necessary files e.g. `libraries_list.tsv` and reference genome path:
@@ -112,6 +112,8 @@ cellranger_arc:
   reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A # <- add the correct path!
   libraries: libraries_list.tsv
   normalize: none
+  anndata_threads: 1
+  anndata_mem_gb: 16
   directories:
     LOGS_DIR: 00_LOGS
   threads: 10
@@ -199,19 +201,13 @@ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng
 
 Here we will break down the meaning of each rule so you can keep track of what's going on. If you want more detail please refer to the [Pipeline Rules Reference](pipeline_rules.md).
 
-**cellranger_arc_count**: Runs the command [cellranger-arc count](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning GEX and ATAC reads to the reference genome and producing a joint feature-barcode matrix.
-
-**create_arc_mudata**: Converts data from the Cell Ranger ARC output to per-capture [MuData object](https://mudata.readthedocs.io/stable/) (`.h5mu`) using the command [mu.read_10x_mtx()](https://muon.readthedocs.io/en/latest/api/generated/muon.read_10x_mtx.html), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
-
-**cellranger_arc_aggr**: Runs [cellranger-arc aggr](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ARC outputs within a batch into a single normalized count matrix.
-
-**aggregate_arc_batch**: Merges all per-capture MuData objects into a single batch-level `.h5mu` file, verifying `cell_id` uniqueness across captures.
-
-**run_scrublet**: Runs Scrublet doublet detection on the GEX modality of each per-capture MuData object, adding doublet scores and predictions to cell metadata.
-
-**enrich_arc_metadata**: Joins all downstream preprocessing metadata from demultiplexing and doublet detection into the batch-level MuData object.
-
-**all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
+* **cellranger_arc_count**: Runs the command [cellranger-arc count](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning GEX and ATAC reads to the reference genome and producing a joint feature-barcode matrix.
+* **create_arc_mudata**: Converts data from the Cell Ranger ARC output to per-capture [MuData object](https://mudata.readthedocs.io/stable/) (`.h5mu`) using the command [mu.read_10x_mtx()](https://muon.readthedocs.io/en/latest/api/generated/muon.read_10x_mtx.html), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+* **cellranger_arc_aggr**: Runs [cellranger-arc aggr](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ARC outputs within a batch into a single normalized count matrix.
+* **aggregate_arc_batch**: Merges all per-capture MuData objects into a single batch-level `.h5mu` file, verifying `cell_id` uniqueness across captures.
+* **run_scrublet**: Runs Scrublet doublet detection on the GEX modality of each per-capture MuData object, adding doublet scores and predictions to cell metadata.
+* **enrich_arc_metadata**: Joins all downstream preprocessing metadata from demultiplexing and doublet detection into the batch-level MuData object.
+* **all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
 
 ### Local Execution
 
@@ -504,27 +500,27 @@ grep -R "error" 3K_PBMC_MULTIOME_PROCESSED/00_LOGS
 
 The `.done` files are an internal checklist to keep track of a subset of rules that finished (don't worry about it unless you are a developer and want to contribute to the code base).
 
-`01_CELLRANGERARC_COUNT/`
+* `01_CELLRANGERARC_COUNT/`
 
 Here you will find all of the `Cell Ranger count` outputs for each individual capture.
 
-`02_CELLRANGERARC_AGGR/`
+* `02_CELLRANGERARC_AGGR/`
 
 This will be the aggregated count matrices across batches. In this tutorial there is only one capture so you won't find any processed data here.
 
-`03_ANNDATA/`
+* `03_ANNDATA/`
 
 Here you will find `MuData` objects for every capture. In this case it will be Muon because multiome.
 
-`04_BATCH_OBJECTS/`
+* `04_BATCH_OBJECTS/`
 
 Batch-level `MuData` object created by merging all per-capture objects from `03_ANNDATA/`. This is the aggregated, pre-metadata-enriched object — all cells from all captures in the batch are present, and `cell_id` uniqueness is verified. It does not yet contain doublet scores or demultiplexing results.
 
-`06_DOUBLET_DETECTION/`
+* `06_DOUBLET_DETECTION/`
 
 Doublet detection outputs from `Scrublet`
 
-`07_FINAL/`
+`* 07_FINAL/`
 
 Next, we print the Snakemake command running under the hood for convenient debugging. The `--snakefile` path will reflect where `sc-preprocess` is installed in your environment — this is expected and you don't need to use this path directly.
 

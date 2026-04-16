@@ -116,6 +116,8 @@ cellranger_atac:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720  # max SLURM job runtime in minutes (default: 720 = 12 hours)
+  anndata_threads: 1
+  anndata_mem_gb: 16
   directories:
     LOGS_DIR: 00_LOGS
 doublet_detection:
@@ -199,19 +201,13 @@ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng
 
 Here we will break down the meaning of each rule so you can keep track of what's going on. If you want more detail please refer to the [Pipeline Rules Reference](pipeline_rules.md).
 
-**cellranger_atac_count**: Runs the command [cellranger-atac count](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning ATAC reads to the reference genome and producing a peak-barcode matrix.
-
-**create_atac_anndata**: Converts data from the Cell Ranger ATAC output to a per-capture [AnnData object](https://anndata.readthedocs.io/en/latest/) (`.h5ad`), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
-
-**cellranger_atac_aggr**: Runs [cellranger-atac aggr](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ATAC outputs within a batch into a single normalized count matrix.
-
-**aggregate_atac_batch**: Merges all per-capture AnnData objects into a single batch-level `.h5ad` file, verifying `cell_id` uniqueness across captures.
-
-**run_scrublet**: Runs Scrublet doublet detection on each per-capture AnnData object, adding doublet scores and predictions to cell metadata.
-
-**enrich_atac_metadata**: Joins all downstream preprocessing metadata from doublet detection into the batch-level AnnData object.
-
-**all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
+* **cellranger_atac_count**: Runs the command [cellranger-atac count](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning ATAC reads to the reference genome and producing a peak-barcode matrix.
+* **create_atac_anndata**: Converts data from the Cell Ranger ATAC output to a per-capture [AnnData object](https://anndata.readthedocs.io/en/latest/) (`.h5ad`), adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+* **cellranger_atac_aggr**: Runs [cellranger-atac aggr](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger ATAC outputs within a batch into a single normalized count matrix.
+* **aggregate_atac_batch**: Merges all per-capture AnnData objects into a single batch-level `.h5ad` file, verifying `cell_id` uniqueness across captures.
+* **run_scrublet**: Runs Scrublet doublet detection on each per-capture AnnData object, adding doublet scores and predictions to cell metadata.
+* **enrich_atac_metadata**: Joins all downstream preprocessing metadata from doublet detection into the batch-level AnnData object.
+* **all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
 
 ### Local Execution
 
@@ -479,27 +475,27 @@ grep -R "error" 1K_PBMC_ATAC_PROCESSED/00_LOGS
 
 The `.done` files are an internal checklist to keep track of a subset of rules that finished (don't worry about it unless you are a developer and want to contribute to the code base).
 
-`01_CELLRANGERATAC_COUNT/`
+* `01_CELLRANGERATAC_COUNT/`
 
 Here you will find all of the `Cell Ranger ATAC count` outputs for each individual capture.
 
-`02_CELLRANGERATAC_AGGR/`
+* `02_CELLRANGERATAC_AGGR/`
 
 This will be the aggregated count matrices across batches. In this tutorial there is only one capture so you won't find any processed data here.
 
-`03_ANNDATA/`
+* `03_ANNDATA/`
 
 Here you will find an `AnnData` object for every capture.
 
-`04_BATCH_OBJECTS/`
+* `04_BATCH_OBJECTS/`
 
 Batch-level `AnnData` object created by merging all per-capture objects from `03_ANNDATA/`. This is the aggregated, pre-metadata-enriched object — all cells from all captures in the batch are present, and `cell_id` uniqueness is verified. It does not yet contain doublet scores or demultiplexing results.
 
-`06_DOUBLET_DETECTION/`
+* `06_DOUBLET_DETECTION/`
 
 Doublet detection outputs from `Scrublet`.
 
-`07_FINAL/`
+* `07_FINAL/`
 
 The final enriched `AnnData` object with all preprocessing metadata joined in, ready for downstream analysis.
 

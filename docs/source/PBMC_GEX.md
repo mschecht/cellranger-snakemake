@@ -117,6 +117,8 @@ cellranger_gex:
   create-bam: true
   threads: 10
   mem_gb: 64
+  anndata_threads: 1
+  anndata_mem_gb: 32
   directories:
     LOGS_DIR: 00_LOGS
 doublet_detection:
@@ -201,19 +203,13 @@ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng
 
 Here we will break down the meaning of each rule so you can keep track of what's going on. If you want more detail please refer to the [Pipeline Rules Reference](pipeline_rules.md).
 
-**cellranger_gex_count**: Runs the command [cellranger count](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning GEX reads to the reference genome and producing a gene-barcode matrix.
-
-**create_gex_anndata**: Converts data from the Cell Ranger GEX output to a per-capture [AnnData object](https://anndata.readthedocs.io/en/latest/) (`.h5ad`) using `sc.read_10x_h5()`, adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
-
-**cellranger_gex_aggr**: Runs [cellranger aggr](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger GEX outputs within a batch into a single normalized count matrix.
-
-**aggregate_gex_batch**: Merges all per-capture AnnData objects into a single batch-level `.h5ad` file, verifying `cell_id` uniqueness across captures.
-
-**run_scrublet**: Runs Scrublet doublet detection on each per-capture AnnData object, adding doublet scores and predictions to cell metadata.
-
-**enrich_gex_metadata**: Joins all downstream preprocessing metadata from demultiplexing and doublet detection into the batch-level AnnData object.
-
-**all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
+* **cellranger_gex_count**: Runs the command [cellranger count](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/command-line-arguments#count) per capture, aligning GEX reads to the reference genome and producing a gene-barcode matrix.
+* **create_gex_anndata**: Converts data from the Cell Ranger GEX output to a per-capture [AnnData object](https://anndata.readthedocs.io/en/latest/) (`.h5ad`) using `sc.read_10x_h5()`, adding traceability metadata (`batch_id`, `capture_id`, `cell_id`).
+* **cellranger_gex_aggr**: Runs [cellranger aggr](https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/command-line-arguments#aggr) which aggregates all per-capture Cell Ranger GEX outputs within a batch into a single normalized count matrix.
+* **aggregate_gex_batch**: Merges all per-capture AnnData objects into a single batch-level `.h5ad` file, verifying `cell_id` uniqueness across captures.
+* **run_scrublet**: Runs Scrublet doublet detection on each per-capture AnnData object, adding doublet scores and predictions to cell metadata.
+* **enrich_gex_metadata**: Joins all downstream preprocessing metadata from demultiplexing and doublet detection into the batch-level AnnData object.
+* **all**: Final Snakemake rule that collects all expected outputs to ensure the full workflow is completed.
 
 ### Local Execution
 
@@ -494,27 +490,27 @@ grep -R "error" 1K_PBMC_GEX_PROCESSED/00_LOGS
 
 The `.done` files are an internal checklist to keep track of a subset of rules that finished (don't worry about it unless you are a developer and want to contribute to the code base).
 
-`01_CELLRANGERGEX_COUNT/`
+* `01_CELLRANGERGEX_COUNT/`
 
 Here you will find all of the `Cell Ranger count` outputs for each individual capture.
 
-`02_CELLRANGERGEX_AGGR/`
+* `02_CELLRANGERGEX_AGGR/`
 
 This will be the aggregated count matrices across batches. In this tutorial there is only one capture so you won't find any processed data here.
 
-`03_ANNDATA/`
+* `03_ANNDATA/`
 
 Here you will find an `AnnData` object for every capture.
 
-`04_BATCH_OBJECTS/`
+* `04_BATCH_OBJECTS/`
 
 Batch-level `AnnData` object created by merging all per-capture objects from `03_ANNDATA/`. This is the aggregated, pre-metadata-enriched object — all cells from all captures in the batch are present, and `cell_id` uniqueness is verified. It does not yet contain doublet scores or demultiplexing results.
 
-`06_DOUBLET_DETECTION/`
+* `06_DOUBLET_DETECTION/`
 
 Doublet detection outputs from `Scrublet`.
 
-`07_FINAL/`
+* `07_FINAL/`
 
 The final enriched `AnnData` object with all preprocessing metadata joined in, ready for downstream analysis.
 
@@ -576,4 +572,33 @@ Immediately visualize QC metrics:
 
 ```python
 sc.pl.violin(adata, ['total_counts', 'n_genes_by_counts', 'pct_counts_mt'], jitter=0.4, multi_panel=True)
+```
+
+### Seurat
+
+The easiest way to load the final AnnData object in `07_FINAL/` into R to be analyzed with Seurat is by using the SeuratDisk package, as follows:
+
+```R
+library(Seurat)
+library(SeuratDisk)
+
+# Convert .h5ad to .h5seurat format
+Convert("1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex.h5ad", dest = "h5seurat", overwrite = TRUE)
+
+# Load the converted file into a Seurat object
+seurat_obj <- LoadH5Seurat("1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex.h5seurat")
+```
+
+A second option, which directly loads the AnnData file without creating an intermediate file, uses the zellkonverter and SingleCellExperiment packages. For example:
+
+```R
+library(Seurat)
+library(zellkonverter)
+library(SingleCellExperiment)
+
+# Read the .h5ad file as a SingleCellExperiment object
+sce <- readH5AD("1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex.h5ad")
+
+# Convert to Seurat object
+seurat_obj <- as.Seurat(sce, counts = "X", data = NULL)
 ```
