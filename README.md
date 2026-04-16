@@ -21,7 +21,7 @@ to deploy in high-performance computing or cloud environments. By combining Snak
 
 ## Documentation
 
-For full documentation, visit **[sc-preprocess.readthedocs.io](https://sc-preprocess.readthedocs.io/en/latest/)**.
+For full documentation, visit **[sc-preprocess.readthedocs.io](https://cellranger-snakemake.readthedocs.io/en/latest/)**.
 
 - [Installation](https://sc-preprocess.readthedocs.io/en/latest/installation.html)
 - [Quick Start](https://sc-preprocess.readthedocs.io/en/latest/quickstart.html)
