@@ -285,14 +285,6 @@ class TestDataGenerator:
             }
         }
 
-        base_config["celltype_annotation"] = {
-            "enabled": False,
-            "method": "celltypist",
-            "celltypist": {
-                "model": "Immune_All_Low.pkl",
-                "majority_voting": False,
-            }
-        }
         
         if output_path is None:
             output_path = f"test_config_{workflow.lower()}.yaml"
