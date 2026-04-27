@@ -630,3 +630,7 @@ sc.pl.violin(mdata["atac"], ['total_counts', 'n_genes_by_counts'], jitter=0.4, m
 ### Seurat/Signac
 
 ### ArchR
+
+---
+
+For common questions about re-running steps, `.done` file tracking, and cluster-mode lock files, see the [FAQ](faq.md).

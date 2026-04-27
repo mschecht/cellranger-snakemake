@@ -1,6 +1,6 @@
-# Tutorial
+# Developer test case
 
-## Tutorial and test case for development for GEX, ATAC, and ARC workflow
+## Test case for development for GEX, ATAC, and ARC workflow
 
 In this section, we will run `sc-preprocess` using a test dataset from Cell Ranger (derived from fasta files are used by the internal testing tool for cellranger called [cellranger testrun](https://www.10xgenomics.com/support/software/cell-ranger/latest/tutorials/cr-tutorial-in#testrun)) to get new users ready to go as well as developers who need test cases for each of the workflow modes. Follow the steps to set up the test dataset, and run basic commands. 
 
@@ -78,7 +78,7 @@ You can also run this command to generate a default config yaml with every confi
 sc-preprocess init-config --get-default-config
 ```
 
-For this tutorial, here is the GEX test config yaml file:
+For this test case, here is the GEX test config yaml file:
 
 ```yaml
 # tests/00_TEST_DATA_GEX/test_config_gex.yaml
@@ -150,7 +150,7 @@ Column descriptions:
 - `fastqs`: full path(s) to where the input FASTQ files are located - if providing multiple paths, separate them with commas.
 
 
-**Note**: For the ARC workflow, the input file is a little bit different. You will need to create a tab-separated file that contains the metadata and paths for to cellranger ARC [library csv files](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) (files that contain paths the ATAC and GEX FASTQ files). This file, which we will call `libraries_list_ARC.tsv` during this tutorial, follows the following format:
+**Note**: For the ARC workflow, the input file is a little bit different. You will need to create a tab-separated file that contains the metadata and paths for to cellranger ARC [library csv files](https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/running-pipelines/single-library-analysis#create-a-libraries-csv-file) (files that contain paths the ATAC and GEX FASTQ files). This file, which we will call `libraries_list_ARC.tsv` during this test case, follows the following format:
 
 | batch | capture | CSV                                |
 |-------|---------|------------------------------------|
@@ -310,14 +310,4 @@ sc-preprocess run --config-file tests/00_TEST_DATA_GEX/test_config_gex.yaml \
                              --snakemake-args --profile tests/00_TEST_DATA_GEX/HPC_profiles
 ```
 
-## FAQs
-
-How do I re-run the workflow from a specific step?
-
-A great way to do this is to pass the Snakemake argument `--forcerun` straight to Snakemake with the argument `--snakemake-args`. Here is an example where you can restart the workflow from the rule `create_arc_metadata`: 
-
-```bash
-sc-preprocess run --config-file pipeline_config.yaml \
-                             --cores 1 \
-                             --snakemake-args --forcerun create_arc_mudata
-```
+For common questions about re-running steps, `.done` file tracking, and cluster-mode lock files, see the [FAQ](faq.md).

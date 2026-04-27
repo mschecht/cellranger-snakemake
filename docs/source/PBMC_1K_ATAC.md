@@ -571,3 +571,7 @@ snap.pl.tsse(adata_snap)
 
 **TSS enrichment** — accessibility signal at transcription start sites.
 :::
+
+---
+
+For common questions about re-running steps, `.done` file tracking, and cluster-mode lock files, see the [FAQ](faq.md).

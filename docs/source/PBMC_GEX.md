@@ -602,3 +602,7 @@ sce <- readH5AD("1K_PBMC_GEX_PROCESSED/07_FINAL/1_gex.h5ad")
 # Convert to Seurat object
 seurat_obj <- as.Seurat(sce, counts = "X", data = NULL)
 ```
+
+---
+
+For common questions about re-running steps, `.done` file tracking, and cluster-mode lock files, see the [FAQ](faq.md).
