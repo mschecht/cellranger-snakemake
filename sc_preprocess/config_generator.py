@@ -45,25 +45,23 @@ doublet_detection:
 
 demultiplexing:
   enabled: false
-  method: demuxalot  # options: demuxalot, vireo
-  # --- demuxalot (genotype-based, GEX only) ---
-  demuxalot:
+  method: demuxalot  # options: demuxalot, vireo — only the selected method is used
+  demuxalot:  # genotype-based; GEX only
     vcf: /path/to/genotypes.vcf  # REQUIRED
     genome_names: /path/to/genome_names.txt  # REQUIRED
     refine: false  # run genotype refinement step
     celltag: CB
     umitag: UB
-  # --- vireo (SNP-based, works with all modalities) ---
-  # vireo:
-  #   donors: 4  # REQUIRED: number of donors
-  #   cellsnp:
-  #     vcf: /path/to/variants.vcf  # REQUIRED
-  #     threads: 4
-  #     min_maf: 0.0
-  #     min_count: 1
-  #     umi_tag: Auto
-  #     cell_tag: CB
-  #     gzip: true
+  vireo:  # SNP-based; works with all modalities
+    donors: 4  # REQUIRED: number of donors
+    cellsnp:
+      vcf: /path/to/variants.vcf  # REQUIRED
+      threads: 4
+      min_maf: 0.0
+      min_count: 1
+      umi_tag: Auto
+      cell_tag: CB
+      gzip: true
 """
 
 _ATAC_TEMPLATE = """\
@@ -110,9 +108,14 @@ doublet_detection:
 
 demultiplexing:
   enabled: false
-  method: vireo  # demuxalot is GEX-only; use vireo for ATAC
-  # --- vireo (SNP-based) ---
-  vireo:
+  method: vireo  # options: demuxalot, vireo — only the selected method is used
+  demuxalot:  # genotype-based; GEX only
+    vcf: /path/to/genotypes.vcf  # REQUIRED
+    genome_names: /path/to/genome_names.txt  # REQUIRED
+    refine: false  # run genotype refinement step
+    celltag: CB
+    umitag: UB
+  vireo:  # SNP-based; works with all modalities
     donors: 4  # REQUIRED: number of donors
     cellsnp:
       vcf: /path/to/variants.vcf  # REQUIRED
@@ -167,9 +170,14 @@ doublet_detection:
 
 demultiplexing:
   enabled: false
-  method: vireo  # demuxalot is GEX-only; use vireo for ARC
-  # --- vireo (SNP-based) ---
-  vireo:
+  method: vireo  # options: demuxalot, vireo — only the selected method is used
+  demuxalot:  # genotype-based; GEX only
+    vcf: /path/to/genotypes.vcf  # REQUIRED
+    genome_names: /path/to/genome_names.txt  # REQUIRED
+    refine: false  # run genotype refinement step
+    celltag: CB
+    umitag: UB
+  vireo:  # SNP-based; works with all modalities
     donors: 4  # REQUIRED: number of donors
     cellsnp:
       vcf: /path/to/variants.vcf  # REQUIRED

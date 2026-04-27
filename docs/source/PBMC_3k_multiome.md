@@ -46,7 +46,7 @@ Run the following command to generate a config file with all available ARC (mult
 sc-preprocess init-config --modality arc --output pipeline_config.yaml
 ```
 
-This writes every parameter with its default value and inline comments. Fields marked `# REQUIRED` must be filled in before running. Optional steps (`doublet_detection`, `demultiplexing`) are included but set to `enabled: false` — set them to `true` to activate them.
+This writes every parameter with its default value and inline comments. Fields marked `# REQUIRED` must be filled in before running. Optional steps (`doublet_detection`, `demultiplexing`) are included but set to `enabled: false` — set them to `true` to activate them. For `demultiplexing`, both method blocks (`demuxalot` and `vireo`) are always printed — only the one matching `method:` is used; the other is ignored.
 
 2. Make a `libraries_list.tsv`
 
