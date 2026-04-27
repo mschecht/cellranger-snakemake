@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 from sc_preprocess.utils.utils import validate_cores
-from sc_preprocess.config_generator import ConfigGenerator
+from sc_preprocess.config_generator import generate_config_yaml
 from sc_preprocess.config_validator import ConfigValidator
 from sc_preprocess.utils.custom_logger import custom_logger
 from sc_preprocess.utils.version_check import CellRangerVersionChecker
@@ -25,8 +25,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate unified config interactively
-  sc-preprocess init-config
+  # Generate config for a GEX pipeline (print to stdout)
+  sc-preprocess init-config --modality gex
+
+  # Write config directly to a file
+  sc-preprocess init-config --modality gex --output pipeline_config.yaml
 
   # Quick config validation (optional - 'run' auto-validates)
   sc-preprocess validate-config --config-file pipeline_config.yaml
@@ -140,17 +143,18 @@ Examples:
     # Init config subcommand
     init_parser = subparsers.add_parser(
         'init-config',
-        help='Generate configuration file interactively'
+        help='Generate a configuration file with all parameters for a given modality'
+    )
+    init_parser.add_argument(
+        '--modality',
+        required=True,
+        choices=['gex', 'atac', 'arc'],
+        help='Pipeline modality: gex (Gene Expression), atac (Chromatin Accessibility), arc (Multiome)'
     )
     init_parser.add_argument(
         '--output',
-        default='pipeline_config.yaml',
-        help='Output path for configuration file'
-    )
-    init_parser.add_argument(
-        '--get-default-config',
-        help='Generate configuration file with ALL parameters set to default values (no interactive prompts)',
-        action='store_true'
+        default=None,
+        help='Write config to this file (default: print to stdout)'
     )
     
     # Validate config subcommand
@@ -352,20 +356,12 @@ Examples:
             sys.exit(130)
     
     elif args.subcommand == 'init-config':
-        generator = ConfigGenerator()
-        try:
-            if args.get_default_config:
-                config = generator.generate_default_config()
-            else:
-                config = generator.generate()
-            generator.save_config(config, args.output)
-            custom_logger.info(f"Enabled steps: {', '.join(config.get_enabled_steps())}")
-        except KeyboardInterrupt:
-            custom_logger.warning("Configuration generation cancelled.")
-            sys.exit(0)
-        except Exception as e:
-            custom_logger.error(f"Failed to generate config: {e}")
-            sys.exit(1)
+        yaml_str = generate_config_yaml(args.modality)
+        if args.output is None:
+            print(yaml_str, end="")
+        else:
+            Path(args.output).write_text(yaml_str)
+            custom_logger.info(f"Config written to {args.output}")
     
     elif args.subcommand == 'validate-config':
         try:
