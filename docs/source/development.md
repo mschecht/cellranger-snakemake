@@ -12,6 +12,20 @@ git pull
 pip install -e .   
 ```
 
+### Building the documentation
+
+To build and preview the docs locally, install the documentation dependencies:
+
+```bash
+pip install -e ".[docs]"
+```
+
+Then serve with auto-reload:
+
+```bash
+sphinx-autobuild docs/source docs/build/html
+```
+
 ### Updating dependencies
 
 The project uses three types of environment files:
@@ -531,6 +545,16 @@ When adding a new step, verify all of the following before merging:
 - [ ] **Real execution**: Pipeline completes with the actual tool on test data
 - [ ] **Config generator**: `sc-preprocess init-config` includes the new step
 
+### End-to-end test walkthrough
+
+For a step-by-step walkthrough of running the full pipeline on test data (GEX, ATAC, and ARC), see:
+
+```{toctree}
+:maxdepth: 1
+
+tutorial
+```
+
 ---
 
 ## Common Pitfalls
@@ -566,7 +590,7 @@ docs/
 
 ### Building docs locally
 
-Here is how you can render the documentation locally in your web browser:
+Here is how you can render the documentation locally with live reloading in your web browser:
 
 ```bash
 sc-preprocess render-docs
@@ -581,6 +605,7 @@ cd docs
 pip install sphinx
 pip install sphinx-copybutton
 pip install myst-parser
+pip install sphinx-autobuild
 
 # Build HTML
 make html
@@ -593,12 +618,9 @@ Then open http://localhost:8000 in your browser.
 
 If you are using VS Code on a remote session, you can render the docs in the IDE itself.
 
-### Live reload during editing
-
 For automatic rebuilds when you save changes, use `sphinx-autobuild`:
 
 ```bash
-pip install sphinx-autobuild
 sphinx-autobuild source build/html --port 8000
 ```
 
