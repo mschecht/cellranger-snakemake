@@ -66,17 +66,13 @@ Let's walk through the input files necessary to run the workflow!
 
 This YAML file contains all the bells and whistles needed to run the underlying snakemake workflow!
 
-To generate the config files for a workflow customized to your data run this command below. It will interactively ask you which steps you plan on running and automatically produce a config file.
+To generate a config file with all available parameters for your modality, pass `--modality gex`, `--modality atac`, or `--modality arc`:
 
 ```bash
-sc-preprocess init-config
+sc-preprocess init-config --modality gex --output pipeline_config.yaml
 ```
 
-You can also run this command to generate a default config yaml with every configuration available:
-
-```bash
-sc-preprocess init-config --get-default-config
-```
+This prints every parameter with its default value and inline comments. Required fields (like `reference` and `libraries`) are marked `# REQUIRED`. Optional pipeline steps (`doublet_detection`, `demultiplexing`) are included but set to `enabled: false` — uncomment and edit them when you need them.
 
 For this test case, here is the GEX test config yaml file:
 

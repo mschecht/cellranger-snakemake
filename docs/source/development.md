@@ -367,7 +367,7 @@ If you get a `MissingInputException`, the `.done` filename in `build_targets.py`
 
 #### Step 5: Add to config generator
 
-Update `sc_preprocess/config_generator.py` so `init-config` can produce the new method's parameters interactively.
+Add the new method's parameters to the relevant modality template(s) in `sc_preprocess/config_generator.py` so `sc-preprocess init-config` includes them in the output.
 
 #### Step 6: Test
 
@@ -494,7 +494,7 @@ Replace the dummy shell with the actual tool invocation. Use either `shell:` for
 
 #### Step 9: Add to config generator
 
-Update `sc_preprocess/config_generator.py` so that `sc-preprocess init-config` can interactively generate config for the new step.
+Add the new step's parameters to the relevant modality template(s) in `sc_preprocess/config_generator.py` so `sc-preprocess init-config` includes them in the output.
 
 #### Step 10: Write tests
 
@@ -543,7 +543,7 @@ When adding a new step, verify all of the following before merging:
 - [ ] **DAG**: Your rule appears with correct dependencies in the DAG visualization
 - [ ] **Dummy execution**: Pipeline completes with placeholder `touch` commands
 - [ ] **Real execution**: Pipeline completes with the actual tool on test data
-- [ ] **Config generator**: `sc-preprocess init-config` includes the new step
+- [ ] **Config generator**: `sc-preprocess init-config --modality <modality>` includes the new step
 
 ### End-to-end test walkthrough
 

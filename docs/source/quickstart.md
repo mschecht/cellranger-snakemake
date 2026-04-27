@@ -14,8 +14,10 @@ sc-preprocess check-versions
 
 ## 3. Create a config file
 
+Choose your modality (`gex`, `atac`, or `arc`) and generate a config with all parameters:
+
 ```bash
-sc-preprocess init-config --output pipeline_config.yaml
+sc-preprocess init-config --modality gex --output pipeline_config.yaml
 ```
 
 ## 4. Dry run (recommended)

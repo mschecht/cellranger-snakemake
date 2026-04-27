@@ -39,46 +39,13 @@ tar -xvf refdata-gex-GRCh38-2024-A.tar.gz
 
 1. Initialize a config file: `pipeline_config.yaml`
 
-Here you will run the command `sc-preprocess init-config` which will prompt you on the command line with a series of questions to figure out which aspects of the workflow you would like to turn on and how to modify various parameters. Answer the same way as below if you would like to follow along in this tutorial:
+Run the following command to generate a config file with all available GEX parameters:
 
 ```bash
-$ sc-preprocess init-config
-
-Single-Cell Preprocessing Pipeline Configuration Generator
-
-Project name: 1K_PBMC_GEX_PROCESSED
-Output directory (output): 1K_PBMC_GEX_PROCESSED
-
-Resource Configuration
-Total memory (GB) (32):
-Temporary directory ():
-Directory suffix (or 'none') (none):
-
-Cell Ranger Configuration
-Enable Cell Ranger GEX? [y/n] (n): y
-  Reference genome path:
-  Libraries TSV path:
-  Chemistry [auto] (auto):
-  Normalization method [none/depth] (none):
-  Create BAM file? [y/n] (y):
-Enable Cell Ranger ATAC? [y/n] (n): n
-Enable Cell Ranger ARC? [y/n] (n): n
-
-Enable demultiplexing? [y/n] (n): n
-
-Enable doublet detection? [y/n] (n): y
-  Doublet detection method [scrublet] (scrublet):
-    Expected doublet rate (0.06):
-    Min genes per cell (filter_cells_min_genes) (100):
-    Min cells per gene (filter_genes_min_cells) (3):
-    Min gene variability percentile (85.0):
-    Number of principal components (30):
-
-Saving configuration to 'pipeline_config.yaml'...
-
-✓ Configuration saved to: pipeline_config.yaml
-[INFO] Enabled steps: cellranger_gex, doublet_detection
+sc-preprocess init-config --modality gex --output pipeline_config.yaml
 ```
+
+This writes every parameter with its default value and inline comments. Fields marked `# REQUIRED` must be filled in before running. Optional steps (`doublet_detection`, `demultiplexing`) are included but set to `enabled: false` — set them to `true` to activate them.
 
 2. Make a `libraries.tsv`
 
@@ -103,7 +70,6 @@ Then update `pipeline_config.yaml` to point to the necessary files e.g. `librari
 ```yaml
 project_name: 1K_PBMC_GEX_PROCESSED
 output_dir: 1K_PBMC_GEX_PROCESSED
-samples: {}
 resources:
   mem_gb: 32
   tmpdir: ''
