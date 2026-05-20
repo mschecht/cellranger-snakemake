@@ -46,8 +46,14 @@ if config.get("cellranger_gex"):
     gex_batch_to_samples = {str(k): v for k, v in gex_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
     u.custom_logger.info(f"Cell Ranger GEX: Found {len(gex_samples)} sample(s) across {len(gex_batch_to_samples)} batch(es)")
-    
-    
+
+    _gex_cm = config["cellranger_gex"].get("cluster-mode") or {}
+    GEX_CLUSTER_JOBMODE     = _gex_cm.get("jobmode") if _gex_cm.get("enabled") else None
+    GEX_CLUSTER_MEMPERCORE  = _gex_cm.get("mempercore") if _gex_cm.get("enabled") else None
+    GEX_CLUSTER_MAXJOBS     = _gex_cm.get("maxjobs") if _gex_cm.get("enabled") else None
+    GEX_CLUSTER_JOBINTERVAL = _gex_cm.get("jobinterval") if _gex_cm.get("enabled") else None
+
+
     rule cellranger_gex_count:
         """Run Cell Ranger count for gene expression data."""
         input:
@@ -64,10 +70,10 @@ if config.get("cellranger_gex"):
             chemistry = GEX_CHEMISTRY,
             create_bam = GEX_CREATE_BAM,
             sample_name = lambda wc: gex_df[gex_df["capture"] == wc.capture]["sample"].iloc[0],
-            jobmode     = config["cellranger_gex"].get("jobmode"),
-            mempercore  = config["cellranger_gex"].get("mempercore"),
-            maxjobs     = config["cellranger_gex"].get("maxjobs"),
-            jobinterval = config["cellranger_gex"].get("jobinterval")
+            jobmode     = GEX_CLUSTER_JOBMODE,
+            mempercore  = GEX_CLUSTER_MEMPERCORE,
+            maxjobs     = GEX_CLUSTER_MAXJOBS,
+            jobinterval = GEX_CLUSTER_JOBINTERVAL
         threads: config["cellranger_gex"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_gex"].get("mem_gb", 64) * 1024,
@@ -199,8 +205,14 @@ if config.get("cellranger_atac"):
     atac_batch_to_samples = {str(k): v for k, v in atac_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
     u.custom_logger.info(f"Cell Ranger ATAC: Found {len(atac_samples)} sample(s) across {len(atac_batch_to_samples)} batch(es)")
-    
-    
+
+    _atac_cm = config["cellranger_atac"].get("cluster-mode") or {}
+    ATAC_CLUSTER_JOBMODE     = _atac_cm.get("jobmode") if _atac_cm.get("enabled") else None
+    ATAC_CLUSTER_MEMPERCORE  = _atac_cm.get("mempercore") if _atac_cm.get("enabled") else None
+    ATAC_CLUSTER_MAXJOBS     = _atac_cm.get("maxjobs") if _atac_cm.get("enabled") else None
+    ATAC_CLUSTER_JOBINTERVAL = _atac_cm.get("jobinterval") if _atac_cm.get("enabled") else None
+
+
     rule cellranger_atac_count:
         """Run Cell Ranger ATAC count."""
         input:
@@ -216,10 +228,10 @@ if config.get("cellranger_atac"):
         params:
             outdir = ATAC_COUNT_DIR,
             sample_name = lambda wc: atac_df[atac_df["capture"] == wc.capture]["sample"].iloc[0],
-            jobmode     = config["cellranger_atac"].get("jobmode"),
-            mempercore  = config["cellranger_atac"].get("mempercore"),
-            maxjobs     = config["cellranger_atac"].get("maxjobs"),
-            jobinterval = config["cellranger_atac"].get("jobinterval")
+            jobmode     = ATAC_CLUSTER_JOBMODE,
+            mempercore  = ATAC_CLUSTER_MEMPERCORE,
+            maxjobs     = ATAC_CLUSTER_MAXJOBS,
+            jobinterval = ATAC_CLUSTER_JOBINTERVAL
         threads: config["cellranger_atac"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_atac"].get("mem_gb", 64) * 1024,
@@ -355,8 +367,14 @@ if config.get("cellranger_arc"):
     arc_batch_to_captures = {str(k): v for k, v in arc_df.groupby("batch")["capture"].apply(list).to_dict().items()}
     
     u.custom_logger.info(f"Cell Ranger ARC: Found {len(arc_captures)} capture(s) across {len(arc_batch_to_captures)} batch(es)")
-    
-    
+
+    _arc_cm = config["cellranger_arc"].get("cluster-mode") or {}
+    ARC_CLUSTER_JOBMODE     = _arc_cm.get("jobmode") if _arc_cm.get("enabled") else None
+    ARC_CLUSTER_MEMPERCORE  = _arc_cm.get("mempercore") if _arc_cm.get("enabled") else None
+    ARC_CLUSTER_MAXJOBS     = _arc_cm.get("maxjobs") if _arc_cm.get("enabled") else None
+    ARC_CLUSTER_JOBINTERVAL = _arc_cm.get("jobinterval") if _arc_cm.get("enabled") else None
+
+
     rule cellranger_arc_count:
         """Run Cell Ranger ARC count for multiome data."""
         input:
@@ -371,10 +389,10 @@ if config.get("cellranger_arc"):
             done = touch(os.path.join(ARC_LOGS_DIR, "{batch}_{capture}_arc_count.done"))
         params:
             outdir       = ARC_COUNT_DIR,
-            jobmode      = config["cellranger_arc"].get("jobmode"),
-            mempercore   = config["cellranger_arc"].get("mempercore"),
-            maxjobs      = config["cellranger_arc"].get("maxjobs"),
-            jobinterval  = config["cellranger_arc"].get("jobinterval")
+            jobmode      = ARC_CLUSTER_JOBMODE,
+            mempercore   = ARC_CLUSTER_MEMPERCORE,
+            maxjobs      = ARC_CLUSTER_MAXJOBS,
+            jobinterval  = ARC_CLUSTER_JOBINTERVAL
         threads: config["cellranger_arc"].get("threads", 10)
         resources:
             mem_mb = config["cellranger_arc"].get("mem_gb", 64) * 1024,

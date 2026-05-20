@@ -20,10 +20,12 @@ cellranger_gex:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  jobmode: null  # options: local, slurm, sge, lsf, or path to .template file
-  mempercore: null  # cluster only: GB RAM per core (--mempercore)
-  maxjobs: null  # cluster only: max concurrent jobs (--maxjobs)
-  jobinterval: null  # cluster only: ms between job submissions (--jobinterval)
+  cluster-mode:
+    enabled: false       # set true to submit Cell Ranger jobs via a cluster scheduler
+    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
+    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
+    maxjobs: 64          # max concurrent Cell Ranger subjobs (--maxjobs)
+    jobinterval: null    # ms between job submissions (--jobinterval)
   anndata_threads: 1
   anndata_mem_gb: 16
 
@@ -83,10 +85,12 @@ cellranger_atac:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  jobmode: null  # options: local, slurm, sge, lsf, or path to .template file
-  mempercore: null  # cluster only: GB RAM per core (--mempercore)
-  maxjobs: null  # cluster only: max concurrent jobs (--maxjobs)
-  jobinterval: null  # cluster only: ms between job submissions (--jobinterval)
+  cluster-mode:
+    enabled: false       # set true to submit Cell Ranger ATAC jobs via a cluster scheduler
+    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
+    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
+    maxjobs: 64          # max concurrent Cell Ranger ATAC subjobs (--maxjobs)
+    jobinterval: null    # ms between job submissions (--jobinterval)
   anndata_threads: 1
   anndata_mem_gb: 32  # SnapATAC2 fragment sorting requires extra memory
 
@@ -145,10 +149,12 @@ cellranger_arc:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  jobmode: null  # options: local, slurm, sge, lsf, or path to .template file
-  mempercore: null  # cluster only: GB RAM per core (--mempercore)
-  maxjobs: null  # cluster only: max concurrent jobs (--maxjobs)
-  jobinterval: null  # cluster only: ms between job submissions (--jobinterval)
+  cluster-mode:
+    enabled: false       # set true to submit Cell Ranger ARC jobs via a cluster scheduler
+    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
+    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
+    maxjobs: 64          # max concurrent Cell Ranger ARC subjobs (--maxjobs)
+    jobinterval: null    # ms between job submissions (--jobinterval)
   anndata_threads: 1
   anndata_mem_gb: 16
 

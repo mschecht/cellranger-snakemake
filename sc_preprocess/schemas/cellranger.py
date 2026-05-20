@@ -5,6 +5,33 @@ from pydantic import BaseModel, Field, field_validator
 from .base import BaseStepConfig, DirectoryConfig, ToolMeta
 
 
+class ClusterModeConfig(BaseModel):
+    """Cell Ranger cluster mode — submits compute jobs via a cluster scheduler."""
+
+    enabled: bool = Field(
+        default=False,
+        description="Enable cluster mode"
+    )
+    jobmode: str = Field(
+        description="Cluster backend: slurm, lsf, sge, or path to a .template file"
+    )
+    mempercore: Optional[int] = Field(
+        default=None,
+        description="GB of RAM per CPU core (--mempercore)"
+    )
+    maxjobs: Optional[int] = Field(
+        default=64,
+        description="Maximum concurrent cluster jobs (--maxjobs)"
+    )
+    jobinterval: Optional[int] = Field(
+        default=None,
+        description="Milliseconds between job submissions (--jobinterval)"
+    )
+
+    class Config:
+        extra = "forbid"
+
+
 class CellRangerGEXConfig(BaseStepConfig):
     """Cell Ranger GEX (Gene Expression) configuration."""
 
@@ -49,22 +76,10 @@ class CellRangerGEXConfig(BaseStepConfig):
         description="Maximum runtime in minutes for the SLURM job"
     )
     
-    # Cell Ranger job submission options: https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode
-    jobmode: Optional[str] = Field(
+    cluster_mode: Optional[ClusterModeConfig] = Field(
         default=None,
-        description="Cell Ranger's --jobmode flag: 'local' (default), 'slurm', 'sge', 'lsf', or path to a .template file"
-    )
-    mempercore: Optional[int] = Field(
-        default=None,
-        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag, cluster jobmodes only)"
-    )
-    maxjobs: Optional[int] = Field(
-        default=None,
-        description="Maximum number of jobs submitted at once (Cell Ranger's --maxjobs flag, cluster jobmodes only)"
-    )
-    jobinterval: Optional[int] = Field(
-        default=None,
-        description="Milliseconds between job submissions (Cell Ranger's --jobinterval flag, cluster jobmodes only)"
+        alias="cluster-mode",
+        description="Cell Ranger cluster mode — see https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode"
     )
 
     anndata_threads: int = Field(
@@ -130,22 +145,10 @@ class CellRangerATACConfig(BaseStepConfig):
         description="Maximum runtime in minutes for the SLURM job"
     )
     
-    # Cell Ranger ATAC job submission options: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
-    jobmode: Optional[str] = Field(
+    cluster_mode: Optional[ClusterModeConfig] = Field(
         default=None,
-        description="Cell Ranger's --jobmode flag: 'local' (default), 'slurm', 'sge', 'lsf', or path to a .template file"
-    )
-    mempercore: Optional[int] = Field(
-        default=None,
-        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag, cluster jobmodes only)"
-    )
-    maxjobs: Optional[int] = Field(
-        default=None,
-        description="Maximum number of jobs submitted at once (Cell Ranger's --maxjobs flag, cluster jobmodes only)"
-    )
-    jobinterval: Optional[int] = Field(
-        default=None,
-        description="Milliseconds between job submissions (Cell Ranger's --jobinterval flag, cluster jobmodes only)"
+        alias="cluster-mode",
+        description="Cell Ranger cluster mode — see https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode"
     )
 
     anndata_threads: int = Field(
@@ -224,22 +227,10 @@ class CellRangerARCConfig(BaseStepConfig):
         description="Maximum runtime in minutes for the SLURM job"
     )
     
-    # Cell Ranger ARC job submission options: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode
-    jobmode: Optional[str] = Field(
+    cluster_mode: Optional[ClusterModeConfig] = Field(
         default=None,
-        description="Cell Ranger's --jobmode flag: 'local' (default), 'slurm', 'sge', 'lsf', or path to a .template file"
-    )
-    mempercore: Optional[int] = Field(
-        default=None,
-        description="GB of RAM per CPU core (Cell Ranger's --mempercore flag, cluster jobmodes only)"
-    )
-    maxjobs: Optional[int] = Field(
-        default=None,
-        description="Maximum number of jobs submitted at once (Cell Ranger's --maxjobs flag, cluster jobmodes only)"
-    )
-    jobinterval: Optional[int] = Field(
-        default=None,
-        description="Milliseconds between job submissions (Cell Ranger's --jobinterval flag, cluster jobmodes only)"
+        alias="cluster-mode",
+        description="Cell Ranger cluster mode — see https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode"
     )
 
     class DirectoryConfig(DirectoryConfig):
