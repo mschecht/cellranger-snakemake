@@ -86,6 +86,18 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 - **IMPORTANT:** Add traceability to **both** GEX and ATAC modalities
 - **Output:** `.h5mu` (MuData)
 
+### Cluster Mode
+
+- GEX: https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode
+- ATAC: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
+- ARC: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode
+
+Key notes:
+- All three tools support `--jobmode=slurm` natively
+- `--mempercore`: leave `null` for SLURM (memory requested directly via `--mem=__MRO_MEM_GB__G` in the template; no effect on SLURM). SGE/LSF only: scales `__MRO_THREADS__` to proxy memory on clusters without independent memory allocation
+- `--overrides`: intentionally not exposed in our schema
+- Sub-job CPUs/memory are hardcoded in Cell Ranger's MRO stage definitions and are not configurable
+
 ---
 
 ## Code Style & Conventions
