@@ -65,31 +65,43 @@ echo -e "1\tL001\tatac_pbmc_1k_nextgem\t$(realpath atac_pbmc_1k_nextgem_fastqs)"
 
 > 📌 **Note**: The `fastqs` column must be an absolute path — `cellranger-atac` will fail with relative paths. The `$(realpath ...)` call above handles this automatically.
 
-Then update `pipeline_config.yaml` to point to the file:
+3. Update `pipeline_config.yaml`
+
+Fill in any other required paths (e.g. path to `libaries.tsv` which points to your input fasta files), parameters, as well as enabled/disable and steps so the workflow fits your single-cell preprocessing needs. Today, we will be running `cellranger-atac count` to map the single-cell RNAseq data and `Scrublet` to identify doublets.
+
+For this case study, `pipeline_config.yaml` should look like this: 
 
 ```yaml
-project_name: 1K_PBMC_ATAC_PROCESSED
-output_dir: 1K_PBMC_ATAC_PROCESSED
+project_name: 1K_PBMC_ATAC_PROCESSED  # REQUIRED
+output_dir: 1K_PBMC_ATAC_PROCESSED  # REQUIRED
+
 resources:
-  mem_gb: 32
-  tmpdir: ''
-directories_suffix: none
+  mem_gb: 32  # default memory; individual steps override this with their own mem_gb
+  tmpdir: ""  # temp directory for large file operations
+
+directories_suffix: none  # suffix appended to output directory names; "none" to disable
+
 cellranger_atac:
   enabled: true
-  reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A # <- add the correct path!
-  libraries: libraries.tsv
-  chemistry: auto
-  normalize: none
+  reference: /project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0  # REQUIRED
+  libraries: libraries.tsv  # REQUIRED: TSV with columns: batch, capture, sample, fastqs
+  chemistry: auto  # options: auto, ARC-v1
+  normalize: none  # options: none, depth
   threads: 10
   mem_gb: 64
-  runtime_minutes: 720  # max SLURM job runtime in minutes (default: 720 = 12 hours)
+  runtime_minutes: 720
+  cluster-mode:          # cellranger-atac cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
+    enabled: false       # set true to submit Cell Ranger ATAC jobs via a cluster scheduler
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
   anndata_threads: 1
-  anndata_mem_gb: 16
-  directories:
-    LOGS_DIR: 00_LOGS
+  anndata_mem_gb: 32  # SnapATAC2 fragment sorting requires extra memory
+
 doublet_detection:
-  enabled: true
-  method: scrublet
+  enabled: True
+  method: scrublet  # only supported method
   threads: 1
   mem_gb: 16
   scrublet:
@@ -99,7 +111,29 @@ doublet_detection:
     min_gene_variability_pctl: 85.0
     n_prin_comps: 30
     sim_doublet_ratio: 2.0
+    threshold: null  # doublet score cutoff; auto-determined if null
+    n_neighbors: null  # KNN neighbors; auto-set to 0.5*sqrt(n_obs) if null
     random_state: 0
+
+demultiplexing:
+  enabled: false
+  method: vireo  # options: demuxalot, vireo — only the selected method is used
+  demuxalot:  # genotype-based; GEX only
+    vcf: /path/to/genotypes.vcf  # REQUIRED
+    genome_names: /path/to/genome_names.txt  # REQUIRED
+    refine: false  # run genotype refinement step
+    celltag: CB
+    umitag: UB
+  vireo:  # SNP-based; works with all modalities
+    donors: 4  # REQUIRED: number of donors
+    cellsnp:
+      vcf: /path/to/variants.vcf  # REQUIRED
+      threads: 4
+      min_maf: 0.0
+      min_count: 1
+      umi_tag: Auto
+      cell_tag: CB
+      gzip: true
 ```
 
 ## Run the tool 
@@ -183,6 +217,8 @@ Here we will break down the meaning of each rule so you can keep track of what's
 sc-preprocess run --config-file pipeline_config.yaml --cores 1
 ```
 
+The parameter `--cores` is a `Snakemake` argument that defines the maximum number of CPU cores `Snakemake` can use at any given time across all running tasks locally. You can read about it [here](https://snakemake.readthedocs.io/en/v7.19.0/executing/cli.html#useful-command-line-arguments). 
+
 ### Snakemake arguments
 
 We added the parameter `--snakemake-args` to send arguments straight to `Snakemake`!
@@ -208,9 +244,11 @@ sc-preprocess run --config-file pipeline_config.yaml \
 
 ## Run jobs in parallel!
 
-Make a Snakemake SLURM [configuration file](https://snakemake.readthedocs.io/en/v7.19.1/executing/cli.html#profiles)
+Snakemake shines when jobs can be run in parallel across multiple nodes in a cloud or HPC environment. Here, we will discuss how to leverage SLURM but Snakemake can easily be plugged in other HPC environments.You can read more about the `Snakemake` SLURM [configuration file here](https://snakemake.readthedocs.io/en/v7.19.1/executing/cli.html#profiles).
 
 > 📌 **Note**: Replace the BASH variables `SLURM_ACCOUNT` and `SLURM_PARTITION` with your SLURM appropriate setting before running the script below.
+
+Here is a quick way to make the SLURM HPC profile: 
 
 ```bash
 # Set your SLURM account and partition
@@ -233,6 +271,8 @@ rerun-incomplete: true
 EOF
 ```
 
+Now you can run it like this: 
+
 ```bash
 # HPC execution - `--cores all` tells Snakemake to use the `threads` assigned to each rule.
 sc-preprocess run --config-file pipeline_config.yaml \
@@ -240,38 +280,110 @@ sc-preprocess run --config-file pipeline_config.yaml \
                              --snakemake-args --profile HPC_profiles --keep-going
 ```
 
-### Cell Ranger cluster mode
+#### Parallel computing example
 
-By default, `cellranger-atac count` runs all of its internal pipeline stages on the same node as the Snakemake job. On large datasets this can be slow because Cell Ranger ATAC is limited to the cores allocated to that single SLURM job.
+Here are two snippets from the files, `HPC_profiles/config.yaml` and `pipeline_config.yaml`, and how they would manifest if launched on an HPC
+ 
 
-**Cluster mode** lets Cell Ranger ATAC submit each of its internal pipeline stages as independent SLURM jobs, parallelizing the work across your cluster. You can read about how to set it up [here](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode)
+`HPC_profiles/config.yaml`
 
-To enable, add `jobmode` and related fields to `cellranger_atac` in your config:
+```yaml
+executor: slurm
+jobs: 10
+default-resources:
+- slurm_account=pi-lbarreiro
+- slurm_partition=lbarreiro
+- runtime=720
+retries: 2
+latency-wait: 60
+printshellcmds: true
+keep-going: true
+rerun-incomplete: true
+```
+
+- `jobs` = how many SLURM jobs Snakemake submits simultaneously to any node. Each Snakemake rule execution is one job.
+
+
+`pipeline_config.yaml`
 
 ```yaml
 cellranger_atac:
   enabled: true
-  reference: /path/to/refdata-cellranger-arc-GRCh38-2024-A
-  libraries: libraries.tsv
-  chemistry: auto
-  normalize: none
-  threads: 1        # lightweight — just the cellranger-atac count wrapper process
-  mem_gb: 8         # memory for the wrapper job only
-  jobmode: slurm    # Cell Ranger ATAC submits its own SLURM subjobs
-  mempercore: 8     # GB of RAM per core on your cluster nodes
-  maxjobs: 64       # max Cell Ranger ATAC subjobs running at once
-  directories:
-    LOGS_DIR: 00_LOGS
+  reference: /project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0  # REQUIRED
+  libraries: libraries.tsv  # REQUIRED: TSV with columns: batch, capture, sample, fastqs
+  chemistry: auto  # options: auto, ARC-v1
+  normalize: none  # options: none, depth
+  threads: 10
+  mem_gb: 64
+  runtime_minutes: 720
+  cluster-mode:          # cellranger-atac cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
+    enabled: false       # set true to submit Cell Ranger ATAC jobs via a cluster scheduler
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
+  anndata_threads: 1
+  anndata_mem_gb: 32  # SnapATAC2 fragment sorting requires extra memory
 ```
+
+Running `sc-processes` with the files above will look like this across your HPC: 
+
+```
+jobs: 10
+  └─ job 1: cellranger_atac_count (batch1_L001) → 1 node, 10 CPUs, 64 GB, 720 min
+  └─ job 2: create_atac_anndata   (batch1_L001) → 1 node,  1 CPU,  32 GB, 720 min
+  └─ ...up to 10 running at once
+```
+
+### Cell Ranger cluster-mode
+
+By default, `cellranger-atac count` runs all of its internal pipeline stages on the same node as the Snakemake job. On large datasets this can be slow because Cell Ranger ATAC is limited to the cores allocated to that single SLURM job.
+
+**Cluster-mode** lets Cell Ranger ATAC submit each of its internal pipeline stages as independent SLURM jobs, parallelizing the work across your cluster. You can read about how to set it up on the 10X website here: [https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode](https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode).
+
+Here are some descriptions of the `cluster-mode` parameters in `pipeline_config.yaml`:
 
 | Field | Description |
 |-------|-------------|
+| `enabled` | `true` to activate cluster-mode; `false` (default) runs everything on the wrapper node |
 | `jobmode` | `slurm`, `sge`, `lsf`, or a path to a custom `.template` file |
-| `mempercore` | GB of RAM per CPU core on your cluster nodes — tells Cell Ranger ATAC how to size its subjobs |
+| `mempercore` | **SLURM users: leave `null`** — SLURM requests memory directly via `--mem` and this parameter has no effect. SGE/LSF only: set to GB per core to scale thread requests on clusters without independent memory allocation |
 | `maxjobs` | Maximum number of Cell Ranger ATAC subjobs submitted at once |
 | `jobinterval` | Milliseconds between job submissions (optional, default is fine) |
 
-> 📌 **Note**: When `jobmode` is set to `slurm`, the `threads` and `mem_gb` fields apply to the lightweight Snakemake wrapper job only — not to Cell Ranger ATAC's internal compute. Reduce them to `threads: 1` and `mem_gb: 8`. Cell Ranger ATAC sizes its own subjobs using `mempercore`.
+To enable, add a `cluster-mode:` block with `enabled: true` to `cellranger_atac` in your config:
+
+```yaml
+cellranger_atac:
+  enabled: true
+  reference: /path/to/cellranger-atac/reference  # REQUIRED
+  libraries: /path/to/libraries.tsv  # REQUIRED: TSV with columns: batch, capture, sample, fastqs
+  chemistry: auto  # options: auto, ARC-v1
+  normalize: none  # options: none, depth
+  threads: 10
+  mem_gb: 64
+  runtime_minutes: 720
+  cluster-mode:          # cellranger-atac cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
+    enabled: false       # set true to submit Cell Ranger ATAC jobs via a cluster scheduler
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
+  anndata_threads: 1
+  anndata_mem_gb: 32  # SnapATAC2 fragment sorting requires extra memory
+```
+
+With `cluster-mode` enabled in the files above, running `sc-processes` will look like this across your HPC: 
+
+```
+jobs: 10
+  └─ job 1: cellranger_atac_count (batch1_L001) → 1 node, 10 CPUs, 64 GB  ← launcher
+                └─ CR sub-job 1 → separate SLURM job (managed by Cell Ranger, not Snakemake)
+                └─ CR sub-job 2 → separate SLURM job
+                └─ ... up to maxjobs: 64
+  └─ job 2: create_atac_anndata   (batch1_L001) → 1 node,  1 CPU,  32 GB
+```
+
 
 You can confirm cluster mode is active by checking the log file — each pipeline stage will show `(run:slurm)` instead of `(run:local)`:
 
