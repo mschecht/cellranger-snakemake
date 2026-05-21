@@ -34,6 +34,6 @@ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dag | dot -Tpng
 
 ## What happens when a Cell Ranger cluster-mode job is killed?
 
-When `jobmode` is set to `slurm` (or another scheduler), Cell Ranger's Martian runtime saves checkpoints after each completed stage. If the job is killed mid-run, Cell Ranger leaves a `_lock` file in the output directory. You read more about Cell Ranger cluster mode [here](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode).
+When `cluster-mode` is enabled with `jobmode: slurm` (or another scheduler), Cell Ranger's Martian runtime saves checkpoints after each completed stage. If the job is killed mid-run, Cell Ranger leaves a `_lock` file in the output directory. You can read more about Cell Ranger cluster mode [here](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode).
 
 The pipeline automatically removes this `_lock` file when resubmitted, so the job resumes from the last completed stage rather than starting over.
