@@ -13,19 +13,34 @@ class ClusterModeConfig(BaseModel):
         description="Enable cluster mode"
     )
     jobmode: str = Field(
-        description="Cluster backend: slurm, lsf, sge, or path to a .template file"
+        description=(
+            "Job manager to use. Valid options: local (default), sge, lsf, slurm, "
+            "or path to a custom .template file. All three Cell Ranger tools (GEX, ATAC, ARC) "
+            "support 'slurm' natively. The custom path option allows a site-specific template "
+            "with partition/account/time directives."
+        )
     )
     mempercore: Optional[int] = Field(
         default=None,
-        description="GB of RAM per CPU core (--mempercore)"
+        description=(
+            "Reserve enough threads per job to ensure enough memory will be available, "
+            "assuming each core on your cluster has at least this much memory (GB). "
+            "Only applies to cluster jobmodes. "
+            "SLURM users: leave null — the slurm.template requests memory directly via "
+            "--mem=__MRO_MEM_GB__G, so mempercore has no effect on SLURM. "
+            "Set this only for SGE/LSF clusters that cannot allocate memory independently."
+        )
     )
     maxjobs: Optional[int] = Field(
-        default=64,
-        description="Maximum concurrent cluster jobs (--maxjobs)"
+        default=10,
+        description="Maximum concurrent cluster jobs."
     )
     jobinterval: Optional[int] = Field(
         default=None,
-        description="Milliseconds between job submissions (--jobinterval)"
+        description=(
+            "Delay between submitting jobs to cluster, in ms (10x default: 100ms). "
+            "Increase on clusters with strict job submission rate limits."
+        )
     )
 
     class Config:

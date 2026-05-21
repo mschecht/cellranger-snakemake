@@ -5,7 +5,7 @@ project_name: my_project  # REQUIRED
 output_dir: output  # REQUIRED
 
 resources:
-  mem_gb: 32
+  mem_gb: 32  # default memory; individual steps override this with their own mem_gb
   tmpdir: ""  # temp directory for large file operations
 
 directories_suffix: none  # suffix appended to output directory names; "none" to disable
@@ -20,12 +20,12 @@ cellranger_gex:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  cluster-mode:
+  cluster-mode:          # cellranger cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode
     enabled: false       # set true to submit Cell Ranger jobs via a cluster scheduler
-    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
-    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
-    maxjobs: 64          # max concurrent Cell Ranger subjobs (--maxjobs)
-    jobinterval: null    # ms between job submissions (--jobinterval)
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
   anndata_threads: 1
   anndata_mem_gb: 16
 
@@ -71,7 +71,7 @@ project_name: my_project  # REQUIRED
 output_dir: output  # REQUIRED
 
 resources:
-  mem_gb: 32
+  mem_gb: 32  # default memory; individual steps override this with their own mem_gb
   tmpdir: ""  # temp directory for large file operations
 
 directories_suffix: none  # suffix appended to output directory names; "none" to disable
@@ -85,12 +85,12 @@ cellranger_atac:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  cluster-mode:
+  cluster-mode:          # cellranger-atac cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
     enabled: false       # set true to submit Cell Ranger ATAC jobs via a cluster scheduler
-    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
-    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
-    maxjobs: 64          # max concurrent Cell Ranger ATAC subjobs (--maxjobs)
-    jobinterval: null    # ms between job submissions (--jobinterval)
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
   anndata_threads: 1
   anndata_mem_gb: 32  # SnapATAC2 fragment sorting requires extra memory
 
@@ -136,7 +136,7 @@ project_name: my_project  # REQUIRED
 output_dir: output  # REQUIRED
 
 resources:
-  mem_gb: 32
+  mem_gb: 32  # default memory; individual steps override this with their own mem_gb
   tmpdir: ""  # temp directory for large file operations
 
 directories_suffix: none  # suffix appended to output directory names; "none" to disable
@@ -149,12 +149,12 @@ cellranger_arc:
   threads: 10
   mem_gb: 64
   runtime_minutes: 720
-  cluster-mode:
+  cluster-mode:          # cellranger-arc cluster-mode: see https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode
     enabled: false       # set true to submit Cell Ranger ARC jobs via a cluster scheduler
-    jobmode: slurm       # options: slurm, lsf, sge, or path to .template file
-    mempercore: null     # GB RAM per core on cluster nodes (--mempercore)
-    maxjobs: 64          # max concurrent Cell Ranger ARC subjobs (--maxjobs)
-    jobinterval: null    # ms between job submissions (--jobinterval)
+    jobmode: slurm       # slurm | lsf | sge | /path/to/custom.template
+    mempercore: null     # SLURM users: leave null — memory is requested directly via --mem=__MRO_MEM_GB__G
+    maxjobs: 64          # max concurrent cluster subjobs
+    jobinterval: null    # delay between submissions in ms; increase if cluster rate-limits
   anndata_threads: 1
   anndata_mem_gb: 16
 
