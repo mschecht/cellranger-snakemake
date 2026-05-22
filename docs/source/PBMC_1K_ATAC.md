@@ -83,7 +83,7 @@ directories_suffix: none  # suffix appended to output directory names; "none" to
 
 cellranger_atac:
   enabled: true
-  reference: /project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0  # REQUIRED
+  reference: /path/to/reference  # REQUIRED
   libraries: libraries.tsv  # REQUIRED: TSV with columns: batch, capture, sample, fastqs
   chemistry: auto  # options: auto, ARC-v1
   normalize: none  # options: none, depth
@@ -149,7 +149,7 @@ sc-preprocess run -h
 # Dry run
 $ sc-preprocess run --config-file pipeline_config.yaml --cores 1 --dry-run
 [INFO] Config validated. Enabled steps: cellranger_atac, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/sc-preprocess/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
+[INFO] Running Snakemake with command: snakemake --snakefile ~/github/sc-preprocess/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores 1 --use-conda --dry-run
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
 [INFO] ============================================================
@@ -291,8 +291,8 @@ Here are two snippets from the files, `HPC_profiles/config.yaml` and `pipeline_c
 executor: slurm
 jobs: 10
 default-resources:
-- slurm_account=pi-lbarreiro
-- slurm_partition=lbarreiro
+- slurm_account={SLURM-ACCOUNT}
+- slurm_partition={SLURM-PARTITION}
 - runtime=720
 retries: 2
 latency-wait: 60
@@ -309,7 +309,7 @@ rerun-incomplete: true
 ```yaml
 cellranger_atac:
   enabled: true
-  reference: /project/lbarreiro/SHARED/PROGRAMS/refdata-cellranger-arc-GRCh38-2020-A-2.0.0  # REQUIRED
+  reference: /path/to/reference/refdata-cellranger-arc-GRCh38-2020-A-2.0.0  # REQUIRED
   libraries: libraries.tsv  # REQUIRED: TSV with columns: batch, capture, sample, fastqs
   chemistry: auto  # options: auto, ARC-v1
   normalize: none  # options: none, depth
@@ -392,6 +392,9 @@ You can confirm cluster mode is active by checking the log file — each pipelin
 2026-04-13 13:20:37 [runtime] (run:slurm)   ID.1_L001.SC_ATAC_COUNTER_CS.DETECT_CHEMISTRY.fork0.chnk0.main
 ```
 
+> 📌 **Note**: When you configure [cluster-mode template](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode) be aware that you can launch jobs to different partitions and nodes than the `sc-preprocess` jobs which are controlled by the `HPC_profile`.
+
+
 **Resuming a killed run**: If the job is killed mid-run, Cell Ranger ATAC's Martian runtime saves checkpoints after each completed stage. The pipeline automatically removes the `_lock` file left by the killed process, so resubmitting the Snakemake job will resume from the last completed stage rather than starting over.
 
 ## Interpreting STDOUT
@@ -403,7 +406,7 @@ $ sc-preprocess run --config-file pipeline_config.yaml \
 >                              --cores all \
 >                              --snakemake-args --profile HPC_profiles --keep-going
 [INFO] Config validated. Enabled steps: cellranger_atac, doublet_detection
-[INFO] Running Snakemake with command: snakemake --snakefile /project/lbarreiro/USERS/mschechter/github/sc-preprocess/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles --keep-going
+[INFO] Running Snakemake with command: snakemake --snakefile ~/github/sc-preprocess/sc_preprocess/workflows/main.smk --configfile pipeline_config.yaml --cores all --use-conda --profile HPC_profiles --keep-going
 Using profile HPC_profiles for setting default command line arguments.
 [INFO] ============================================================
 [INFO] Single-Cell Preprocessing Pipeline
