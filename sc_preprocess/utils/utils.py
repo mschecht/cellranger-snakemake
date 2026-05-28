@@ -160,20 +160,28 @@ def sanity_check_libraries_list_tsv(filepath, log_file=None, expected_columns=No
                         valid = False
                     else:
                         csv_modified = False
+                        expanded_rows = []
                         for csv_idx, csv_row in lib_csv.iterrows():
-                            fastqs_path = str(csv_row["fastqs"]).strip()
                             csv_loc = f"Row {csv_idx + 2} in '{file_path}'"
-                            if not os.path.isabs(fastqs_path):
-                                abs_fastqs = os.path.abspath(fastqs_path)
-                                custom_logger.warning(f"{csv_loc}: Converting relative path '{fastqs_path}' to absolute path '{abs_fastqs}'")
-                                lib_csv.at[csv_idx, "fastqs"] = abs_fastqs
-                                fastqs_path = abs_fastqs
+                            raw = str(csv_row["fastqs"]).strip()
+                            paths = [p.strip() for p in raw.split(",") if p.strip()]
+                            if len(paths) > 1:
                                 csv_modified = True
-                            if not os.path.exists(fastqs_path):
-                                custom_logger.error(f"{csv_loc}: Path does not exist: {fastqs_path}")
-                                valid = False
-                        if csv_modified:
-                            lib_csv.to_csv(file_path, index=False)
+                            for fastqs_path in paths:
+                                if not os.path.isabs(fastqs_path):
+                                    abs_fastqs = os.path.abspath(fastqs_path)
+                                    custom_logger.warning(f"{csv_loc}: Converting relative path '{fastqs_path}' to absolute path '{abs_fastqs}'")
+                                    fastqs_path = abs_fastqs
+                                    csv_modified = True
+                                if not os.path.exists(fastqs_path):
+                                    custom_logger.error(f"{csv_loc}: Path does not exist: {fastqs_path}")
+                                    valid = False
+                                else:
+                                    new_row = csv_row.copy()
+                                    new_row["fastqs"] = fastqs_path
+                                    expanded_rows.append(new_row)
+                        if csv_modified and expanded_rows:
+                            pd.DataFrame(expanded_rows).to_csv(file_path, index=False)
                 except Exception as e:
                     custom_logger.error(f"{error_location}: Could not read '{file_path}': {e}")
                     valid = False

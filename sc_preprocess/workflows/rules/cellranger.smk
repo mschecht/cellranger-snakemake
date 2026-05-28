@@ -58,7 +58,7 @@ if config.get("cellranger_gex"):
         """Run Cell Ranger count for gene expression data."""
         input:
             reference = GEX_REFERENCE,
-            fastqs = lambda wc: gex_df[gex_df["capture"] == wc.capture]["fastqs"].iloc[0]
+            fastqs = lambda wc: gex_df[gex_df["capture"] == wc.capture]["fastqs"].iloc[0].split(",")
         output:
             h5 = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_feature_bc_matrix.h5"),
             summary = os.path.join(GEX_COUNT_DIR, "{batch}_{capture}", "outs", "web_summary.html"),
@@ -106,7 +106,7 @@ if config.get("cellranger_gex"):
                 cellranger count \\
                     --id={output_id} \\
                     --transcriptome={input.reference} \\
-                    --fastqs={input.fastqs} \\
+                    --fastqs={",".join(input.fastqs)} \\
                     --sample={params.sample_name} \\
                     --create-bam={create_bam_str} \\
                     --chemistry={params.chemistry} \\
@@ -217,7 +217,7 @@ if config.get("cellranger_atac"):
         """Run Cell Ranger ATAC count."""
         input:
             reference = ATAC_REFERENCE,
-            fastqs = lambda wc: atac_df[atac_df["capture"] == wc.capture]["fastqs"].iloc[0]
+            fastqs = lambda wc: atac_df[atac_df["capture"] == wc.capture]["fastqs"].iloc[0].split(",")
         output:
             h5 = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "filtered_peak_bc_matrix.h5"),
             fragments = os.path.join(ATAC_COUNT_DIR, "{batch}_{capture}", "outs", "fragments.tsv.gz"),
@@ -263,7 +263,7 @@ if config.get("cellranger_atac"):
                 cellranger-atac count \\
                     --id={output_id} \\
                     --reference={input.reference} \\
-                    --fastqs={input.fastqs} \\
+                    --fastqs={",".join(input.fastqs)} \\
                     --sample={params.sample_name} \\
                     {cluster_flags} \\
                     2>&1 > {log}
