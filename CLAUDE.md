@@ -10,6 +10,30 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 
 ---
 
+## 10x Genomics Documentation
+
+**Standing instruction:** Before implementing, configuring, or debugging any Cell Ranger feature, fetch the relevant documentation page below. Do not rely on training-data knowledge of Cell Ranger flags or behavior — the manuals are authoritative and version-specific.
+
+### Cell Ranger (GEX)
+- Overview: https://www.10xgenomics.com/support/software/cell-ranger/latest
+- `cellranger count` inputs: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/inputs/cr-specifying-fastqs
+- `cellranger count` outputs: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/outputs/cr-outputs-overview
+- Cluster mode: https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode
+
+### Cell Ranger ATAC
+- Overview: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest
+- `cellranger-atac count` inputs: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/inputs/specifying-input-fastq-files
+- `cellranger-atac count` outputs: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/analysis/outputs/overview-of-outputs
+- Cluster mode: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
+
+### Cell Ranger ARC
+- Overview: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest
+- `cellranger-arc count` inputs: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/inputs/specifying-input-fastq-files
+- `cellranger-arc count` outputs: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/analysis/outputs/overview-of-outputs
+- Cluster mode: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode
+
+---
+
 ## Core Principles
 
 ### 1. Simplicity Over Complexity
@@ -88,9 +112,7 @@ This is a Snakemake pipeline for processing single-cell RNA-seq, ATAC-seq, and m
 
 ### Cluster Mode
 
-- GEX: https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode
-- ATAC: https://www.10xgenomics.com/support/software/cell-ranger-atac/latest/advanced/cluster-mode
-- ARC: https://www.10xgenomics.com/support/software/cell-ranger-arc/latest/advanced/cluster-mode
+See cluster mode links in the **10x Genomics Documentation** section above.
 
 Key notes:
 - All three tools support `--jobmode=slurm` natively
