@@ -4,6 +4,7 @@ import sys
 import os
 import shlex
 import shutil
+import socket
 import argparse
 import subprocess
 
@@ -457,10 +458,31 @@ Examples:
             custom_logger.error("sphinx-autobuild not found. Install it with: pip install sphinx-autobuild")
             sys.exit(1)
 
-        custom_logger.info(f"Serving docs at http://localhost:{args.port} (Ctrl+C to stop)")
+        default_port = 8000
+        port = args.port
+        user_specified = port != default_port
+
+        if not user_specified:
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    try:
+                        s.bind(("127.0.0.1", port))
+                        break
+                    except OSError:
+                        custom_logger.warning(f"Port {port} is in use, trying {port + 1}...")
+                        port += 1
+            else:
+                custom_logger.error(
+                    f"Could not find a free port in range {default_port}–{default_port + max_attempts - 1}. "
+                    f"Use --port to specify one explicitly."
+                )
+                sys.exit(1)
+
+        custom_logger.info(f"Serving docs at http://localhost:{port} (Ctrl+C to stop)")
         try:
             subprocess.run(
-                ["sphinx-autobuild", "source", "build/html", "--port", str(args.port)],
+                ["sphinx-autobuild", "source", "build/html", "--port", str(port)],
                 cwd=docs_dir
             )
         except KeyboardInterrupt:
